@@ -1,0 +1,35 @@
+services:
+  wordpress:
+    image: wordpress:latest
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "8080:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: ${MARIADB_DATABASE:-printforge}
+      WORDPRESS_DB_USER: ${MARIADB_USER:-printforge}
+      WORDPRESS_DB_PASSWORD: ${MARIADB_PASSWORD}
+    volumes:
+      - ../data/wordpress:/var/www/html
+    networks:
+      - printforge
+
+  db:
+    image: mariadb:lts
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-printforge}
+      MARIADB_USER: ${MARIADB_USER:-printforge}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    volumes:
+      - ../data/mariadb:/var/lib/mysql
+    networks:
+      - printforge
+
+networks:
+  printforge:
+    name: printforge
+    external: true

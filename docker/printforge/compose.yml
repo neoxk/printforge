@@ -1,0 +1,34 @@
+services:
+  fastify:
+    image: node:lts-alpine
+    profiles: [server]
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    ports:
+      - "3000:3000"
+    working_dir: /app
+    volumes:
+      - ../../backend:/app
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-printforge}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-printforge}
+      NODE_ENV: production
+    command: sh -c "npm install && npm start"
+    networks:
+      - printforge
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-printforge}
+      POSTGRES_USER: ${POSTGRES_USER:-printforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ../data/postgres:/var/lib/postgresql/data
+    networks:
+      - printforge
+
+networks:
+  printforge:
+    external: true
