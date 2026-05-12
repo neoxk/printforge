@@ -1,0 +1,24 @@
+:80 {
+	redir /pf /pf/
+	redir /pf-admin /pf-admin/
+
+	handle /api {
+		reverse_proxy fastify:3000
+	}
+
+	handle /api/* {
+		reverse_proxy fastify:3000
+	}
+
+	handle /pf-admin/* {
+		reverse_proxy admin:5173
+	}
+
+	handle /pf/* {
+		reverse_proxy configurator:5174
+	}
+
+	handle {
+		reverse_proxy wordpress:80
+	}
+}

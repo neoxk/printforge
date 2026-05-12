@@ -1,7 +1,20 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - fastify
+      - admin
+      - configurator
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      - printforge
+
   fastify:
-    image: node:lts-alpine
-    profiles: [server]
+    image: node:lts
     restart: unless-stopped
     depends_on:
       - postgres
@@ -9,11 +22,43 @@ services:
       - "3000:3000"
     working_dir: /app
     volumes:
-      - ../../backend:/app
+      - ../../:/app
+      - fastify_node_modules:/app/node_modules
+      - fastify_workspace_node_modules:/app/backend/node_modules
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-printforge}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-printforge}
-      NODE_ENV: production
-    command: sh -c "npm install && npm start"
+      DATABASE_URL: postgres://${POSTGRES_USER:-printforge}:${POSTGRES_PASSWORD:-printforge}@postgres:5432/${POSTGRES_DB:-printforge}
+      NODE_ENV: development
+    command: sh -c "npm install && npm run dev:backend"
+    networks:
+      - printforge
+
+  admin:
+    image: node:lts
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - admin_node_modules:/app/node_modules
+      - admin_workspace_node_modules:/app/apps/admin/node_modules
+    environment:
+      VITE_API_PROXY_TARGET: http://fastify:3000
+      VITE_BASE_PATH: /pf-admin/
+    command: sh -c "npm install --include=optional && npm run dev --workspace=apps/admin -- --host 0.0.0.0"
+    networks:
+      - printforge
+
+  configurator:
+    image: node:lts
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ../../:/app
+      - configurator_node_modules:/app/node_modules
+      - configurator_workspace_node_modules:/app/apps/configurator/node_modules
+    environment:
+      VITE_API_PROXY_TARGET: http://fastify:3000
+      VITE_BASE_PATH: /pf/
+    command: sh -c "npm install --include=optional && npm run dev --workspace=apps/configurator -- --host 0.0.0.0"
     networks:
       - printforge
 
@@ -23,11 +68,19 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-printforge}
       POSTGRES_USER: ${POSTGRES_USER:-printforge}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-printforge}
     volumes:
       - ../data/postgres:/var/lib/postgresql/data
     networks:
       - printforge
+
+volumes:
+  fastify_node_modules:
+  fastify_workspace_node_modules:
+  admin_node_modules:
+  admin_workspace_node_modules:
+  configurator_node_modules:
+  configurator_workspace_node_modules:
 
 networks:
   printforge:
