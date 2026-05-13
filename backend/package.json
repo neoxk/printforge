@@ -7,16 +7,31 @@
   "scripts": {
     "dev": "tsx watch index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "fastify": "^5.0.0",
     "@fastify/cors": "^10.0.0",
-    "@fastify/multipart": "^9.0.0"
+    "@fastify/multipart": "^9.0.0",
+    "@prisma/client": "^6.0.0",
+    "@fastify/jwt": "^9.0.0",
+    "@fastify/auth": "^5.0.0",
+    "bcrypt": "^5.0.0",
+    "zod": "^3.0.0",
+    "fastify-type-provider-zod": "^4.0.0"
   },
   "devDependencies": {
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "@types/bcrypt": "^5.0.0",
+    "prisma": "^6.0.0",
+    "vitest": "^2.0.0",
+    "@vitest/coverage-v8": "^2.0.0"
   }
 }

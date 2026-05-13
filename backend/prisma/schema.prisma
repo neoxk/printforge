@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum OptionType {
+  select
+  boolean
+  integer
+  decimal
+
+  @@map("option_type")
+}
+
+enum PricingRuleType {
+  flat_surcharge
+  percentage
+  quantity_discount
+
+  @@map("pricing_rule_type")
+}
+
+enum PricingRuleOperator {
+  eq
+  gte
+  lte
+
+  @@map("pricing_rule_operator")
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String @unique @db.VarChar(255)
+  passwordHash String @map("password_hash") @db.VarChar(255)
+
+  @@map("users")
+}
+
+// ─── Option Definitions ──────────────────────────────────────────────────────
+
+model OptionGroup {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String     @unique @db.VarChar(100)
+  label      String     @db.VarChar(100)
+  optionType OptionType @map("option_type")
+  unit       String?    @db.VarChar(20)
+  isRequired Boolean    @default(true) @map("is_required")
+  sortOrder  Int        @default(0) @map("sort_order")
+
+  values         OptionValue[]
+  productOptions ProductOption[]
+  pricingRules   PricingRule[]
+
+  @@map("option_groups")
+}
+
+model OptionValue {
+  id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  optionGroupId String  @map("option_group_id") @db.Uuid
+  value         String  @db.VarChar(100)
+  label         String  @db.VarChar(100)
+  isDefault     Boolean @default(false) @map("is_default")
+  sortOrder     Int     @default(0) @map("sort_order")
+
+  optionGroup OptionGroup @relation(fields: [optionGroupId], references: [id])
+
+  @@unique([optionGroupId, value], name: "uq_option_group_value")
+  @@index([optionGroupId])
+  @@map("option_values")
+}
+
+// ─── Product ↔ Option Mapping ────────────────────────────────────────────────
+
+model ProductOption {
+  id            String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  wooProductId  BigInt @map("woo_product_id")
+  optionGroupId String @map("option_group_id") @db.Uuid
+  sortOrder     Int    @default(0) @map("sort_order")
+
+  optionGroup OptionGroup @relation(fields: [optionGroupId], references: [id])
+
+  @@unique([wooProductId, optionGroupId], name: "uq_woo_product_option_group")
+  @@index([wooProductId])
+  @@map("product_options")
+}
+
+// ─── Pricing Rules ───────────────────────────────────────────────────────────
+
+model PricingRule {
+  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId     BigInt              @map("product_id")
+  optionGroupId String?             @map("option_group_id") @db.Uuid
+  operator      PricingRuleOperator
+  triggerValue  String              @map("trigger_value") @db.VarChar(50)
+  ruleType      PricingRuleType     @map("rule_type")
+  amount        Decimal             @db.Decimal(10, 4)
+  description   String?             @db.VarChar(255)
+  isActive      Boolean             @default(true) @map("is_active")
+
+  optionGroup OptionGroup? @relation(fields: [optionGroupId], references: [id])
+
+  @@index([productId])
+  @@index([optionGroupId])
+  @@index([isActive])
+  @@map("pricing_rules")
+}
