@@ -34,14 +34,96 @@ enum PricingRuleOperator {
   @@map("pricing_rule_operator")
 }
 
+enum WooAuthMethod {
+  public_store_api
+  consumer_keys
+
+  @@map("woo_auth_method")
+}
+
+enum ValidationSeverity {
+  Critical
+  Warning
+  Info
+
+  @@map("validation_severity")
+}
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 model User {
   id           String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String @db.VarChar(120)
+  tenantName   String @map("tenant_name") @db.VarChar(160)
   email        String @unique @db.VarChar(255)
   passwordHash String @map("password_hash") @db.VarChar(255)
 
   @@map("users")
+}
+
+model IntegrationConnection {
+  id                      String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  connectionName          String        @map("connection_name") @db.VarChar(120)
+  storeUrl                String        @map("store_url") @db.VarChar(255)
+  restApiBase             String        @map("rest_api_base") @db.VarChar(255)
+  authMethod              WooAuthMethod @map("auth_method")
+  consumerKey             String?       @map("consumer_key") @db.VarChar(255)
+  consumerSecret          String?       @map("consumer_secret") @db.VarChar(255)
+  apiStatus               String        @default("Not tested") @map("api_status") @db.VarChar(80)
+  lastSync                DateTime?     @map("last_sync")
+  mode                    String        @default("Manual sync with audit trail") @db.VarChar(120)
+  importPublishedProducts Boolean       @default(true) @map("import_published_products")
+  importAttributes        Boolean       @default(true) @map("import_attributes")
+  importVariations        Boolean       @default(true) @map("import_variations")
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+
+  syncedProducts      SyncedProduct[]
+  productConfigurations ProductConfiguration[]
+
+  @@map("integration_connections")
+}
+
+model SyncedProduct {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  connectionId     String   @map("connection_id") @db.Uuid
+  wooProductId     BigInt   @map("woo_product_id")
+  name             String   @db.VarChar(255)
+  category         String   @db.VarChar(255)
+  status           String   @db.VarChar(80)
+  syncStatus       String   @map("sync_status") @db.VarChar(120)
+  sku              String   @db.VarChar(255)
+  material         String   @db.VarChar(255)
+  printArea        String   @map("print_area") @db.VarChar(255)
+  template         String   @db.VarChar(255)
+  basePrice        String   @map("base_price") @db.VarChar(80)
+  updatedAtLabel   String   @map("updated_at_label") @db.VarChar(120)
+  importedFields   Json?    @map("imported_fields")
+  rawPayload       Json?    @map("raw_payload")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  connection IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, wooProductId], name: "uq_synced_product_connection_woo_id")
+  @@index([connectionId])
+  @@map("synced_products")
+}
+
+model ProductConfiguration {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  connectionId String   @map("connection_id") @db.Uuid
+  wooProductId BigInt   @map("woo_product_id")
+  fields       Json
+  savedAt      DateTime @map("saved_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  connection IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, wooProductId], name: "uq_product_configuration_connection_woo_id")
+  @@index([connectionId])
+  @@map("product_configurations")
 }
 
 // ─── Option Definitions ──────────────────────────────────────────────────────
@@ -96,14 +178,19 @@ model ProductOption {
 
 model PricingRule {
   id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String              @db.VarChar(120)
   productId     BigInt              @map("product_id")
   optionGroupId String?             @map("option_group_id") @db.Uuid
+  triggerLabel  String              @default("General") @map("trigger_label") @db.VarChar(120)
   operator      PricingRuleOperator
   triggerValue  String              @map("trigger_value") @db.VarChar(50)
   ruleType      PricingRuleType     @map("rule_type")
   amount        Decimal             @db.Decimal(10, 4)
   description   String?             @db.VarChar(255)
+  status        String              @default("Draft") @db.VarChar(40)
   isActive      Boolean             @default(true) @map("is_active")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
 
   optionGroup OptionGroup? @relation(fields: [optionGroupId], references: [id])
 
@@ -111,4 +198,17 @@ model PricingRule {
   @@index([optionGroupId])
   @@index([isActive])
   @@map("pricing_rules")
+}
+
+model ValidationRule {
+  id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String             @db.VarChar(120)
+  summary     String             @db.VarChar(255)
+  severity    ValidationSeverity
+  isActive    Boolean            @default(true) @map("is_active")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("validation_rules")
 }

@@ -1,4 +1,12 @@
 import { z } from 'zod'
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+const localEnvPath = resolve(process.cwd(), '.env')
+
+if (existsSync(localEnvPath)) {
+  process.loadEnvFile(localEnvPath)
+}
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(3000),

@@ -6,9 +6,10 @@ import { ZodTypeProvider, serializerCompiler, validatorCompiler } from 'fastify-
 import { env } from './config/env.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { authRoutes } from './modules/auth/auth.routes.js'
+import { integrationRoutes } from './modules/integration/integration.routes.js'
 import { productsRoutes } from './modules/products/products.routes.js'
 import { pricingRoutes } from './modules/pricing/pricing.routes.js'
-import { designerRoutes } from './modules/designer/designer.routes.js'
+import { validationRoutes } from './modules/validation/validation.routes.js'
 
 export async function createApp() {
   const app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>()
@@ -36,9 +37,10 @@ export async function createApp() {
   await app.register(auth)
 
   await app.register(authRoutes, { prefix: '/api/auth' })
+  await app.register(integrationRoutes, { prefix: '/api/integration' })
   await app.register(productsRoutes, { prefix: '/api/products' })
   await app.register(pricingRoutes, { prefix: '/api/pricing' })
-  await app.register(designerRoutes, { prefix: '/api/designer' })
+  await app.register(validationRoutes, { prefix: '/api/validation' })
 
   return app
 }
