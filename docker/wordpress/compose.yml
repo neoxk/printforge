@@ -8,9 +8,8 @@ services:
       - "8080:80"
     environment:
       WORDPRESS_DB_HOST: db
-      WORDPRESS_DB_NAME: ${MARIADB_DATABASE:-printforge}
-      WORDPRESS_DB_USER: ${MARIADB_USER:-printforge}
-      WORDPRESS_DB_PASSWORD: ${MARIADB_PASSWORD:-printforge}
+    env_file:
+      - .env
     volumes:
       - ../data/wordpress:/var/www/html
     networks:
@@ -19,11 +18,8 @@ services:
   db:
     image: mariadb:lts
     restart: unless-stopped
-    environment:
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-printforge}
-      MARIADB_DATABASE: ${MARIADB_DATABASE:-printforge}
-      MARIADB_USER: ${MARIADB_USER:-printforge}
-      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-printforge}
+    env_file:
+      - .env
     volumes:
       - ../data/mariadb:/var/lib/mysql
     networks:
