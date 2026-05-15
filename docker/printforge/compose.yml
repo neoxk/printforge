@@ -1,38 +1,4 @@
 services:
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    depends_on:
-      - fastify
-      - admin
-      - configurator
-    ports:
-      - "80:80"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-    networks:
-      - printforge
-
-  fastify:
-    image: node:lts
-    restart: unless-stopped
-    depends_on:
-      - postgres
-    ports:
-      - "3000:3000"
-    working_dir: /app
-    volumes:
-      - ../../:/app
-      - fastify_node_modules:/app/node_modules
-      - fastify_workspace_node_modules:/app/backend/node_modules
-    env_file:
-      - .env
-    environment:
-      NODE_ENV: development
-    command: sh -c "npm install && npm run dev:backend"
-    networks:
-      - printforge
-
   admin:
     image: node:lts
     restart: unless-stopped
