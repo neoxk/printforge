@@ -78,137 +78,86 @@ model IntegrationConnection {
   createdAt               DateTime      @default(now()) @map("created_at")
   updatedAt               DateTime      @updatedAt @map("updated_at")
 
-  syncedProducts      SyncedProduct[]
-  productConfigurations ProductConfiguration[]
+  syncedProducts Product[]
 
   @@map("integration_connections")
 }
 
-model SyncedProduct {
+model Product {
   id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   connectionId     String   @map("connection_id") @db.Uuid
   wooProductId     BigInt   @map("woo_product_id")
   name             String   @db.VarChar(255)
   category         String   @db.VarChar(255)
   status           String   @db.VarChar(80)
-  syncStatus       String   @map("sync_status") @db.VarChar(120)
   sku              String   @db.VarChar(255)
-  material         String   @db.VarChar(255)
-  printArea        String   @map("print_area") @db.VarChar(255)
-  template         String   @db.VarChar(255)
   basePrice        String   @map("base_price") @db.VarChar(80)
-  updatedAtLabel   String   @map("updated_at_label") @db.VarChar(120)
+  width            Decimal? @db.Decimal(10, 2)
+  height           Decimal? @db.Decimal(10, 2)
   importedFields   Json?    @map("imported_fields")
-  rawPayload       Json?    @map("raw_payload")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   connection IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  optionsContainers ProductOptionsContainer[]
 
   @@unique([connectionId, wooProductId], name: "uq_synced_product_connection_woo_id")
   @@index([connectionId])
   @@map("synced_products")
 }
 
-model ProductConfiguration {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  connectionId String   @map("connection_id") @db.Uuid
-  wooProductId BigInt   @map("woo_product_id")
-  fields       Json
-  savedAt      DateTime @map("saved_at")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  connection IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+// ─── Product Options ─────────────────────────────────────────────────────────
 
-  @@unique([connectionId, wooProductId], name: "uq_product_configuration_connection_woo_id")
-  @@index([connectionId])
-  @@map("product_configurations")
+model OptionsContainer {
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String @db.VarChar(120)
+
+  products ProductOptionsContainer[]
+  items    OptionItem[]
+
+  @@map("options_containers")
 }
 
-// ─── Option Definitions ──────────────────────────────────────────────────────
+model ProductOptionsContainer {
+  id                 String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId          String @map("product_id") @db.Uuid
+  optionsContainerId String @map("options_container_id") @db.Uuid
 
-model OptionGroup {
-  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String     @unique @db.VarChar(100)
-  label      String     @db.VarChar(100)
-  optionType OptionType @map("option_type")
-  unit       String?    @db.VarChar(20)
-  isRequired Boolean    @default(true) @map("is_required")
-  sortOrder  Int        @default(0) @map("sort_order")
+  product          Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  optionsContainer OptionsContainer @relation(fields: [optionsContainerId], references: [id], onDelete: Cascade)
 
-  values         OptionValue[]
-  productOptions ProductOption[]
-  pricingRules   PricingRule[]
-
-  @@map("option_groups")
+  @@unique([productId, optionsContainerId], name: "uq_product_options_container")
+  @@index([optionsContainerId])
+  @@map("product_options_containers")
 }
 
-model OptionValue {
-  id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  optionGroupId String  @map("option_group_id") @db.Uuid
-  value         String  @db.VarChar(100)
-  label         String  @db.VarChar(100)
-  isDefault     Boolean @default(false) @map("is_default")
-  sortOrder     Int     @default(0) @map("sort_order")
+model OptionsGroup {
+  id   String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name String @unique @db.VarChar(120)
 
-  optionGroup OptionGroup @relation(fields: [optionGroupId], references: [id])
+  items OptionItem[]
 
-  @@unique([optionGroupId, value], name: "uq_option_group_value")
+  @@map("options_groups")
+}
+
+model OptionItem {
+  id                 String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  optionsContainerId String  @map("options_container_id") @db.Uuid
+  optionGroupId      String  @map("option_group_id") @db.Uuid
+  name               String  @db.VarChar(120)
+  slug               String  @db.VarChar(120)
+  priceUnit          Decimal @map("price_unit") @db.Decimal(12, 4)
+  length             Int?    @map("process_length_mm")
+  width              Int?    @map("process_width_mm")
+  calculationBasis   String  @map("calculation_basis") @db.VarChar(80)
+  displayMode        String  @default("SELECTABLE") @map("display_mode") @db.VarChar(20)
+
+  optionsContainer OptionsContainer @relation(fields: [optionsContainerId], references: [id], onDelete: Cascade)
+  optionGroup      OptionsGroup     @relation(fields: [optionGroupId], references: [id])
+
+  @@unique([optionsContainerId, slug], name: "uq_option_item_container_slug")
+  @@index([optionsContainerId])
   @@index([optionGroupId])
-  @@map("option_values")
-}
-
-// ─── Product ↔ Option Mapping ────────────────────────────────────────────────
-
-model ProductOption {
-  id            String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  wooProductId  BigInt @map("woo_product_id")
-  optionGroupId String @map("option_group_id") @db.Uuid
-  sortOrder     Int    @default(0) @map("sort_order")
-
-  optionGroup OptionGroup @relation(fields: [optionGroupId], references: [id])
-
-  @@unique([wooProductId, optionGroupId], name: "uq_woo_product_option_group")
-  @@index([wooProductId])
-  @@map("product_options")
-}
-
-// ─── Pricing Rules ───────────────────────────────────────────────────────────
-
-model PricingRule {
-  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name          String              @db.VarChar(120)
-  productId     BigInt              @map("product_id")
-  optionGroupId String?             @map("option_group_id") @db.Uuid
-  triggerLabel  String              @default("General") @map("trigger_label") @db.VarChar(120)
-  operator      PricingRuleOperator
-  triggerValue  String              @map("trigger_value") @db.VarChar(50)
-  ruleType      PricingRuleType     @map("rule_type")
-  amount        Decimal             @db.Decimal(10, 4)
-  description   String?             @db.VarChar(255)
-  status        String              @default("Draft") @db.VarChar(40)
-  isActive      Boolean             @default(true) @map("is_active")
-  createdAt     DateTime            @default(now()) @map("created_at")
-  updatedAt     DateTime            @updatedAt @map("updated_at")
-
-  optionGroup OptionGroup? @relation(fields: [optionGroupId], references: [id])
-
-  @@index([productId])
-  @@index([optionGroupId])
-  @@index([isActive])
-  @@map("pricing_rules")
-}
-
-model ValidationRule {
-  id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String             @db.VarChar(120)
-  summary     String             @db.VarChar(255)
-  severity    ValidationSeverity
-  isActive    Boolean            @default(true) @map("is_active")
-  createdAt   DateTime           @default(now()) @map("created_at")
-  updatedAt   DateTime           @updatedAt @map("updated_at")
-
-  @@index([isActive])
-  @@map("validation_rules")
+  @@map("option_items")
 }
