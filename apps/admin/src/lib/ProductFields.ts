@@ -1,4 +1,4 @@
-import type { ProductField } from '../types/domain'
+import type { ProductField } from '@printforge/ui'
 
 function createFieldId(productId: string) {
   return `${productId}-custom-${Date.now()}`

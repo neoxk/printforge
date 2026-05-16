@@ -1,9 +1,3 @@
-export type DashboardMetric = {
-  label: string
-  value: string
-  trend: string
-}
-
 export type IntegrationStatus = {
   connectionName: string
   storeUrl: string

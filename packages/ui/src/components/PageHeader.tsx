@@ -7,12 +7,7 @@ type PageHeaderProps = {
   actions?: ReactNode
 }
 
-export function PageHeader({
-  eyebrow,
-  title,
-  description,
-  actions,
-}: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, description, actions }: PageHeaderProps) {
   return (
     <section className="page-header">
       <div>

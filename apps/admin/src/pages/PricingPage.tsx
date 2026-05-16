@@ -1,8 +1,7 @@
 import { PlusCircle, WandSparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useAppAlerts } from '@printforge/ui'
-import { PageHeader } from '../components/PageHeader'
-import { SectionCard } from '../components/SectionCard'
+import { PageHeader, SectionCard, useAppAlerts } from '@printforge/ui'
+import type { PricingCalculation, PricingRule, ProductField, ProductRecord } from '@printforge/ui'
 import {
   calculatePriceRequest,
   createPricingRuleRequest,
@@ -10,12 +9,11 @@ import {
   getProductOptionsRequest,
   getProductsRequest,
 } from '../lib/Api'
-import type { PricingCalculation, PricingRule, ProductField, ProductRecord } from '../types/domain'
 
-function buildInitialOptionState(fields: ProductField[]) {
-  return fields.reduce<Record<string, string>>((nextState, field) => {
-    nextState[field.key] = field.options[0]?.value ?? ''
-    return nextState
+function buildInitialOptionState(fields: ProductField[]): Record<string, string> {
+  return fields.reduce<Record<string, string>>((acc, field) => {
+    acc[field.key] = field.options[0]?.value ?? ''
+    return acc
   }, {})
 }
 
@@ -87,11 +85,11 @@ export function PricingPage() {
   }, [selectedProductId])
 
   function updateFormState<K extends keyof typeof formState>(key: K, value: (typeof formState)[K]) {
-    setFormState((currentValue) => ({ ...currentValue, [key]: value }))
+    setFormState((current) => ({ ...current, [key]: value }))
   }
 
   function updatePreviewOption(key: string, value: string) {
-    setSelectedOptions((currentValue) => ({ ...currentValue, [key]: value }))
+    setSelectedOptions((current) => ({ ...current, [key]: value }))
   }
 
   async function createRule() {
@@ -99,13 +97,8 @@ export function PricingPage() {
 
     try {
       const nextRule = await createPricingRuleRequest(formState)
-      setRules((currentValue) => [nextRule, ...currentValue])
-      setFormState({
-        name: '',
-        summary: '',
-        trigger: '',
-        status: 'Draft',
-      })
+      setRules((current) => [nextRule, ...current])
+      setFormState({ name: '', summary: '', trigger: '', status: 'Draft' })
       showInfo('The pricing rule was created in the backend.', 'Pricing rule created')
     } catch (error) {
       showError(
@@ -126,12 +119,9 @@ export function PricingPage() {
     setIsCalculating(true)
 
     try {
-      const nextPreview = await calculatePriceRequest({
-        productId: selectedProductId,
-        options: selectedOptions,
-      })
-
-      setPricePreview(nextPreview)
+      setPricePreview(
+        await calculatePriceRequest({ productId: selectedProductId, options: selectedOptions }),
+      )
     } catch (error) {
       showError(
         error instanceof Error ? error.message : 'Unable to calculate price.',
@@ -147,22 +137,31 @@ export function PricingPage() {
       <PageHeader
         eyebrow="Pricing"
         title="Rule builder"
-        description="Pricing rules are now loaded from and saved to the backend instead of using frontend-only placeholders."
+        description="Pricing rules are loaded from and saved to the backend instead of using frontend-only placeholders."
         actions={
-          <button className="primary-button" type="button" onClick={createRule} disabled={isSubmitting}>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={createRule}
+            disabled={isSubmitting}
+          >
             <PlusCircle className="button-icon" aria-hidden="true" />
             {isSubmitting ? 'Creating...' : 'Create pricing rule'}
           </button>
         }
       />
-      <SectionCard title="New pricing rule" description="Create a backend-backed pricing rule shell.">
+
+      <SectionCard
+        title="New pricing rule"
+        description="Create a backend-backed pricing rule shell."
+      >
         <form className="editor-form">
           <label>
             <span>Rule name</span>
             <input
               type="text"
               value={formState.name}
-              onChange={(event) => updateFormState('name', event.target.value)}
+              onChange={(e) => updateFormState('name', e.target.value)}
             />
           </label>
           <label>
@@ -170,7 +169,7 @@ export function PricingPage() {
             <input
               type="text"
               value={formState.summary}
-              onChange={(event) => updateFormState('summary', event.target.value)}
+              onChange={(e) => updateFormState('summary', e.target.value)}
             />
           </label>
           <label>
@@ -178,14 +177,14 @@ export function PricingPage() {
             <input
               type="text"
               value={formState.trigger}
-              onChange={(event) => updateFormState('trigger', event.target.value)}
+              onChange={(e) => updateFormState('trigger', e.target.value)}
             />
           </label>
           <label>
             <span>Status</span>
             <select
               value={formState.status}
-              onChange={(event) => updateFormState('status', event.target.value)}
+              onChange={(e) => updateFormState('status', e.target.value)}
             >
               <option value="Draft">Draft</option>
               <option value="Active">Active</option>
@@ -214,7 +213,7 @@ export function PricingPage() {
             <span>Product</span>
             <select
               value={selectedProductId}
-              onChange={(event) => setSelectedProductId(event.target.value)}
+              onChange={(e) => setSelectedProductId(e.target.value)}
             >
               <option value="">Select a synced product</option>
               {products.map((product) => (
@@ -231,7 +230,7 @@ export function PricingPage() {
               {field.type === 'select' ? (
                 <select
                   value={selectedOptions[field.key] ?? ''}
-                  onChange={(event) => updatePreviewOption(field.key, event.target.value)}
+                  onChange={(e) => updatePreviewOption(field.key, e.target.value)}
                 >
                   {field.options.map((option) => (
                     <option key={option.id} value={option.value}>
@@ -243,7 +242,7 @@ export function PricingPage() {
                 <input
                   type={field.type === 'number' ? 'number' : 'text'}
                   value={selectedOptions[field.key] ?? ''}
-                  onChange={(event) => updatePreviewOption(field.key, event.target.value)}
+                  onChange={(e) => updatePreviewOption(field.key, e.target.value)}
                 />
               )}
             </label>

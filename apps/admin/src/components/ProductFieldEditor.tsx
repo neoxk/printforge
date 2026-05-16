@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
-import type { ProductField } from '../types/domain'
+import type { ProductField } from '@printforge/ui'
 
 type ProductFieldEditorProps = {
   field: ProductField
@@ -40,11 +40,7 @@ export function ProductFieldEditor({
             value={field.label}
             onChange={(event) => {
               const nextLabel = event.target.value
-
-              onFieldChange(field.id, (currentField) => ({
-                ...currentField,
-                label: nextLabel,
-              }))
+              onFieldChange(field.id, (f) => ({ ...f, label: nextLabel }))
             }}
           />
         </label>
@@ -56,11 +52,7 @@ export function ProductFieldEditor({
             value={field.key}
             onChange={(event) => {
               const nextKey = event.target.value
-
-              onFieldChange(field.id, (currentField) => ({
-                ...currentField,
-                key: nextKey,
-              }))
+              onFieldChange(field.id, (f) => ({ ...f, key: nextKey }))
             }}
           />
         </label>
@@ -70,8 +62,8 @@ export function ProductFieldEditor({
           <select
             value={field.visibleInProductDetails ? 'yes' : 'no'}
             onChange={(event) => {
-              onFieldChange(field.id, (currentField) => ({
-                ...currentField,
+              onFieldChange(field.id, (f) => ({
+                ...f,
                 visibleInProductDetails: event.target.value === 'yes',
               }))
             }}
@@ -86,8 +78,8 @@ export function ProductFieldEditor({
           <select
             value={field.usedForPricing ? 'yes' : 'no'}
             onChange={(event) => {
-              onFieldChange(field.id, (currentField) => ({
-                ...currentField,
+              onFieldChange(field.id, (f) => ({
+                ...f,
                 usedForPricing: event.target.value === 'yes',
               }))
             }}
@@ -101,7 +93,11 @@ export function ProductFieldEditor({
       <div className="field-options">
         <div className="field-options-head">
           <strong>Options</strong>
-          <button type="button" className="field-action-button" onClick={() => onAddOption(field.id)}>
+          <button
+            type="button"
+            className="field-action-button"
+            onClick={() => onAddOption(field.id)}
+          >
             <Plus className="button-icon" aria-hidden="true" />
             Add option
           </button>
@@ -124,17 +120,16 @@ export function ProductFieldEditor({
                   value={option.label}
                   onChange={(event) => {
                     const nextLabel = event.target.value
-
-                    onFieldChange(field.id, (currentField) => ({
-                      ...currentField,
-                      options: currentField.options.map((currentOption) =>
-                        currentOption.id === option.id
+                    onFieldChange(field.id, (f) => ({
+                      ...f,
+                      options: f.options.map((o) =>
+                        o.id === option.id
                           ? {
-                              ...currentOption,
+                              ...o,
                               label: nextLabel,
                               value: nextLabel.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_'),
                             }
-                          : currentOption,
+                          : o,
                       ),
                     }))
                   }}
@@ -148,16 +143,10 @@ export function ProductFieldEditor({
                   value={option.description}
                   onChange={(event) => {
                     const nextDescription = event.target.value
-
-                    onFieldChange(field.id, (currentField) => ({
-                      ...currentField,
-                      options: currentField.options.map((currentOption) =>
-                        currentOption.id === option.id
-                          ? {
-                              ...currentOption,
-                              description: nextDescription,
-                            }
-                          : currentOption,
+                    onFieldChange(field.id, (f) => ({
+                      ...f,
+                      options: f.options.map((o) =>
+                        o.id === option.id ? { ...o, description: nextDescription } : o,
                       ),
                     }))
                   }}
@@ -172,16 +161,10 @@ export function ProductFieldEditor({
                     value={option.price}
                     onChange={(event) => {
                       const nextPrice = event.target.value
-
-                      onFieldChange(field.id, (currentField) => ({
-                        ...currentField,
-                        options: currentField.options.map((currentOption) =>
-                          currentOption.id === option.id
-                            ? {
-                                ...currentOption,
-                                price: nextPrice,
-                              }
-                            : currentOption,
+                      onFieldChange(field.id, (f) => ({
+                        ...f,
+                        options: f.options.map((o) =>
+                          o.id === option.id ? { ...o, price: nextPrice } : o,
                         ),
                       }))
                     }}

@@ -5,9 +5,9 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react'
+import type { AuthSession, UserSession } from '@printforge/ui'
 import { loginRequest, registerRequest } from '../lib/Api'
 import { readStoredSession, writeStoredSession } from '../lib/Session'
-import type { AuthSession, UserSession } from '../types/domain'
 
 type RegisterPayload = {
   name: string
@@ -44,9 +44,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       const nextSession = await registerRequest(payload)
       setSession(nextSession)
     },
-    logout: () => {
-      setSession(null)
-    },
+    logout: () => setSession(null),
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

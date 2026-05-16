@@ -1,4 +1,4 @@
-import type { AuthSession } from '../types/domain'
+import type { AuthSession } from '@printforge/ui'
 
 const STORAGE_KEY = 'printforge-admin-session'
 
@@ -7,15 +7,10 @@ function hasWindow() {
 }
 
 export function readStoredSession(): AuthSession | null {
-  if (!hasWindow()) {
-    return null
-  }
+  if (!hasWindow()) return null
 
   const rawSession = window.localStorage.getItem(STORAGE_KEY)
-
-  if (!rawSession) {
-    return null
-  }
+  if (!rawSession) return null
 
   try {
     return JSON.parse(rawSession) as AuthSession
@@ -26,9 +21,7 @@ export function readStoredSession(): AuthSession | null {
 }
 
 export function writeStoredSession(session: AuthSession | null) {
-  if (!hasWindow()) {
-    return
-  }
+  if (!hasWindow()) return
 
   if (!session) {
     window.localStorage.removeItem(STORAGE_KEY)
