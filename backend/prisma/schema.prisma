@@ -34,6 +34,26 @@ enum PricingRuleOperator {
   @@map("pricing_rule_operator")
 }
 
+enum CalculationBasis {
+  YIELD_PCS
+  LINEAR_M
+  SQM
+  PERIMETER
+  PCS
+  ORDER
+  FREE
+
+  @@map("calculation_basis")
+}
+
+enum DisplayMode {
+  SELECTABLE
+  HIDDEN
+  REQUIRED
+
+  @@map("display_mode")
+}
+
 enum WooAuthMethod {
   public_store_api
   consumer_keys
@@ -99,7 +119,7 @@ model Product {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   connection IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  optionsContainers ProductOptionsContainer[]
+  containers  OptionsContainer[]
 
   @@unique([connectionId, wooProductId], name: "uq_synced_product_connection_woo_id")
   @@index([connectionId])
@@ -107,30 +127,7 @@ model Product {
 }
 
 
-// ─── Product Options ─────────────────────────────────────────────────────────
-
-model OptionsContainer {
-  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String @db.VarChar(120)
-
-  products ProductOptionsContainer[]
-  items    OptionItem[]
-
-  @@map("options_containers")
-}
-
-model ProductOptionsContainer {
-  id                 String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  productId          String @map("product_id") @db.Uuid
-  optionsContainerId String @map("options_container_id") @db.Uuid
-
-  product          Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
-  optionsContainer OptionsContainer @relation(fields: [optionsContainerId], references: [id], onDelete: Cascade)
-
-  @@unique([productId, optionsContainerId], name: "uq_product_options_container")
-  @@index([optionsContainerId])
-  @@map("product_options_containers")
-}
+// ─── Price Item Library ───────────────────────────────────────────────────────
 
 model OptionsGroup {
   id   String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -142,22 +139,55 @@ model OptionsGroup {
 }
 
 model OptionItem {
-  id                 String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  optionsContainerId String  @map("options_container_id") @db.Uuid
-  optionGroupId      String  @map("option_group_id") @db.Uuid
-  name               String  @db.VarChar(120)
-  slug               String  @db.VarChar(120)
-  priceUnit          Decimal @map("price_unit") @db.Decimal(12, 4)
-  length             Int?    @map("process_length_mm")
-  width              Int?    @map("process_width_mm")
-  calculationBasis   String  @map("calculation_basis") @db.VarChar(80)
-  displayMode        String  @default("SELECTABLE") @map("display_mode") @db.VarChar(20)
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId          String?          @map("group_id") @db.Uuid
+  name             String           @unique @db.VarChar(120)
+  slug             String           @unique @db.VarChar(120)
+  priceUnit        Decimal          @map("price_unit") @db.Decimal(12, 4)
+  lengthMm         Int?             @map("process_length_mm")
+  widthMm          Int?             @map("process_width_mm")
+  calculationBasis CalculationBasis @map("calculation_basis")
+  displayMode      DisplayMode      @default(SELECTABLE) @map("display_mode")
 
-  optionsContainer OptionsContainer @relation(fields: [optionsContainerId], references: [id], onDelete: Cascade)
-  optionGroup      OptionsGroup     @relation(fields: [optionGroupId], references: [id])
+  group              OptionsGroup?        @relation(fields: [groupId], references: [id])
+  containerItems     ContainerOptionItem[]
+  defaultForContainers OptionsContainer[] @relation("ContainerDefault")
 
-  @@unique([optionsContainerId, slug], name: "uq_option_item_container_slug")
-  @@index([optionsContainerId])
-  @@index([optionGroupId])
+  @@index([groupId])
   @@map("option_items")
 }
+
+// ─── Product Pricing Setup ────────────────────────────────────────────────────
+
+model OptionsContainer {
+  id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId     String  @map("product_id") @db.Uuid
+  name          String  @db.VarChar(120)
+  sortOrder     Int     @default(0) @map("sort_order")
+  defaultItemId String? @map("default_item_id") @db.Uuid
+
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  defaultItem OptionItem? @relation("ContainerDefault", fields: [defaultItemId], references: [id])
+  items       ContainerOptionItem[]
+
+  @@index([productId])
+  @@map("options_containers")
+}
+
+// Item slot inside a container — settings can be overridden per container
+model ContainerOptionItem {
+  id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  containerId   String  @map("container_id") @db.Uuid
+  itemId        String  @map("item_id") @db.Uuid
+  sortOrder     Int     @default(0) @map("sort_order")
+  priceUnit     Decimal? @map("price_unit") @db.Decimal(12, 4)
+  displayMode   DisplayMode? @map("display_mode")
+
+  container OptionsContainer @relation(fields: [containerId], references: [id], onDelete: Cascade)
+  item      OptionItem       @relation(fields: [itemId], references: [id])
+
+  @@unique([containerId, itemId], name: "uq_container_option_item")
+  @@index([itemId])
+  @@map("container_option_items")
+}
+

@@ -1,16 +1,14 @@
 # PrintForge Pricing Engine — Overview
 
-![[ER_diagram.png]]
-
 ---
 
 ## The Mental Model
 
-Think of a print shop quoting a job manually. The owner doesn't just pick one price — they break the job down into every physical step it touches:
+Think of a print shop quoting a job manually. The owner breaks the job down into every physical step it touches:
 
 > "I need 8 sheets of SRA3 paper, 8 passes through the digital press, 8 passes through the laminator, and one fixed preflight charge."
 
-Each of those steps has its own rate. The total quote is the sum of all steps. PrintForge automates exactly this breakdown — every step is an **OptionItem**, and the engine resolves each one against the order context, then sums them into a final price.
+Each step has its own rate. The total quote is the sum of all steps. PrintForge automates exactly this breakdown.
 
 The customer only ever sees the total. The breakdown is internal.
 
@@ -18,62 +16,66 @@ The customer only ever sees the total. The breakdown is internal.
 
 ## Data Model
 
-### OptionItem — one step in the production workflow
+### OptionItem — one billable step
 
-An OptionItem represents a single billable step: a material, a process, a service, or a fixed charge. A finished product will typically have 3–6 OptionItems attached to it. For example, a laminated business card might have:
+An OptionItem is a single priced step in the production workflow: a material, a process, a service, or a fixed charge. It lives in the **item library** and is independent of any specific product.
 
-1. Paper (SRA3 sheet) — `YIELD_PCS`
-2. Digital print — `YIELD_PCS`
-3. Gloss lamination — `LINEAR_M`
-4. Guillotine cutting — `PCS`
-5. File preflight — `ORDER`
+Each item carries:
 
-Each OptionItem carries:
+| Field | Description |
+|---|---|
+| `name` | Human-readable display label — unique across all items |
+| `slug` | Unique readable identifier used in code and APIs (e.g. `coated-135g`) |
+| `priceUnit` | Monetary rate per unit |
+| `calculationBasis` | How the unit price is applied (see below) |
+| `lengthMm` / `widthMm` | Process sheet/plate dimensions; `lengthMm = -1` means infinite roll |
+| `displayMode` | How the item behaves in the UI |
 
-| Field | Schema field | Description |
-|---|---|---|
-| `unit_price` | `priceUnit` | The monetary rate for one unit of this item |
-| `calculation_basis` | `calculationBasis` | Determines how unit_price is applied; also implies the unit (m, m², pcs, etc.) |
-| `process_length` | `length` (mm) | Working surface length; `-1` means infinite (roll) |
-| `process_width` | `width` (mm) | Working surface width |
-| `display_mode` | `displayMode` | Controls how the item behaves in the UI (see below) |
+### OptionsGroup — library organisation
 
-### OptionsGroup — a library of related OptionItems
+An OptionsGroup is a named shelf in the item library (e.g. "Papers", "Lamination Films", "Finishing"). Groups exist purely for admin organisation — they have no effect on pricing or the customer-facing UI. An item can belong to one group or none.
 
-An OptionsGroup is a named category that holds any number of OptionItems of the same type — for example, all the paper stocks a shop carries, or all the lamination options they offer. Groups exist to keep the item library organised and searchable. A group can contain dozens of items; only a few of them will end up on any specific product.
+### OptionsContainer — a selection group on a product
 
-### OptionsContainer — the price recipe for one product
+An OptionsContainer is a named set of choices that belongs to a specific product. It represents one dimension of the customer's selection — for example, "Paper", "Finish", or "Sides". A product typically has several containers.
 
-An OptionsContainer is the curated set of OptionItems that define how a specific product is priced. It is the bridge between the item library and the product. When the engine prices an order, it reads all OptionItems from the product's OptionsContainer and runs each one through its calculator.
+Each container:
+- Is **owned by its product** and is not shared or reused across products
+- Holds a curated list of OptionItems the customer can choose from
+- Has an optional **default item** — the item pre-selected when the product page loads
 
-The same OptionsContainer can be reused across multiple products that share an identical production workflow.
+Example — a business card product might have:
 
 ```
-OptionsGroup "Papers"
-  ├── coated_90g
-  ├── coated_135g       ← pulled into "Business Card Standard" container
-  ├── uncoated_80g
-  └── silk_300g         ← pulled into "Business Card Premium" container
-
-OptionsGroup "Lamination"
-  ├── gloss_lam         ← pulled into "Business Card Standard" container
-  ├── matte_lam
-  └── soft_touch_lam    ← pulled into "Business Card Premium" container
+Product "Business Card"
+  ├── Container "Paper"
+  │     items: 90g Uncoated*, 135g Coated, 300g Silk
+  │     default: 90g Uncoated
+  ├── Container "Finish"
+  │     items: No Finish*, Gloss Lam, Matte Lam, Soft Touch
+  │     default: No Finish
+  └── Container "Sides"
+        items: 1/0*, 4/0, 4/4
+        default: 1/0
 ```
+
+### Per-product overrides
+
+When an item is added to a container, any of its library settings (`priceUnit`, `displayMode`) can be overridden for that specific product. The library item itself is unchanged — the override applies only to that attachment.
 
 ---
 
 ## Display Modes
 
-Every OptionItem has a `display_mode` that controls how it behaves on the frontend. The calculation engine always runs all items regardless of display mode — this is purely a UI concern.
+Every OptionItem has a `displayMode` that controls how it appears on the frontend. The calculation engine always runs all selected items regardless of display mode — this is purely a UI concern.
 
 | Value | Behaviour |
 |---|---|
 | `SELECTABLE` | Default. Shown in the UI, customer can select or deselect it. |
-| `HIDDEN` | Never shown in the UI. Always included in the price calculation. Used for background costs the shop always charges but doesn't expose as a choice (e.g. cutting, handling). |
-| `REQUIRED` | Shown in the UI but locked — the customer can see it but cannot deselect it. Used when the shop wants the customer to be aware of a mandatory step. |
+| `HIDDEN` | Never shown in the UI. Always included in the price calculation. Used for background costs the shop always charges but doesn't expose as a choice. |
+| `REQUIRED` | Shown in the UI but locked — the customer can see it but cannot deselect it. |
 
-For items that should appear in the UI but contribute no cost (e.g. an informational option, a free included service), set `calculation_basis` to `FREE` rather than introducing a special display mode. `FREE` always returns 0 and composes naturally with everything else.
+For items that should appear in the UI but contribute no cost (e.g. a free included service), set `calculationBasis` to `FREE`. `FREE` always returns 0.
 
 ---
 
@@ -82,167 +84,144 @@ For items that should appear in the UI but contribute no cost (e.g. an informati
 Every calculation receives the same context object:
 
 ```
-product_width_mm   — finished product width
-product_height_mm  — finished product height
-quantity           — number of pieces ordered
+widthMm    — finished product width in mm
+heightMm   — finished product height in mm
+quantity   — number of pieces ordered
 ```
 
-Product dimensions can come from two places: fixed dimensions stored on the product itself (e.g. a standard A4 flyer), or dimensions entered by the customer at order time (e.g. a custom-size banner). The calculators do not know or care which — they receive the context and compute.
+Product dimensions come from either fixed dimensions stored on the product (e.g. a standard A4 flyer) or dimensions entered by the customer at order time (e.g. a custom-size banner). The calculators do not know or care which — they receive the context and compute.
 
 ---
 
 ## Calculation Basis Types
 
-### 1. `YIELD_PCS` — Sheet / Plate Yield
+### `YIELD_PCS` — Sheet / Plate Yield
 
-**Depends on:** product dimensions, process dimensions, quantity
-**Unit price unit:** per sheet / plate
+**Depends on:** product dimensions, process dimensions, quantity  
+**Unit price:** per sheet / plate
 
-Calculates how many finished products fit on one process sheet or plate (trying both orientations to maximise fit), then determines how many sheets are needed to fulfil the order.
+Calculates how many finished products fit on one process sheet (trying both orientations to maximise fit), then determines how many sheets are needed to fulfil the order.
 
-**Example — business card digital print:**
 ```
-product_dims    = 85 × 55 mm
-quantity        = 150
-process_length  = 450 mm
-process_width   = 330 mm
-unit_price      = 0.10
+product: 85 × 55 mm, quantity: 150
+process: 450 × 330 mm, unit_price: 0.10
 
 fits_per_sheet  = 21
 sheets_required = ceil(150 / 21) = 8
 cost            = 8 × 0.10 = 0.80
 ```
 
-**Use cases:** business card printing, sign board production, label sheets
+Use cases: business card printing, sign board production, label sheets.
 
 ---
 
-### 2. `LINEAR_M` — Linear Metre (Roll Material)
+### `LINEAR_M` — Linear Metre (Roll Material)
 
-**Depends on:** product dimensions, process dimensions, quantity
-**Unit price unit:** per metre of roll
+**Depends on:** product dimensions, process dimensions, quantity  
+**Unit price:** per metre of roll
 
-For roll-fed materials. Determines the optimal column layout across the roll width, then calculates total roll length needed to fulfil the order.
+For roll-fed materials. Determines the optimal column layout across the roll width, then calculates total roll length needed to fulfil the order. `lengthMm = -1` signals an infinite roll.
 
-`process_length = -1` signals an infinite roll (no sheet constraint on length).
-
-**Example — PVC banner laminate:**
 ```
-product_dims   = 1000 × 2000 mm
-quantity       = 3
-process_width  = 1100 mm   (roll width)
-process_length = -1        (infinite roll)
-unit_price     = 2.15
+product: 1000 × 2000 mm, quantity: 3
+roll width: 1100 mm, unit_price: 2.15
 
-columns        = 1
-rows_required  = 3
-total_metres   = 6.0 m
-cost           = 6.0 × 2.15 = 12.90
+columns       = 1
+rows_required = 3
+total_metres  = 6.0 m
+cost          = 6.0 × 2.15 = 12.90
 ```
 
-**Use cases:** laminating film, vinyl wrap, canvas, roll-fed wide-format print
+Use cases: laminating film, vinyl wrap, canvas, roll-fed wide-format print.
 
 ---
 
-### 3. `SQM` — Square Metre
+### `SQM` — Square Metre
 
-**Depends on:** product dimensions, quantity
-**Unit price unit:** per m²
+**Depends on:** product dimensions, quantity  
+**Unit price:** per m²
 
-Direct area billing. Each product contributes its own finished area — no process sheet involved.
+Direct area billing. Each product contributes its own finished area.
 
-**Example — latex print:**
 ```
-product_dims = 500 × 700 mm, quantity = 10, unit_price = 4.50
-area         = 0.35 m² per piece
-cost         = 0.35 × 10 × 4.50 = 15.75
+product: 500 × 700 mm, quantity: 10, unit_price: 4.50
+area = 0.35 m² per piece
+cost = 0.35 × 10 × 4.50 = 15.75
 ```
 
-**Use cases:** latex / UV flatbed print, fabric print, direct-to-substrate area billing
+Use cases: latex / UV flatbed print, fabric print, direct-to-substrate area billing.
 
 ---
 
-### 4. `PERIMETER` — Perimeter (Running Metre of Edge)
+### `PERIMETER` — Perimeter
 
-**Depends on:** product dimensions, quantity
-**Unit price unit:** per metre
+**Depends on:** product dimensions, quantity  
+**Unit price:** per metre
 
-Charges for the total edge length of all ordered pieces. Used for finishing operations applied along the full border of a product.
+Charges for the total edge length of all ordered pieces.
 
-**Example — wire-o binding:**
 ```
-product_dims = 210 × 297 mm, quantity = 50, unit_price = 0.08
-perimeter    = 1.014 m per piece
-cost         = 1.014 × 50 × 0.08 = 4.056
+product: 210 × 297 mm, quantity: 50, unit_price: 0.08
+perimeter = 1.014 m per piece
+cost      = 1.014 × 50 × 0.08 = 4.056
 ```
 
-**Use cases:** wire-o binding, edge trimming, border lamination
+Use cases: wire-o binding, edge trimming, border lamination.
 
 ---
 
-### 5. `PCS` — Per Piece
+### `PCS` — Per Piece
 
-**Depends on:** quantity only
-**Unit price unit:** per piece
+**Depends on:** quantity only  
+**Unit price:** per piece
 
 Multiplies quantity by unit price directly.
 
-**Example — garment print:**
 ```
-quantity = 20, unit_price = 3.50
-cost     = 70.00
+quantity: 20, unit_price: 3.50
+cost = 70.00
 ```
 
-**Use cases:** garment printing, per-item finishing, any per-unit charge
+Use cases: garment printing, per-item finishing, any per-unit charge.
 
 ---
 
-### 6. `ORDER` — Per Order (Fixed)
+### `ORDER` — Per Order (Fixed)
 
-**Depends on:** nothing
-**Unit price unit:** per order
+**Depends on:** nothing  
+**Unit price:** per order
 
 A flat one-time charge per order, regardless of quantity or dimensions.
 
-**Example — file preflight:**
 ```
 unit_price = 5.00
 cost       = 5.00  (always, for any quantity)
 ```
 
-**Use cases:** file preflight, artwork setup, plate making setup fee, admin charge
+Use cases: file preflight, artwork setup, plate making, admin charge.
 
 ---
 
-### 7. `FREE` — No Charge
+### `FREE` — No Charge
 
-**Depends on:** nothing
-**Unit price unit:** n/a
-
-Always returns a cost of 0. Used for items that should appear in the UI (selectable or required) but contribute nothing to the total — a free included service, a promotional item, or a placeholder option.
+Always returns 0. Used for items that appear in the UI (selectable or required) but contribute nothing to the total.
 
 ---
 
 ## How a Product Gets Priced
 
-The engine iterates over every OptionItem in the product's OptionsContainer, runs each through its calculator with the order context, and sums the results into a cost breakdown:
+When an order is placed, the engine receives the item selected by the customer from each container (one per container, based on their selection or the default). Each item is run through its calculator with the order context. Per-product overrides are applied before calculation. Results are summed into a cost breakdown:
 
 ```
 [
-  { item: "coated_135g",      cost: 0.80 },
-  { item: "digital_print_4/0", cost: 0.80 },
-  { item: "gloss_lam",        cost: 1.20 },
-  { item: "cutting",          cost: 0.30 },
-  { item: "preflight",        cost: 5.00 },
+  { item: "135g Coated",    cost: 0.80 },
+  { item: "Digital 4/0",   cost: 0.80 },
+  { item: "Gloss Lam",     cost: 1.20 },
+  { item: "Cutting",       cost: 0.30 },
+  { item: "Preflight",     cost: 5.00 },
 ]
 
 total: 8.10
 ```
 
-The breakdown is available internally (useful for auditing and shop owner review). The end customer sees only the total.
-
----
-
-## ER Diagram (Concrete)
-
-![[ER_diagram_concrete.png]]
+The breakdown is available internally for auditing and shop owner review. The end customer sees only the total.
