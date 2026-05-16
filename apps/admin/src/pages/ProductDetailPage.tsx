@@ -1,17 +1,15 @@
 import { PlusCircle, Save } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
-import { useAppAlerts } from '@printforge/ui'
+import { PageHeader, SectionCard, useAppAlerts } from '@printforge/ui'
+import type { ProductConfiguration, ProductField, ProductRecord } from '@printforge/ui'
 import { ProductFieldEditor } from '../components/ProductFieldEditor'
-import { PageHeader } from '../components/PageHeader'
-import { SectionCard } from '../components/SectionCard'
 import {
   getProductConfigurationRequest,
   getProductsRequest,
   saveProductConfigurationRequest,
 } from '../lib/Api'
 import { createCustomField } from '../lib/ProductFields'
-import type { ProductConfiguration, ProductField, ProductRecord } from '../types/domain'
 
 function createOptionId(fieldId: string) {
   return `${fieldId}-option-${Date.now()}`
@@ -26,9 +24,7 @@ export function ProductDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (!productId) {
-      return
-    }
+    if (!productId) return
 
     async function loadProductEditor() {
       try {
@@ -37,9 +33,7 @@ export function ProductDetailPage() {
           getProductConfigurationRequest(productId),
         ])
 
-        const matchedProduct = productsResponse.find((entry) => entry.id === productId) ?? null
-
-        setProduct(matchedProduct)
+        setProduct(productsResponse.find((p) => p.id === productId) ?? null)
         setFields(configurationResponse.fields)
         setSavedAt(configurationResponse.savedAt)
       } catch {
@@ -52,34 +46,13 @@ export function ProductDetailPage() {
     void loadProductEditor()
   }, [productId])
 
-  if (!productId) {
-    return <Navigate to="/products" replace />
-  }
-
-  if (!isLoading && !product) {
-    return <Navigate to="/products" replace />
-  }
-
-  if (!product) {
-    return (
-      <div className="page-stack">
-        <PageHeader
-          eyebrow="Product Editor"
-          title="Loading product"
-          description="Fetching the product configuration from the backend."
-        />
-      </div>
-    )
-  }
-
   function updateField(fieldId: string, updater: (field: ProductField) => ProductField) {
-    setFields((currentFields) =>
-      currentFields.map((field) => (field.id === fieldId ? updater(field) : field)),
-    )
+    setFields((current) => current.map((f) => (f.id === fieldId ? updater(f) : f)))
   }
 
   function addCustomField() {
-    setFields((currentFields) => [...currentFields, createCustomField(product.id)])
+    if (!product) return
+    setFields((current) => [...current, createCustomField(product.id)])
   }
 
   function addOption(fieldId: string) {
@@ -103,16 +76,17 @@ export function ProductDetailPage() {
       ...field,
       options:
         field.options.length > 1
-          ? field.options.filter((option) => option.id !== optionId)
+          ? field.options.filter((o) => o.id !== optionId)
           : field.options,
     }))
   }
 
   function removeField(fieldId: string) {
-    setFields((currentFields) => currentFields.filter((field) => field.id !== fieldId))
+    setFields((current) => current.filter((f) => f.id !== fieldId))
   }
 
   async function saveConfiguration() {
+    if (!product) return
     const nextSavedAt = new Date().toISOString()
 
     try {
@@ -132,7 +106,22 @@ export function ProductDetailPage() {
     }
   }
 
-  const iframeVisibleFields = fields.filter((field) => field.visibleInProductDetails)
+  if (!productId) return <Navigate to="/products" replace />
+  if (!isLoading && !product) return <Navigate to="/products" replace />
+
+  if (!product) {
+    return (
+      <div className="page-stack">
+        <PageHeader
+          eyebrow="Product Editor"
+          title="Loading product"
+          description="Fetching the product configuration from the backend."
+        />
+      </div>
+    )
+  }
+
+  const iframeVisibleFields = fields.filter((f) => f.visibleInProductDetails)
 
   return (
     <div className="page-stack">
@@ -149,6 +138,7 @@ export function ProductDetailPage() {
           </div>
         }
       />
+
       <section className="content-grid">
         <SectionCard title="Commerce data" description="Mirrored from the upstream store.">
           <div className="detail-list">
@@ -190,11 +180,11 @@ export function ProductDetailPage() {
             </div>
             <div>
               <span>Imported from WooCommerce</span>
-              <strong>{fields.filter((field) => field.source === 'woocommerce').length}</strong>
+              <strong>{fields.filter((f) => f.source === 'woocommerce').length}</strong>
             </div>
             <div>
               <span>Custom PrintForge fields</span>
-              <strong>{fields.filter((field) => field.source === 'printforge').length}</strong>
+              <strong>{fields.filter((f) => f.source === 'printforge').length}</strong>
             </div>
           </div>
         </SectionCard>

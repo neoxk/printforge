@@ -1,10 +1,8 @@
 import { CheckCircle2, Globe, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { useAppAlerts } from '@printforge/ui'
-import { PageHeader } from '../components/PageHeader'
-import { SectionCard } from '../components/SectionCard'
+import { PageHeader, SectionCard, useAppAlerts } from '@printforge/ui'
+import type { IntegrationStatus } from '@printforge/ui'
 import { getIntegrationRequest, saveIntegrationRequest } from '../lib/Api'
-import type { IntegrationStatus } from '../types/domain'
 
 const emptyIntegration: IntegrationStatus = {
   connectionName: '',
@@ -21,43 +19,41 @@ const emptyIntegration: IntegrationStatus = {
   importVariations: true,
 }
 
+const connectionChecklist = [
+  {
+    label: 'Store base URL',
+    value: 'The public store root, for example https://example.com',
+  },
+  {
+    label: 'WooCommerce REST credentials',
+    value: 'A consumer key and consumer secret generated in WooCommerce with read permissions.',
+  },
+  {
+    label: 'REST API endpoint',
+    value: 'PrintForge should call /wp-json/wc/v3 through the backend, not directly from the browser.',
+  },
+  {
+    label: 'Sync scope',
+    value: 'Choose whether to import products, attributes, and variations from the connected store.',
+  },
+  {
+    label: 'Connection test',
+    value: 'The backend should validate API access, permissions, SSL, and endpoint reachability before first sync.',
+  },
+]
+
 export function SettingsPage() {
   const { showError, showInfo } = useAppAlerts()
   const [settings, setSettings] = useState<IntegrationStatus>(emptyIntegration)
   const [savedAtLabel, setSavedAtLabel] = useState(emptyIntegration.lastSync)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+
   const usesConsumerKeys = settings.authMethod === 'consumer_keys'
   const endpointFieldLabel = usesConsumerKeys ? 'REST API base' : 'Store API base'
   const endpointPlaceholder = usesConsumerKeys
     ? 'https://store.example.com/wp-json/wc/v3/products'
     : 'https://store.example.com/wp-json/wc/store/v1/products'
-
-  const connectionChecklist = useMemo(
-    () => [
-      {
-        label: 'Store base URL',
-        value: 'The public store root, for example https://example.com',
-      },
-      {
-        label: 'WooCommerce REST credentials',
-        value: 'A consumer key and consumer secret generated in WooCommerce with read permissions.',
-      },
-      {
-        label: 'REST API endpoint',
-        value: 'PrintForge should call /wp-json/wc/v3 through the backend, not directly from the browser.',
-      },
-      {
-        label: 'Sync scope',
-        value: 'Choose whether to import products, attributes, and variations from the connected store.',
-      },
-      {
-        label: 'Connection test',
-        value: 'The backend should validate API access, permissions, SSL, and endpoint reachability before first sync.',
-      },
-    ],
-    [],
-  )
 
   useEffect(() => {
     async function loadIntegration() {
@@ -79,7 +75,7 @@ export function SettingsPage() {
   }, [])
 
   function updateSettings<K extends keyof IntegrationStatus>(key: K, value: IntegrationStatus[K]) {
-    setSettings((currentValue) => ({ ...currentValue, [key]: value }))
+    setSettings((current) => ({ ...current, [key]: value }))
   }
 
   async function saveConnection() {
@@ -107,7 +103,12 @@ export function SettingsPage() {
         title="Integration"
         description="Configure the WooCommerce connection once, then let backend-owned sync and mapping keep your PrintForge catalog current."
         actions={
-          <button className="primary-button" type="button" onClick={saveConnection} disabled={isSaving || isLoading}>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={saveConnection}
+            disabled={isSaving || isLoading}
+          >
             <RefreshCw className="button-icon" aria-hidden="true" />
             {isSaving ? 'Saving...' : 'Save connection'}
           </button>
@@ -126,7 +127,7 @@ export function SettingsPage() {
               <input
                 type="text"
                 value={settings.connectionName}
-                onChange={(event) => updateSettings('connectionName', event.target.value)}
+                onChange={(e) => updateSettings('connectionName', e.target.value)}
                 disabled={isLoading}
               />
             </label>
@@ -137,7 +138,7 @@ export function SettingsPage() {
                 type="url"
                 placeholder="https://store.example.com"
                 value={settings.storeUrl}
-                onChange={(event) => updateSettings('storeUrl', event.target.value)}
+                onChange={(e) => updateSettings('storeUrl', e.target.value)}
                 disabled={isLoading}
               />
             </label>
@@ -148,7 +149,7 @@ export function SettingsPage() {
                 type="text"
                 placeholder={endpointPlaceholder}
                 value={settings.restApiBase}
-                onChange={(event) => updateSettings('restApiBase', event.target.value)}
+                onChange={(e) => updateSettings('restApiBase', e.target.value)}
                 disabled={isLoading}
               />
             </label>
@@ -157,8 +158,8 @@ export function SettingsPage() {
               <span>Authentication method</span>
               <select
                 value={settings.authMethod}
-                onChange={(event) =>
-                  updateSettings('authMethod', event.target.value as IntegrationStatus['authMethod'])
+                onChange={(e) =>
+                  updateSettings('authMethod', e.target.value as IntegrationStatus['authMethod'])
                 }
                 disabled={isLoading}
               >
@@ -174,7 +175,7 @@ export function SettingsPage() {
                   <input
                     type="password"
                     value={settings.consumerKey}
-                    onChange={(event) => updateSettings('consumerKey', event.target.value)}
+                    onChange={(e) => updateSettings('consumerKey', e.target.value)}
                     disabled={isLoading}
                   />
                 </label>
@@ -184,7 +185,7 @@ export function SettingsPage() {
                   <input
                     type="password"
                     value={settings.consumerSecret}
-                    onChange={(event) => updateSettings('consumerSecret', event.target.value)}
+                    onChange={(e) => updateSettings('consumerSecret', e.target.value)}
                     disabled={isLoading}
                   />
                 </label>
@@ -196,7 +197,7 @@ export function SettingsPage() {
               <input
                 type="text"
                 value={settings.mode}
-                onChange={(event) => updateSettings('mode', event.target.value)}
+                onChange={(e) => updateSettings('mode', e.target.value)}
                 disabled={isLoading}
               />
             </label>
@@ -246,7 +247,7 @@ export function SettingsPage() {
             <input
               type="checkbox"
               checked={settings.importPublishedProducts}
-              onChange={(event) => updateSettings('importPublishedProducts', event.target.checked)}
+              onChange={(e) => updateSettings('importPublishedProducts', e.target.checked)}
               disabled={isLoading}
             />
           </label>
@@ -256,7 +257,7 @@ export function SettingsPage() {
             <input
               type="checkbox"
               checked={settings.importAttributes}
-              onChange={(event) => updateSettings('importAttributes', event.target.checked)}
+              onChange={(e) => updateSettings('importAttributes', e.target.checked)}
               disabled={isLoading}
             />
           </label>
@@ -266,7 +267,7 @@ export function SettingsPage() {
             <input
               type="checkbox"
               checked={settings.importVariations}
-              onChange={(event) => updateSettings('importVariations', event.target.checked)}
+              onChange={(e) => updateSettings('importVariations', e.target.checked)}
               disabled={isLoading}
             />
           </label>

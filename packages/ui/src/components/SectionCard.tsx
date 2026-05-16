@@ -6,12 +6,7 @@ type SectionCardProps = PropsWithChildren<{
   actions?: ReactNode
 }>
 
-export function SectionCard({
-  title,
-  description,
-  actions,
-  children,
-}: SectionCardProps) {
+export function SectionCard({ title, description, actions, children }: SectionCardProps) {
   return (
     <section className="section-card">
       <header className="section-card-header">

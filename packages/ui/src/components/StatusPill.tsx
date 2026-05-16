@@ -1,4 +1,4 @@
-type StatusTone = 'success' | 'warning' | 'neutral' | 'info' | 'danger'
+export type StatusTone = 'success' | 'warning' | 'neutral' | 'info' | 'danger'
 
 type StatusPillProps = {
   label: string

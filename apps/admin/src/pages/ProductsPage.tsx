@@ -7,7 +7,6 @@ import {
   RefreshCw,
   Search,
 } from 'lucide-react'
-import { useAppAlerts } from '@printforge/ui'
 import {
   startTransition,
   useDeferredValue,
@@ -17,23 +16,42 @@ import {
   useState,
 } from 'react'
 import { Link } from 'react-router-dom'
-import { PageHeader } from '../components/PageHeader'
-import { SectionCard } from '../components/SectionCard'
-import { StatusPill } from '../components/StatusPill'
+import { PageHeader, SectionCard, StatusPill, useAppAlerts } from '@printforge/ui'
+import type { IntegrationStatus, ProductRecord } from '@printforge/ui'
 import {
   getIntegrationRequest,
   getProductsRequest,
   syncProductsRequest,
 } from '../lib/Api'
-import type { IntegrationStatus, ProductRecord } from '../types/domain'
+
+const PAGE_SIZE = 8
+
+type FilterKey = 'category' | 'status' | 'sync'
+
+const FILTER_OPTIONS: Array<[FilterKey, string]> = [
+  ['category', 'Category'],
+  ['status', 'Status'],
+  ['sync', 'Sync status'],
+]
+
+function getFilterLabel(key: FilterKey) {
+  if (key === 'category') return 'Category filter'
+  if (key === 'status') return 'Status filter'
+  return 'Sync status filter'
+}
+
+function matchesFilter(product: ProductRecord, key: FilterKey, value: string) {
+  if (key === 'category') return product.category.toLowerCase().includes(value)
+  if (key === 'status') return product.status.toLowerCase().includes(value)
+  return product.syncStatus.toLowerCase().includes(value)
+}
 
 export function ProductsPage() {
   const { showError, showInfo } = useAppAlerts()
-  const pageSize = 8
   const [products, setProducts] = useState<ProductRecord[]>([])
   const [integration, setIntegration] = useState<IntegrationStatus | null>(null)
   const [search, setSearch] = useState('')
-  const [selectedFilter, setSelectedFilter] = useState<'category' | 'status' | 'sync'>('category')
+  const [selectedFilter, setSelectedFilter] = useState<FilterKey>('category')
   const [filterValue, setFilterValue] = useState('')
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -64,7 +82,6 @@ export function ProductsPage() {
 
         setIntegration(integrationResponse)
         setProducts(productsResponse)
-
         setSourceLabel(
           productsResponse.length > 0
             ? `${integrationResponse.connectionName} via backend sync storage. Last sync ${integrationResponse.lastSync}.`
@@ -73,7 +90,10 @@ export function ProductsPage() {
       } catch (error) {
         setProducts([])
         setSourceLabel('Backend products unavailable.')
-        showError(error instanceof Error ? error.message : 'Unable to load products.', 'Load failed')
+        showError(
+          error instanceof Error ? error.message : 'Unable to load products.',
+          'Load failed',
+        )
       }
     }
 
@@ -94,11 +114,7 @@ export function ProductsPage() {
       })
 
       if (integration) {
-        setIntegration({
-          ...integration,
-          lastSync: result.syncedAt,
-          apiStatus: 'Healthy',
-        })
+        setIntegration({ ...integration, lastSync: result.syncedAt, apiStatus: 'Healthy' })
       }
 
       showInfo(
@@ -106,13 +122,13 @@ export function ProductsPage() {
         'Sync complete',
       )
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Unable to load WooCommerce products.'
-
       setSourceLabel(
         `Connection unavailable for ${integration?.connectionName ?? 'the configured store'}. Showing current cached data.`,
       )
-      showError(message, 'Sync failed')
+      showError(
+        error instanceof Error ? error.message : 'Unable to load WooCommerce products.',
+        'Sync failed',
+      )
     } finally {
       setIsSyncing(false)
     }
@@ -129,18 +145,7 @@ export function ProductsPage() {
         product.sku.toLowerCase().includes(normalizedSearch)
 
       const matchesContextualFilter =
-        !normalizedFilterValue ||
-        (() => {
-          if (selectedFilter === 'category') {
-            return product.category.toLowerCase().includes(normalizedFilterValue)
-          }
-
-          if (selectedFilter === 'status') {
-            return product.status.toLowerCase().includes(normalizedFilterValue)
-          }
-
-          return product.syncStatus.toLowerCase().includes(normalizedFilterValue)
-        })()
+        !normalizedFilterValue || matchesFilter(product, selectedFilter, normalizedFilterValue)
 
       return matchesSearch && matchesContextualFilter
     })
@@ -150,16 +155,19 @@ export function ProductsPage() {
     setPage(1)
   }, [deferredFilterValue, deferredSearch, selectedFilter])
 
-  const totalPages = Math.max(1, Math.ceil(visibleProducts.length / pageSize))
+  const totalPages = Math.max(1, Math.ceil(visibleProducts.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
+
   const paginatedProducts = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize
-    return visibleProducts.slice(startIndex, startIndex + pageSize)
+    const startIndex = (currentPage - 1) * PAGE_SIZE
+    return visibleProducts.slice(startIndex, startIndex + PAGE_SIZE)
   }, [currentPage, visibleProducts])
 
-  const visibleRangeStart = visibleProducts.length === 0 ? 0 : (currentPage - 1) * pageSize + 1
+  const visibleRangeStart = visibleProducts.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1
   const visibleRangeEnd =
-    visibleProducts.length === 0 ? 0 : Math.min(currentPage * pageSize, visibleProducts.length)
+    visibleProducts.length === 0
+      ? 0
+      : Math.min(currentPage * PAGE_SIZE, visibleProducts.length)
 
   return (
     <div className="page-stack">
@@ -172,9 +180,7 @@ export function ProductsPage() {
             <button
               className="primary-button"
               type="button"
-              onClick={() => {
-                void syncProducts()
-              }}
+              onClick={() => void syncProducts()}
               disabled={isSyncing}
             >
               <RefreshCw
@@ -197,11 +203,12 @@ export function ProductsPage() {
             onChange={(event) => setSearch(event.target.value)}
           />
         </label>
+
         <div className="filter-menu-shell" ref={filterMenuRef}>
           <button
             type="button"
             className="filter-trigger"
-            onClick={() => setIsFilterMenuOpen((currentValue) => !currentValue)}
+            onClick={() => setIsFilterMenuOpen((v) => !v)}
           >
             <Filter className="button-icon" aria-hidden="true" />
             Filter
@@ -215,11 +222,7 @@ export function ProductsPage() {
           {isFilterMenuOpen ? (
             <div className="filter-menu">
               <div className="filter-menu-list">
-                {[
-                  ['category', 'Category'],
-                  ['status', 'Status'],
-                  ['sync', 'Sync status'],
-                ].map(([value, label]) => (
+                {FILTER_OPTIONS.map(([value, label]) => (
                   <button
                     key={value}
                     type="button"
@@ -228,7 +231,7 @@ export function ProductsPage() {
                         ? 'filter-menu-item filter-menu-item-active'
                         : 'filter-menu-item'
                     }
-                    onClick={() => setSelectedFilter(value as 'category' | 'status' | 'sync')}
+                    onClick={() => setSelectedFilter(value)}
                   >
                     {label}
                   </button>
@@ -236,13 +239,7 @@ export function ProductsPage() {
               </div>
 
               <label className="filter-menu-input">
-                <span>
-                  {selectedFilter === 'category'
-                    ? 'Category filter'
-                    : selectedFilter === 'status'
-                      ? 'Status filter'
-                      : 'Sync status filter'}
-                </span>
+                <span>{getFilterLabel(selectedFilter)}</span>
                 <input
                   type="text"
                   placeholder="Type a filter value"
@@ -257,7 +254,7 @@ export function ProductsPage() {
 
       <SectionCard
         title="Catalog"
-        description={`This admin catalog now reads from the backend sync layer for ${integration?.storeUrl ?? 'the configured WooCommerce store'}.`}
+        description={`This admin catalog reads from the backend sync layer for ${integration?.storeUrl ?? 'the configured WooCommerce store'}.`}
       >
         <div className="panel-meta-row">
           <p className="muted-copy">{sourceLabel}</p>
@@ -312,19 +309,19 @@ export function ProductsPage() {
 
         <div className="pagination-row">
           <span className="muted-copy">
-            Showing {visibleRangeStart}-{visibleRangeEnd} of {visibleProducts.length} filtered
+            Showing {visibleRangeStart}–{visibleRangeEnd} of {visibleProducts.length} filtered
             products
           </span>
           <div className="pagination-controls">
             <button
               type="button"
               className="pagination-button"
-              onClick={() => setPage((currentValue) => Math.max(1, currentValue - 1))}
+              onClick={() => setPage((v) => Math.max(1, v - 1))}
               disabled={currentPage === 1}
             >
               <ChevronLeft className="button-icon" aria-hidden="true" />
             </button>
-            {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
               <button
                 key={pageNumber}
                 type="button"
@@ -341,7 +338,7 @@ export function ProductsPage() {
             <button
               type="button"
               className="pagination-button"
-              onClick={() => setPage((currentValue) => Math.min(totalPages, currentValue + 1))}
+              onClick={() => setPage((v) => Math.min(totalPages, v + 1))}
               disabled={currentPage === totalPages}
             >
               <ChevronRight className="button-icon" aria-hidden="true" />
