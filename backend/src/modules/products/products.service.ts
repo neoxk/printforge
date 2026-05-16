@@ -1,30 +1,13 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
-import { NotFoundError } from '../../lib/errors.js'
+import { NotFoundError, ConflictError } from '../../lib/errors.js'
 import { getCurrentConnectionRecord, listSyncedProducts } from '../integration/integration.service.js'
 
-type ProductConfigurationPayload = {
-  fields: Array<Record<string, unknown>>
-  savedAt: string
-}
-
-function createDefaultConfigurationFields(product: {
-  importedFields: unknown
-}) {
-  if (Array.isArray(product.importedFields)) {
-    return product.importedFields
-  }
-
-  return []
-}
-
-function toJsonValue(value: unknown) {
-  return value as Prisma.InputJsonValue
-}
+// ─── Products ─────────────────────────────────────────────────────────────────
 
 export async function getProductOptions(productId: string) {
   const connection = await getCurrentConnectionRecord()
-  const product = await prisma.syncedProduct.findFirst({
+  const product = await prisma.product.findFirst({
     where: {
       connectionId: connection.id,
       wooProductId: BigInt(productId),
@@ -35,26 +18,13 @@ export async function getProductOptions(productId: string) {
     throw new NotFoundError('Product not found.')
   }
 
-  const configuration = await prisma.productConfiguration.findFirst({
-    where: {
-      connectionId: connection.id,
-      wooProductId: BigInt(productId),
-    },
-  })
-
-  const fields = configuration?.fields ?? createDefaultConfigurationFields(product)
-
-  if (!Array.isArray(fields)) {
-    return []
+  if (Array.isArray(product.importedFields)) {
+    return (product.importedFields as Array<Record<string, unknown>>).filter(
+      (field) => field && typeof field === 'object' && field.visibleInProductDetails !== false,
+    )
   }
 
-  return fields.filter((field) => {
-    if (!field || typeof field !== 'object') {
-      return false
-    }
-
-    return (field as { visibleInProductDetails?: boolean }).visibleInProductDetails !== false
-  })
+  return []
 }
 
 export async function listProducts() {
@@ -64,77 +34,191 @@ export async function listProducts() {
 export async function getProductConfiguration(productId: string) {
   const connection = await getCurrentConnectionRecord()
   const wooProductId = BigInt(productId)
-  const product = await prisma.syncedProduct.findFirst({
-    where: {
-      connectionId: connection.id,
-      wooProductId,
-    },
+  const product = await prisma.product.findFirst({
+    where: { connectionId: connection.id, wooProductId },
   })
 
   if (!product) {
     throw new NotFoundError('Product not found.')
   }
 
-  const configuration = await prisma.productConfiguration.findFirst({
-    where: {
-      connectionId: connection.id,
-      wooProductId,
-    },
-  })
+  const fields = Array.isArray(product.importedFields) ? product.importedFields : []
 
   return {
     productId,
-    fields: configuration?.fields ?? createDefaultConfigurationFields(product),
-    savedAt: configuration?.savedAt.toISOString() ?? 'Not saved yet',
+    fields,
+    savedAt: 'Not saved yet',
   }
 }
 
 export async function saveProductConfiguration(
   productId: string,
-  payload: ProductConfigurationPayload,
+  _payload: { fields: Array<Record<string, unknown>>; savedAt: string },
 ) {
   const connection = await getCurrentConnectionRecord()
   const wooProductId = BigInt(productId)
-  const product = await prisma.syncedProduct.findFirst({
-    where: {
-      connectionId: connection.id,
-      wooProductId,
-    },
+  const product = await prisma.product.findFirst({
+    where: { connectionId: connection.id, wooProductId },
   })
 
   if (!product) {
     throw new NotFoundError('Product not found.')
   }
 
-  const savedAt = new Date(payload.savedAt)
-  const normalizedSavedAt = Number.isNaN(savedAt.getTime()) ? new Date() : savedAt
-  const existingConfiguration = await prisma.productConfiguration.findFirst({
-    where: {
-      connectionId: connection.id,
-      wooProductId,
-    },
-  })
-
-  const configuration = existingConfiguration
-    ? await prisma.productConfiguration.update({
-        where: { id: existingConfiguration.id },
-        data: {
-          fields: toJsonValue(payload.fields),
-          savedAt: normalizedSavedAt,
-        },
-      })
-    : await prisma.productConfiguration.create({
-        data: {
-          connectionId: connection.id,
-          wooProductId,
-          fields: toJsonValue(payload.fields),
-          savedAt: normalizedSavedAt,
-        },
-      })
-
   return {
     productId,
-    fields: configuration.fields,
-    savedAt: configuration.savedAt.toISOString(),
+    fields: _payload.fields,
+    savedAt: _payload.savedAt,
+  }
+}
+
+// ─── Containers ───────────────────────────────────────────────────────────────
+
+async function requireProduct(productId: string) {
+  const product = await prisma.product.findUnique({ where: { id: productId } })
+  if (!product) throw new NotFoundError('Product not found.')
+  return product
+}
+
+async function requireContainer(productId: string, containerId: string) {
+  const container = await prisma.optionsContainer.findFirst({
+    where: { id: containerId, productId },
+  })
+  if (!container) throw new NotFoundError('Container not found.')
+  return container
+}
+
+export async function listContainers(productId: string) {
+  await requireProduct(productId)
+  return prisma.optionsContainer.findMany({
+    where: { productId },
+    orderBy: { sortOrder: 'asc' },
+    include: { defaultItem: true },
+  })
+}
+
+export async function getContainer(productId: string, containerId: string) {
+  await requireProduct(productId)
+  const container = await prisma.optionsContainer.findFirst({
+    where: { id: containerId, productId },
+    include: {
+      defaultItem: true,
+      items: { include: { item: true }, orderBy: { sortOrder: 'asc' } },
+    },
+  })
+  if (!container) throw new NotFoundError('Container not found.')
+  return container
+}
+
+export async function createContainer(
+  productId: string,
+  data: { name: string; sortOrder?: number },
+) {
+  await requireProduct(productId)
+  return prisma.optionsContainer.create({
+    data: { productId, name: data.name, sortOrder: data.sortOrder ?? 0 },
+  })
+}
+
+export async function updateContainer(
+  productId: string,
+  containerId: string,
+  data: { name?: string; sortOrder?: number; defaultItemId?: string | null },
+) {
+  await requireContainer(productId, containerId)
+  return prisma.optionsContainer.update({
+    where: { id: containerId },
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
+      ...('defaultItemId' in data && { defaultItemId: data.defaultItemId }),
+    },
+    include: { defaultItem: true },
+  })
+}
+
+export async function deleteContainer(productId: string, containerId: string) {
+  await requireContainer(productId, containerId)
+  await prisma.optionsContainer.delete({ where: { id: containerId } })
+}
+
+// ─── Container Items ──────────────────────────────────────────────────────────
+
+export async function listContainerItems(productId: string, containerId: string) {
+  await requireContainer(productId, containerId)
+  return prisma.containerOptionItem.findMany({
+    where: { containerId },
+    include: { item: true },
+    orderBy: { sortOrder: 'asc' },
+  })
+}
+
+export async function addItemToContainer(
+  productId: string,
+  containerId: string,
+  data: { itemId: string; sortOrder?: number; priceUnit?: number; displayMode?: string },
+) {
+  await requireContainer(productId, containerId)
+  const item = await prisma.optionItem.findUnique({ where: { id: data.itemId } })
+  if (!item) throw new NotFoundError('Item not found.')
+  try {
+    return await prisma.containerOptionItem.create({
+      data: {
+        containerId,
+        itemId: data.itemId,
+        sortOrder: data.sortOrder ?? 0,
+        priceUnit: data.priceUnit ?? null,
+        displayMode: (data.displayMode as never) ?? null,
+      },
+      include: { item: true },
+    })
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      throw new ConflictError('Item is already in this container.')
+    }
+    throw e
+  }
+}
+
+export async function removeItemFromContainer(
+  productId: string,
+  containerId: string,
+  itemId: string,
+) {
+  await requireContainer(productId, containerId)
+  try {
+    await prisma.containerOptionItem.delete({
+      where: { uq_container_option_item: { containerId, itemId } },
+    })
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+      throw new NotFoundError('Item not found in this container.')
+    }
+    throw e
+  }
+}
+
+export async function patchContainerItem(
+  productId: string,
+  containerId: string,
+  itemId: string,
+  data: { sortOrder?: number; priceUnit?: number | null; displayMode?: string | null },
+) {
+  await requireContainer(productId, containerId)
+  try {
+    return await prisma.containerOptionItem.update({
+      where: { uq_container_option_item: { containerId, itemId } },
+      data: {
+        ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
+        ...('priceUnit' in data && { priceUnit: data.priceUnit }),
+        ...('displayMode' in data && { displayMode: (data.displayMode as never) }),
+      },
+      include: { item: true },
+    })
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+      throw new NotFoundError('Item not found in this container.')
+    }
+    throw e
   }
 }
