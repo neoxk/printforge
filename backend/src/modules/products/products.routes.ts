@@ -1,10 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate } from '../../middleware/authenticate.js'
 import {
-  getProductOptionsHandler,
-  getProductConfigurationHandler,
   listProductsHandler,
-  saveProductConfigurationHandler,
   listContainersHandler,
   getContainerHandler,
   createContainerHandler,
@@ -17,7 +14,6 @@ import {
 } from './products.controller.js'
 import {
   productIdParam,
-  productConfigBody,
   containerIdParams,
   containerItemParams,
   createContainerBody,
@@ -27,17 +23,7 @@ import {
 } from './products.schema.js'
 
 export async function productsRoutes(app: FastifyInstance) {
-  // Public — called by the configurator iframe
-  app.get('/:id/options', { schema: { params: productIdParam } }, getProductOptionsHandler)
-
-  // Admin product routes
   app.get('/', { preHandler: authenticate }, listProductsHandler)
-  app.get('/:id/config', { preHandler: authenticate, schema: { params: productIdParam } }, getProductConfigurationHandler)
-  app.put(
-    '/:id/config',
-    { preHandler: authenticate, schema: { params: productIdParam, body: productConfigBody } },
-    saveProductConfigurationHandler,
-  )
 
   // Containers
   app.get('/:id/containers', { preHandler: authenticate, schema: { params: productIdParam } }, listContainersHandler)

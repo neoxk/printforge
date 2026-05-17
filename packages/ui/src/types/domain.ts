@@ -38,38 +38,6 @@ export type ProductRecord = {
   template: string
   basePrice: string
   updatedAt: string
-  importedFields?: ProductField[]
-}
-
-export type ProductFieldSource = 'woocommerce' | 'printforge'
-
-export type ProductFieldType = 'select' | 'text' | 'number'
-
-export type ProductFieldOption = {
-  id: string
-  label: string
-  value: string
-  description: string
-  price: string
-}
-
-export type ProductField = {
-  id: string
-  key: string
-  label: string
-  type: ProductFieldType
-  source: ProductFieldSource
-  sourceAttributeId?: number | null
-  options: ProductFieldOption[]
-  visibleInProductDetails: boolean
-  usedForPricing: boolean
-  helpText: string
-}
-
-export type ProductConfiguration = {
-  productId: string
-  fields: ProductField[]
-  savedAt: string
 }
 
 export type SyncProductsResponse = {
@@ -79,25 +47,54 @@ export type SyncProductsResponse = {
   authMethod: IntegrationStatus['authMethod']
 }
 
-export type PricingRule = {
+export type CalculationBasis = 'YIELD_PCS' | 'LINEAR_M' | 'SQM' | 'PERIMETER' | 'PCS' | 'ORDER' | 'FREE'
+export type DisplayMode = 'SELECTABLE' | 'HIDDEN' | 'REQUIRED'
+
+export type OptionsGroup = {
   id: string
   name: string
-  summary: string
-  trigger: string
-  status: string
+  items?: OptionItem[]
 }
 
-export type PricingBreakdownItem = {
-  ruleId: string
-  label: string
-  amount: number
-  trigger: string
+export type OptionItem = {
+  id: string
+  name: string
+  slug: string
+  priceUnit: number
+  calculationBasis: CalculationBasis
+  displayMode: DisplayMode
+  lengthMm: number | null
+  widthMm: number | null
+  groupId: string | null
 }
 
-export type PricingCalculation = {
-  price: number
-  breakdown: PricingBreakdownItem[]
-  options: Record<string, string>
+export type OptionsContainer = {
+  id: string
+  name: string
+  sortOrder: number
+  defaultItemId: string | null
+  defaultItem: OptionItem | null
+}
+
+export type ContainerOptionItem = {
+  containerId: string
+  itemId: string
+  sortOrder: number
+  priceUnit: number | null
+  displayMode: DisplayMode | null
+  item: OptionItem
+}
+
+export type PriceLineItem = {
+  itemId: string
+  name: string
+  calculationBasis: CalculationBasis
+  cost: number
+}
+
+export type PricingResult = {
+  total: number
+  breakdown: PriceLineItem[]
 }
 
 export type ValidationRule = {

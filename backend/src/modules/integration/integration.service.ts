@@ -102,67 +102,6 @@ function serializeIntegration(connection: IntegrationConnection) {
   }
 }
 
-function slugify(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-}
-
-function createOption(productId: number, attributeKey: string, label: string, index: number) {
-  const normalizedLabel = label.trim()
-
-  return {
-    id: `${productId}-${attributeKey}-${index}`,
-    label: normalizedLabel,
-    value: slugify(normalizedLabel),
-    description: '',
-    price: '',
-  }
-}
-
-function mapWooAttributesToFields(product: WooStoreProduct) {
-  return (
-    product.attributes
-      ?.map((attribute) => {
-        const attributeKey = slugify(attribute.name)
-        const termOptions =
-          attribute.terms
-            ?.map((term, index) => {
-              const label = term.name?.trim()
-              return label ? createOption(product.id, attributeKey, label, index) : null
-            })
-            .filter((option): option is ReturnType<typeof createOption> => option !== null) ?? []
-
-        const fallbackOptions =
-          attribute.options?.map((option, index) =>
-            createOption(product.id, attributeKey, option, index),
-          ) ?? []
-
-        const options = termOptions.length > 0 ? termOptions : fallbackOptions
-
-        if (options.length === 0) {
-          return null
-        }
-
-        return {
-          id: `${product.id}-${attribute.id ?? attributeKey}`,
-          key: attributeKey,
-          label: attribute.name,
-          type: 'select',
-          source: 'woocommerce',
-          sourceAttributeId: attribute.id ?? null,
-          options,
-          visibleInProductDetails: true,
-          usedForPricing: attributeKey === 'material',
-          helpText: 'Imported automatically from the WooCommerce product attribute.',
-        }
-      })
-      .filter((field): field is NonNullable<typeof field> => field !== null) ?? []
-  )
-}
-
 function formatStorePrice(product: WooStoreProduct) {
   const rawPrice = product.prices?.price
 
@@ -307,7 +246,6 @@ export async function syncWooProducts() {
           status: 'Store synced',
           sku: getSku(product),
           basePrice: formatStorePrice(product),
-          importedFields: mapWooAttributesToFields(product),
         },
       }),
     ),
@@ -343,6 +281,5 @@ export async function listSyncedProducts() {
     status: product.status,
     sku: product.sku,
     basePrice: product.basePrice,
-    importedFields: product.importedFields,
   }))
 }

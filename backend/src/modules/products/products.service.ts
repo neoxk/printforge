@@ -1,75 +1,12 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { NotFoundError, ConflictError } from '../../lib/errors.js'
-import { getCurrentConnectionRecord, listSyncedProducts } from '../integration/integration.service.js'
+import { listSyncedProducts } from '../integration/integration.service.js'
 
 // ─── Products ─────────────────────────────────────────────────────────────────
 
-export async function getProductOptions(productId: string) {
-  const connection = await getCurrentConnectionRecord()
-  const product = await prisma.product.findFirst({
-    where: {
-      connectionId: connection.id,
-      wooProductId: BigInt(productId),
-    },
-  })
-
-  if (!product) {
-    throw new NotFoundError('Product not found.')
-  }
-
-  if (Array.isArray(product.importedFields)) {
-    return (product.importedFields as Array<Record<string, unknown>>).filter(
-      (field) => field && typeof field === 'object' && field.visibleInProductDetails !== false,
-    )
-  }
-
-  return []
-}
-
 export async function listProducts() {
   return listSyncedProducts()
-}
-
-export async function getProductConfiguration(productId: string) {
-  const connection = await getCurrentConnectionRecord()
-  const wooProductId = BigInt(productId)
-  const product = await prisma.product.findFirst({
-    where: { connectionId: connection.id, wooProductId },
-  })
-
-  if (!product) {
-    throw new NotFoundError('Product not found.')
-  }
-
-  const fields = Array.isArray(product.importedFields) ? product.importedFields : []
-
-  return {
-    productId,
-    fields,
-    savedAt: 'Not saved yet',
-  }
-}
-
-export async function saveProductConfiguration(
-  productId: string,
-  _payload: { fields: Array<Record<string, unknown>>; savedAt: string },
-) {
-  const connection = await getCurrentConnectionRecord()
-  const wooProductId = BigInt(productId)
-  const product = await prisma.product.findFirst({
-    where: { connectionId: connection.id, wooProductId },
-  })
-
-  if (!product) {
-    throw new NotFoundError('Product not found.')
-  }
-
-  return {
-    productId,
-    fields: _payload.fields,
-    savedAt: _payload.savedAt,
-  }
 }
 
 // ─── Containers ───────────────────────────────────────────────────────────────

@@ -4,8 +4,6 @@ import type {
   IntegrationStatus,
   PricingCalculation,
   PricingRule,
-  ProductConfiguration,
-  ProductField,
   ProductRecord,
   SyncProductsResponse,
   ValidationRule,
@@ -126,24 +124,6 @@ export function syncProductsRequest() {
 
 export function getProductsRequest() {
   return apiRequest<ProductRecord[]>('/api/products')
-}
-
-export function getProductConfigurationRequest(productId: string) {
-  return apiRequest<ProductConfiguration>(`/api/products/${productId}/config`)
-}
-
-export function getProductOptionsRequest(productId: string) {
-  return apiRequest<ProductField[]>(`/api/products/${productId}/options`, { skipAuth: true })
-}
-
-export function saveProductConfigurationRequest(
-  productId: string,
-  payload: Pick<ProductConfiguration, 'fields' | 'savedAt'>,
-) {
-  return apiRequest<ProductConfiguration>(`/api/products/${productId}/config`, {
-    method: 'PUT',
-    body: JSON.stringify(payload),
-  })
 }
 
 export function getPricingRulesRequest() {

@@ -3,24 +3,8 @@ import * as productsService from './products.service.js'
 
 // ─── Products ─────────────────────────────────────────────────────────────────
 
-export async function getProductOptionsHandler(req: FastifyRequest, reply: FastifyReply) {
-  const params = req.params as { id: string }
-  return reply.send(await productsService.getProductOptions(params.id))
-}
-
 export async function listProductsHandler(_req: FastifyRequest, reply: FastifyReply) {
   return reply.send(await productsService.listProducts())
-}
-
-export async function getProductConfigurationHandler(req: FastifyRequest, reply: FastifyReply) {
-  const params = req.params as { id: string }
-  return reply.send(await productsService.getProductConfiguration(params.id))
-}
-
-export async function saveProductConfigurationHandler(req: FastifyRequest, reply: FastifyReply) {
-  const params = req.params as { id: string }
-  const body = req.body as Parameters<typeof productsService.saveProductConfiguration>[1]
-  return reply.send(await productsService.saveProductConfiguration(params.id, body))
 }
 
 // ─── Containers ───────────────────────────────────────────────────────────────
