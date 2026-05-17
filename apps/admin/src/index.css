@@ -1138,6 +1138,38 @@ textarea {
   border-color: var(--secondary);
 }
 
+.editor-tabs {
+  display: flex;
+  gap: 2rem;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-lowest);
+  border-radius: var(--radius-default);
+  padding: 0 var(--space-lg);
+}
+
+.editor-tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--on-surface-variant);
+  padding: 0.75rem 0;
+  margin-bottom: -1px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color 0.15s;
+  cursor: pointer;
+}
+
+.editor-tab:hover {
+  color: var(--secondary);
+}
+
+.editor-tab-active {
+  color: var(--secondary);
+  border-bottom-color: var(--secondary);
+  font-weight: 600;
+}
+
 @media (max-width: 1200px) {
   .stats-grid,
   .rule-grid {
