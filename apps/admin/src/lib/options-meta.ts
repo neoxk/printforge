@@ -1,4 +1,4 @@
-import { CalcBasis, DisplayMode } from '@printforge/ui'
+import { CalcBasis, ContainerType } from '@printforge/ui'
 
 export const BASIS_LABEL: Record<CalcBasis, string> = {
   [CalcBasis.YIELD_PCS]: 'Sheet yield',
@@ -38,14 +38,14 @@ export function basisNeedsWidth(b: CalcBasis): boolean {
   return b === CalcBasis.YIELD_PCS || b === CalcBasis.LINEAR_M
 }
 
-export const DISPLAY_LABEL: Record<string, string> = {
-  [DisplayMode.SELECTABLE]: 'Selectable',
-  [DisplayMode.REQUIRED]:   'Required',
-  [DisplayMode.HIDDEN]:     'Hidden',
+export const CONTAINER_TYPE_LABEL: Record<ContainerType, string> = {
+  [ContainerType.SINGLE_SELECT]: 'Single select',
+  [ContainerType.MULTI_SELECT]:  'Multi select',
+  [ContainerType.AUTO_APPLIED]:  'Auto applied',
 }
 
-export const DISPLAY_OPTIONS: { value: string; label: string }[] = [
-  { value: DisplayMode.SELECTABLE, label: 'Selectable' },
-  { value: DisplayMode.REQUIRED,   label: 'Required' },
-  { value: DisplayMode.HIDDEN,     label: 'Hidden' },
+export const CONTAINER_TYPE_OPTIONS: { value: ContainerType; label: string }[] = [
+  { value: ContainerType.SINGLE_SELECT, label: 'Single select' },
+  { value: ContainerType.MULTI_SELECT,  label: 'Multi select' },
+  { value: ContainerType.AUTO_APPLIED,  label: 'Auto applied (always included)' },
 ]

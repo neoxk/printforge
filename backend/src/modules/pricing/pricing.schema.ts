@@ -1,7 +1,6 @@
 import { z } from 'zod'
 
 const calculationBasisValues = ['YIELD_PCS', 'LINEAR_M', 'SQM', 'PERIMETER', 'PCS', 'ORDER', 'FREE'] as const
-const displayModeValues = ['SELECTABLE', 'HIDDEN', 'REQUIRED'] as const
 
 export const groupIdParam = z.object({ id: z.string().uuid() })
 export const itemIdParam = z.object({ id: z.string().uuid() })
@@ -18,7 +17,6 @@ export const createItemBody = z.object({
   slug: z.string().min(1).max(120),
   priceUnit: z.number().nonnegative(),
   calculationBasis: z.enum(calculationBasisValues),
-  displayMode: z.enum(displayModeValues).optional(),
   lengthMm: z.number().int().nullable().optional(),
   widthMm: z.number().int().nullable().optional(),
 })

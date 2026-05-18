@@ -1,6 +1,6 @@
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import type { OptionItem, OptionsGroup } from '@printforge/ui'
-import { BASIS_LABEL, DISPLAY_LABEL } from '../../lib/options-meta'
+import { BASIS_LABEL, BASIS_UNIT } from '../../lib/options-meta'
 
 type Props = {
   items: OptionItem[]
@@ -12,6 +12,7 @@ type Props = {
 }
 
 export function ItemTable({ items, groups, isLoading, selectedGroupId, onEdit, onDelete }: Props) {
+  //TODO Make item group and process dimensions its own column and keep only slug under the name. The process dimensions column will hold eitehr widthxlength or length or / 
   function groupName(groupId: string | null) {
     if (!groupId) return null
     return groups.find((g) => g.id === groupId)?.name ?? null
@@ -31,7 +32,6 @@ export function ItemTable({ items, groups, isLoading, selectedGroupId, onEdit, o
         <span>Name</span>
         <span>Basis</span>
         <span>Price</span>
-        <span>Display</span>
         {showGroupColumn && <span>Group</span>}
         <span />
       </div>
@@ -52,8 +52,7 @@ export function ItemTable({ items, groups, isLoading, selectedGroupId, onEdit, o
                 <span className="item-row-slug">{item.slug}</span>
               </div>
               <span className="item-basis-badge">{BASIS_LABEL[item.calculationBasis]}</span>
-              <span className="item-row-price">€ {Number(item.priceUnit).toFixed(2)}</span>
-              <span className="item-row-display">{DISPLAY_LABEL[item.displayMode]}</span>
+              <span className="item-row-price">€ {Number(item.priceUnit).toFixed(2)} {BASIS_UNIT[item.calculationBasis]}</span>
               {showGroupColumn && (
                 <span className="item-row-group muted-copy">
                   {groupName(item.groupId) ?? '—'}

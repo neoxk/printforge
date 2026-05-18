@@ -58,7 +58,6 @@ type ItemBody = {
   slug: string
   priceUnit: number
   calculationBasis: string
-  displayMode?: string
   lengthMm?: number | null
   widthMm?: number | null
 }
@@ -84,7 +83,6 @@ export async function createItem(body: ItemBody) {
         slug: body.slug,
         priceUnit: body.priceUnit,
         calculationBasis: body.calculationBasis as never,
-        displayMode: (body.displayMode as never) ?? 'SELECTABLE',
         lengthMm: body.lengthMm ?? null,
         widthMm: body.widthMm ?? null,
       },
@@ -107,7 +105,6 @@ export async function updateItem(id: string, body: ItemBody) {
         slug: body.slug,
         priceUnit: body.priceUnit,
         calculationBasis: body.calculationBasis as never,
-        displayMode: (body.displayMode as never) ?? 'SELECTABLE',
         lengthMm: body.lengthMm ?? null,
         widthMm: body.widthMm ?? null,
       },
@@ -165,12 +162,11 @@ export async function calculatePrice(
     .filter((slot) => slot !== null)
     .map((slot) => ({
       id: slot!.item.id,
-      name: slot!.item.name,
+      name: slot!.name ?? slot!.item.name,
       priceUnit: (slot!.priceUnit ?? slot!.item.priceUnit).toNumber(),
       lengthMm: slot!.item.lengthMm,
       widthMm: slot!.item.widthMm,
       calculationBasis: (slot!.item.calculationBasis as string) as OptionItemShape['calculationBasis'],
-      displayMode: ((slot!.displayMode ?? slot!.item.displayMode) as string) as OptionItemShape['displayMode'],
     }))
 
   const ctx = buildOrderContext(rawContext)

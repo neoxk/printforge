@@ -49,26 +49,36 @@ export async function getContainer(productId: string, containerId: string) {
 
 export async function createContainer(
   productId: string,
-  data: { name: string; sortOrder?: number },
+  data: { name: string; containerType: string; sortOrder?: number; isHidden?: boolean; isRequired?: boolean },
 ) {
   await requireProduct(productId)
   return prisma.optionsContainer.create({
-    data: { productId, name: data.name, sortOrder: data.sortOrder ?? 0 },
+    data: {
+      productId,
+      name: data.name,
+      containerType: data.containerType as never,
+      sortOrder: data.sortOrder ?? 0,
+      isHidden: data.isHidden ?? false,
+      isRequired: data.isRequired ?? false,
+    },
   })
 }
 
 export async function updateContainer(
   productId: string,
   containerId: string,
-  data: { name?: string; sortOrder?: number; defaultItemId?: string | null },
+  data: { name?: string; containerType?: string; sortOrder?: number; defaultItemId?: string | null; isHidden?: boolean; isRequired?: boolean },
 ) {
   await requireContainer(productId, containerId)
   return prisma.optionsContainer.update({
     where: { id: containerId },
     data: {
       ...(data.name !== undefined && { name: data.name }),
+      ...(data.containerType !== undefined && { containerType: data.containerType as never }),
       ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
       ...('defaultItemId' in data && { defaultItemId: data.defaultItemId }),
+      ...(data.isHidden !== undefined && { isHidden: data.isHidden }),
+      ...(data.isRequired !== undefined && { isRequired: data.isRequired }),
     },
     include: { defaultItem: true },
   })
@@ -93,7 +103,7 @@ export async function listContainerItems(productId: string, containerId: string)
 export async function addItemToContainer(
   productId: string,
   containerId: string,
-  data: { itemId: string; sortOrder?: number; priceUnit?: number; displayMode?: string },
+  data: { itemId: string; sortOrder?: number; priceUnit?: number; name?: string },
 ) {
   await requireContainer(productId, containerId)
   const item = await prisma.optionItem.findUnique({ where: { id: data.itemId } })
@@ -105,7 +115,7 @@ export async function addItemToContainer(
         itemId: data.itemId,
         sortOrder: data.sortOrder ?? 0,
         priceUnit: data.priceUnit ?? null,
-        displayMode: (data.displayMode as never) ?? null,
+        name: data.name ?? null,
       },
       include: { item: true },
     })
@@ -139,7 +149,7 @@ export async function patchContainerItem(
   productId: string,
   containerId: string,
   itemId: string,
-  data: { sortOrder?: number; priceUnit?: number | null; displayMode?: string | null },
+  data: { sortOrder?: number; priceUnit?: number | null; name?: string | null },
 ) {
   await requireContainer(productId, containerId)
   try {
@@ -148,7 +158,7 @@ export async function patchContainerItem(
       data: {
         ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
         ...('priceUnit' in data && { priceUnit: data.priceUnit }),
-        ...('displayMode' in data && { displayMode: (data.displayMode as never) }),
+        ...('name' in data && { name: data.name }),
       },
       include: { item: true },
     })

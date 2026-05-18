@@ -1,11 +1,19 @@
 import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { CalcBasis, DisplayMode } from '@printforge/ui'
+import { CalcBasis } from '@printforge/ui'
 import type { OptionItem, OptionsGroup } from '@printforge/ui'
 import type { ItemPayload } from '../../lib/services/items'
-import { BASIS_OPTIONS, DISPLAY_OPTIONS, BASIS_UNIT, basisNeedsLength, basisNeedsWidth } from '../../lib/options-meta'
+import { BASIS_OPTIONS, BASIS_UNIT, basisNeedsLength, basisNeedsWidth } from '../../lib/options-meta'
 
 export type ItemFormData = ItemPayload & { groupId: string | null }
+
+type Props = {
+  isOpen: boolean
+  item: OptionItem | null
+  groups: OptionsGroup[]
+  onClose: () => void
+  onSave: (data: ItemFormData, item: OptionItem | null) => Promise<void>
+}
 
 function toSlug(name: string) {
   return name
@@ -14,27 +22,16 @@ function toSlug(name: string) {
     .replace(/[^a-z0-9-]/g, '')
 }
 
-function blank(): {
-  name: string
-  slug: string
-  slugTouched: boolean
-  calculationBasis: CalcBasis
-  priceUnit: string
-  displayMode: DisplayMode
-  lengthMm: string
-  widthMm: string
-  groupId: string | null
-} {
+function blank() {
   return {
     name: '',
     slug: '',
     slugTouched: false,
-    calculationBasis: CalcBasis.YIELD_PCS,
+    calculationBasis: CalcBasis.YIELD_PCS as CalcBasis,
     priceUnit: '',
-    displayMode: DisplayMode.SELECTABLE,
     lengthMm: '',
     widthMm: '',
-    groupId: null,
+    groupId: null as string | null,
   }
 }
 
@@ -45,7 +42,6 @@ function fromItem(item: OptionItem) {
     slugTouched: true,
     calculationBasis: item.calculationBasis,
     priceUnit: String(item.priceUnit),
-    displayMode: item.displayMode,
     lengthMm: item.lengthMm !== null ? String(item.lengthMm) : '',
     widthMm: item.widthMm !== null ? String(item.widthMm) : '',
     groupId: item.groupId,
@@ -63,7 +59,7 @@ export function ItemSlideOver({ isOpen, item, groups, onClose, onSave }: Props) 
     }
   }, [isOpen, item])
 
-  function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+  function set<K extends keyof ReturnType<typeof blank>>(key: K, value: ReturnType<typeof blank>[K]) {
     setForm((f) => ({ ...f, [key]: value }))
   }
 
@@ -88,7 +84,6 @@ export function ItemSlideOver({ isOpen, item, groups, onClose, onSave }: Props) 
       slug: form.slug.trim(),
       priceUnit: priceUnitNum,
       calculationBasis: form.calculationBasis,
-      displayMode: form.displayMode,
       lengthMm: needsLength && form.lengthMm !== '' ? parseInt(form.lengthMm, 10) : null,
       widthMm: needsWidth && form.widthMm !== '' ? parseInt(form.widthMm, 10) : null,
       groupId: form.groupId,
@@ -164,18 +159,6 @@ export function ItemSlideOver({ isOpen, item, groups, onClose, onSave }: Props) 
               onChange={(e) => set('priceUnit', e.target.value)}
               placeholder="0.00"
             />
-          </label>
-
-          <label className="slide-over-field">
-            <span>Display mode</span>
-            <select
-              value={form.displayMode}
-              onChange={(e) => set('displayMode', e.target.value as DisplayMode)}
-            >
-              {DISPLAY_OPTIONS.map((d) => (
-                <option key={d.value} value={d.value}>{d.label}</option>
-              ))}
-            </select>
           </label>
 
           {(needsLength || needsWidth) && (

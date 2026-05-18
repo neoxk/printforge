@@ -46,13 +46,12 @@ enum CalculationBasis {
   @@map("calculation_basis")
 }
 
-enum DisplayMode {
-  SELECTABLE
-  HIDDEN
-  REQUIRED
-
-  @@map("display_mode")
+enum ContainerType {
+  SINGLE_SELECT
+  MULTI_SELECT
+  AUTO_APPLIED
 }
+
 
 enum WooAuthMethod {
   public_store_api
@@ -147,7 +146,6 @@ model OptionItem {
   lengthMm         Int?             @map("process_length_mm")
   widthMm          Int?             @map("process_width_mm")
   calculationBasis CalculationBasis @map("calculation_basis")
-  displayMode      DisplayMode      @default(SELECTABLE) @map("display_mode")
 
   group              OptionsGroup?        @relation(fields: [groupId], references: [id])
   containerItems     ContainerOptionItem[]
@@ -165,6 +163,9 @@ model OptionsContainer {
   name          String  @db.VarChar(120)
   sortOrder     Int     @default(0) @map("sort_order")
   defaultItemId String? @map("default_item_id") @db.Uuid
+  containerType  ContainerType
+  isHidden       Boolean       @default(false) @map("is_hidden")
+  isRequired     Boolean       @default(false) @map("is_required")
 
   product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   defaultItem OptionItem? @relation("ContainerDefault", fields: [defaultItemId], references: [id])
@@ -181,7 +182,7 @@ model ContainerOptionItem {
   itemId        String  @map("item_id") @db.Uuid
   sortOrder     Int     @default(0) @map("sort_order")
   priceUnit     Decimal? @map("price_unit") @db.Decimal(12, 4)
-  displayMode   DisplayMode? @map("display_mode")
+  name String? 
 
   container OptionsContainer @relation(fields: [containerId], references: [id], onDelete: Cascade)
   item      OptionItem       @relation(fields: [itemId], references: [id])

@@ -50,9 +50,9 @@ Each product has many containers. Containers are not shared across products.
 
 ```
 GET    /products/:id/containers              # list containers on this product (ordered)
-POST   /products/:id/containers              # create container     { name, sortOrder? }
+POST   /products/:id/containers              # create container     { name, containerType, sortOrder?, isHidden?, isRequired? }
 GET    /products/:id/containers/:cid         # get container with its item slots
-PUT    /products/:id/containers/:cid         # update               { name?, sortOrder?, defaultItemId? }
+PUT    /products/:id/containers/:cid         # update               { name?, containerType?, sortOrder?, defaultItemId?, isHidden?, isRequired? }
 DELETE /products/:id/containers/:cid         # delete container and its slots
 ```
 
@@ -70,8 +70,8 @@ PATCH  /products/:id/containers/:cid/items/:itemId      # update per-container o
 {
   "itemId": "uuid",
   "sortOrder": 0,
-  "priceUnit": 0.09,       // optional override
-  "displayMode": "REQUIRED" // optional override
+  "priceUnit": 0.09,    // optional override
+  "name": "Custom label" // optional display name override for this container slot
 }
 ```
 

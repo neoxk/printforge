@@ -1,5 +1,4 @@
 export type CalculationBasis = 'YIELD_PCS' | 'LINEAR_M' | 'SQM' | 'PERIMETER' | 'PCS' | 'ORDER' | 'FREE'
-export type DisplayMode = 'SELECTABLE' | 'HIDDEN' | 'REQUIRED'
 
 export type OrderContext = {
   widthMm: number
@@ -12,10 +11,9 @@ export type OptionItemShape = {
   id: string
   name: string
   priceUnit: number
-  lengthMm: number | null   // -1 in DB means infinite roll; stored as null here
+  lengthMm: number | null
   widthMm: number | null
   calculationBasis: CalculationBasis
-  displayMode: DisplayMode
 }
 
 export type PriceLineItem = {

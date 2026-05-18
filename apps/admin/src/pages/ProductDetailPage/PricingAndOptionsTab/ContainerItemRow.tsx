@@ -2,8 +2,8 @@ import { Settings, X } from 'lucide-react'
 import { useState } from 'react'
 import type { ContainerItemPatchPayload } from '../../../lib/services/containers'
 import type { ContainerOptionItem, OptionsGroup } from '@printforge/ui'
-import { CalcBasis, DisplayMode } from '@printforge/ui'
-import { BASIS_UNIT, DISPLAY_LABEL } from '../../../lib/options-meta'
+import { CalcBasis } from '@printforge/ui'
+import { BASIS_UNIT } from '../../../lib/options-meta'
 import { ContainerItemSettings } from './ContainerItemSettings'
 
 type Props = {
@@ -26,9 +26,9 @@ export function ContainerItemRow({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const { item } = containerItem
-  const effectiveDisplayMode = containerItem.displayMode ?? item.displayMode
   const effectivePriceUnit = containerItem.priceUnit ?? item.priceUnit
-  const isOverridden = containerItem.priceUnit !== null
+  const isPriceOverridden = containerItem.priceUnit !== null
+  const isNameOverridden = containerItem.name !== null
 
   const groupName = item.groupId ? (groups.find((g) => g.id === item.groupId)?.name ?? '') : ''
   const subtitleParts = [
@@ -46,7 +46,14 @@ export function ContainerItemRow({
 
         <div>
           <div className="container-item-name">
-            {item.name}
+            {isNameOverridden ? (
+              <>
+                <span>{containerItem.name}</span>
+                <span className="item-name-override-badge" title={`Library name: ${item.name}`}>renamed</span>
+              </>
+            ) : (
+              item.name
+            )}
             {isDefault && (
               <button
                 className="item-default-badge"
@@ -66,7 +73,7 @@ export function ContainerItemRow({
         <div className="container-item-price">
           {item.calculationBasis === CalcBasis.FREE ? (
             <span className="muted-copy">— always 0</span>
-          ) : isOverridden ? (
+          ) : isPriceOverridden ? (
             <>
               <s className="price-override-base">
                 € {Number(item.priceUnit).toFixed(2)} {unit}
@@ -79,14 +86,6 @@ export function ContainerItemRow({
           ) : (
             `€ ${Number(effectivePriceUnit).toFixed(2)} ${unit}`
           )}
-        </div>
-
-        <div>
-          <span
-            className={`display-mode-badge${effectiveDisplayMode === DisplayMode.REQUIRED ? ' display-required' : ''}`}
-          >
-            {DISPLAY_LABEL[effectiveDisplayMode]}
-          </span>
         </div>
 
         <button

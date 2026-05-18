@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import type { ContainerItemPatchPayload } from '../../../lib/services/containers'
-import { DisplayMode } from '@printforge/ui'
 import type { ContainerOptionItem } from '@printforge/ui'
-import { DISPLAY_OPTIONS as BASE_DISPLAY_OPTIONS } from '../../../lib/options-meta'
 
 type Props = {
   containerItem: ContainerOptionItem
@@ -10,15 +8,11 @@ type Props = {
   onClose: () => void
 }
 
-const DISPLAY_OPTIONS = [{ value: '' as const, label: '— item default —' }, ...BASE_DISPLAY_OPTIONS]
-
 export function ContainerItemSettings({ containerItem, onPatch, onClose }: Props) {
   const [priceUnit, setPriceUnit] = useState(
     containerItem.priceUnit !== null ? String(containerItem.priceUnit) : '',
   )
-  const [displayMode, setDisplayMode] = useState<DisplayMode | ''>(
-    containerItem.displayMode ?? '',
-  )
+  const [name, setName] = useState(containerItem.name ?? '')
 
   function handleApply() {
     const payload: ContainerItemPatchPayload = {}
@@ -30,7 +24,7 @@ export function ContainerItemSettings({ containerItem, onPatch, onClose }: Props
       payload.priceUnit = parsedPrice
     }
 
-    payload.displayMode = displayMode === '' ? null : displayMode
+    payload.name = name.trim() || null
 
     onPatch(payload)
     onClose()
@@ -50,14 +44,13 @@ export function ContainerItemSettings({ containerItem, onPatch, onClose }: Props
         />
       </label>
       <label>
-        <span>Display mode override</span>
-        <select value={displayMode} onChange={(e) => setDisplayMode(e.target.value as DisplayMode | '')}>
-          {DISPLAY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <span>Display name override</span>
+        <input
+          type="text"
+          placeholder={`item default: ${containerItem.item.name}`}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
       </label>
       <div className="slot-settings-actions">
         <button className="ghost-button" type="button" onClick={onClose}>

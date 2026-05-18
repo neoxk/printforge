@@ -2,6 +2,7 @@ import { Plus, X } from 'lucide-react'
 import { useState } from 'react'
 import type { ContainerItemPatchPayload } from '../../../lib/services/containers'
 import type { ContainerOptionItem, OptionItem, OptionsContainer, OptionsGroup } from '@printforge/ui'
+import { CONTAINER_TYPE_LABEL } from '../../../lib/options-meta'
 import { ContainerItemRow } from './ContainerItemRow'
 import { ItemPicker } from './ItemPicker'
 
@@ -42,6 +43,9 @@ export function ContainerCard({
       <div className="container-card-header">
         <span className="drag-handle" aria-hidden="true">⠿</span>
         <span className="container-card-name">{container.name}</span>
+        <span className="container-type-badge">{CONTAINER_TYPE_LABEL[container.containerType]}</span>
+        {container.isHidden && <span className="container-flag-badge">Hidden</span>}
+        {container.isRequired && <span className="container-flag-badge">Required</span>}
         <span className="container-pos-badge">
           container {position} of {total}
         </span>
@@ -59,7 +63,6 @@ export function ContainerCard({
           <span>item</span>
           <span>basis</span>
           <span>price</span>
-          <span>display</span>
           <span />
           <span />
         </div>

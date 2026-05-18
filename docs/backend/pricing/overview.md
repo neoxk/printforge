@@ -61,9 +61,30 @@ Product "Business Card"
         default: 1/0
 ```
 
+### Container Types
+
+`containerType` controls the selection mechanic for the container:
+
+| Value | Behaviour |
+|---|---|
+| `SINGLE_SELECT` | Customer picks exactly one item. A default item is typically set. |
+| `MULTI_SELECT` | Customer can pick one or more items. |
+| `AUTO_APPLIED` | No customer choice — all items in the container are always included in the price calculation. Used for background costs the shop always charges. |
+
+### Container Flags
+
+Two independent boolean flags control visibility and validation:
+
+| Field | Default | Meaning |
+|---|---|---|
+| `isHidden` | `false` | If `true`, the container is never shown in the customer UI. The items are still priced in — use this for internal cost steps the shop doesn't want to expose. |
+| `isRequired` | `false` | If `true`, the customer must select at least one item before proceeding. Primarily meaningful for `MULTI_SELECT` containers. |
+
+These are orthogonal — any combination is valid. An `AUTO_APPLIED` container will typically have `isHidden: true` since there is nothing for the customer to interact with.
+
 ### Per-product overrides
 
-When an item is added to a container, any of its library settings (`priceUnit`, `displayMode`) can be overridden for that specific product. The library item itself is unchanged — the override applies only to that attachment.
+When an item is added to a container, its library `priceUnit` can be overridden for that specific product. A `name` override can also be set to display the item under a different label within that container. The library item itself is unchanged — overrides apply only to that slot.
 
 ---
 

@@ -1,4 +1,4 @@
-import type { OptionItem, CalcBasis, DisplayMode } from '@printforge/ui'
+import type { OptionItem, CalcBasis } from '@printforge/ui'
 import { apiRequest } from '../api/client'
 
 export type ItemPayload = {
@@ -6,7 +6,6 @@ export type ItemPayload = {
   slug: string
   priceUnit: number
   calculationBasis: CalcBasis
-  displayMode?: DisplayMode
   lengthMm?: number | null
   widthMm?: number | null
 }

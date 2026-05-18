@@ -1,15 +1,18 @@
-import type { ContainerOptionItem, DisplayMode, OptionsContainer } from '@printforge/ui'
+import type { ContainerOptionItem, ContainerType, OptionsContainer } from '@printforge/ui'
 import { apiRequest } from '../api/client'
 
 export type ContainerPatchPayload = {
   name?: string
+  containerType?: ContainerType
   sortOrder?: number
   defaultItemId?: string | null
+  isHidden?: boolean
+  isRequired?: boolean
 }
 
 export type ContainerItemPatchPayload = {
   priceUnit?: number | null
-  displayMode?: DisplayMode | null
+  name?: string | null
 }
 
 export const Containers = {
@@ -17,10 +20,10 @@ export const Containers = {
     return apiRequest<OptionsContainer[]>(`/api/products/${productId}/containers`)
   },
 
-  create(productId: string, name: string, sortOrder?: number) {
+  create(productId: string, name: string, containerType: ContainerType, sortOrder?: number) {
     return apiRequest<OptionsContainer>(`/api/products/${productId}/containers`, {
       method: 'POST',
-      body: JSON.stringify({ name, sortOrder }),
+      body: JSON.stringify({ name, containerType, sortOrder }),
     })
   },
 

@@ -21,13 +21,13 @@ export async function getContainerHandler(req: FastifyRequest, reply: FastifyRep
 
 export async function createContainerHandler(req: FastifyRequest, reply: FastifyReply) {
   const { id } = req.params as { id: string }
-  const body = req.body as { name: string; sortOrder?: number }
+  const body = req.body as { name: string; containerType: string; sortOrder?: number; isHidden?: boolean; isRequired?: boolean }
   return reply.status(201).send(await productsService.createContainer(id, body))
 }
 
 export async function updateContainerHandler(req: FastifyRequest, reply: FastifyReply) {
   const { id, cid } = req.params as { id: string; cid: string }
-  const body = req.body as { name?: string; sortOrder?: number; defaultItemId?: string | null }
+  const body = req.body as { name?: string; containerType?: string; sortOrder?: number; defaultItemId?: string | null; isHidden?: boolean; isRequired?: boolean }
   return reply.send(await productsService.updateContainer(id, cid, body))
 }
 
@@ -46,7 +46,7 @@ export async function listContainerItemsHandler(req: FastifyRequest, reply: Fast
 
 export async function addItemToContainerHandler(req: FastifyRequest, reply: FastifyReply) {
   const { id, cid } = req.params as { id: string; cid: string }
-  const body = req.body as { itemId: string; sortOrder?: number; priceUnit?: number; displayMode?: string }
+  const body = req.body as { itemId: string; sortOrder?: number; priceUnit?: number; name?: string }
   return reply.status(201).send(await productsService.addItemToContainer(id, cid, body))
 }
 
@@ -58,6 +58,6 @@ export async function removeItemFromContainerHandler(req: FastifyRequest, reply:
 
 export async function patchContainerItemHandler(req: FastifyRequest, reply: FastifyReply) {
   const { id, cid, itemId } = req.params as { id: string; cid: string; itemId: string }
-  const body = req.body as { sortOrder?: number; priceUnit?: number | null; displayMode?: string | null }
+  const body = req.body as { sortOrder?: number; priceUnit?: number | null; name?: string | null }
   return reply.send(await productsService.patchContainerItem(id, cid, itemId, body))
 }

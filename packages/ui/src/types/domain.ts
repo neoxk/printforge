@@ -58,12 +58,12 @@ export const CalcBasis = {
 } as const
 export type CalcBasis = typeof CalcBasis[keyof typeof CalcBasis]
 
-export const DisplayMode = {
-  SELECTABLE: 'SELECTABLE',
-  REQUIRED:   'REQUIRED',
-  HIDDEN:     'HIDDEN',
+export const ContainerType = {
+  SINGLE_SELECT: 'SINGLE_SELECT',
+  MULTI_SELECT:  'MULTI_SELECT',
+  AUTO_APPLIED:  'AUTO_APPLIED',
 } as const
-export type DisplayMode = typeof DisplayMode[keyof typeof DisplayMode]
+export type ContainerType = typeof ContainerType[keyof typeof ContainerType]
 
 export type OptionsGroup = {
   id: string
@@ -77,7 +77,6 @@ export type OptionItem = {
   slug: string
   priceUnit: number
   calculationBasis: CalcBasis
-  displayMode: DisplayMode
   lengthMm: number | null
   widthMm: number | null
   groupId: string | null
@@ -89,6 +88,9 @@ export type OptionsContainer = {
   sortOrder: number
   defaultItemId: string | null
   defaultItem: OptionItem | null
+  containerType: ContainerType
+  isHidden: boolean
+  isRequired: boolean
 }
 
 export type ContainerOptionItem = {
@@ -96,7 +98,7 @@ export type ContainerOptionItem = {
   itemId: string
   sortOrder: number
   priceUnit: number | null
-  displayMode: DisplayMode | null
+  name: string | null
   item: OptionItem
 }
 

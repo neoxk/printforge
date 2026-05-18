@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const displayModeValues = ['SELECTABLE', 'HIDDEN', 'REQUIRED'] as const
+const containerTypeValues = ['SINGLE_SELECT', 'MULTI_SELECT', 'AUTO_APPLIED'] as const
 
 export const productIdParam = z.object({ id: z.string() })
 
@@ -19,24 +19,30 @@ export const containerItemParams = z.object({
 
 export const createContainerBody = z.object({
   name: z.string().min(1).max(120),
+  containerType: z.enum(containerTypeValues),
   sortOrder: z.number().int().optional(),
+  isHidden: z.boolean().optional(),
+  isRequired: z.boolean().optional(),
 })
 
 export const updateContainerBody = z.object({
   name: z.string().min(1).max(120).optional(),
+  containerType: z.enum(containerTypeValues).optional(),
   sortOrder: z.number().int().optional(),
   defaultItemId: z.string().uuid().nullable().optional(),
+  isHidden: z.boolean().optional(),
+  isRequired: z.boolean().optional(),
 })
 
 export const addContainerItemBody = z.object({
   itemId: z.string().uuid(),
   sortOrder: z.number().int().optional(),
   priceUnit: z.number().nonnegative().optional(),
-  displayMode: z.enum(displayModeValues).optional(),
+  name: z.string().max(120).optional(),
 })
 
 export const patchContainerItemBody = z.object({
   sortOrder: z.number().int().optional(),
   priceUnit: z.number().nonnegative().nullable().optional(),
-  displayMode: z.enum(displayModeValues).nullable().optional(),
+  name: z.string().max(120).nullable().optional(),
 })

@@ -15,6 +15,7 @@ import {
 import { Containers } from '../../../lib/services/containers'
 import type { ContainerItemPatchPayload } from '../../../lib/services/containers'
 import { Groups, Items } from '../../../lib/services'
+import { CONTAINER_TYPE_OPTIONS } from '../../../lib/options-meta'
 import { ContainerCard } from './ContainerCard'
 import { PreviewModal } from './PreviewModal'
 
@@ -26,6 +27,7 @@ export function PricingAndOptionsTab({ product }: Props) {
   const [pricingState, pricingDispatch] = useReducer(pricingReducer, initialPricingState)
   const [isAddingContainer, setIsAddingContainer] = useState(false)
   const [newContainerName, setNewContainerName] = useState('')
+  const [newContainerType, setNewContainerType] = useState(CONTAINER_TYPE_OPTIONS[0].value)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
   useEffect(() => {
@@ -62,9 +64,10 @@ export function PricingAndOptionsTab({ product }: Props) {
     if (!name) return
     try {
       const nextSortOrder = containersState.containers.length
-      const container = await Containers.create(product.id, name, nextSortOrder)
+      const container = await Containers.create(product.id, name, newContainerType, nextSortOrder)
       containersDispatch(ContainersActions.CONTAINER_CREATED(container))
       setNewContainerName('')
+      setNewContainerType(CONTAINER_TYPE_OPTIONS[0].value)
       setIsAddingContainer(false)
     } catch (err) {
       showError(err instanceof Error ? err.message : 'Failed to create container.', 'Create failed')
@@ -158,13 +161,21 @@ export function PricingAndOptionsTab({ product }: Props) {
               onKeyDown={(e) => e.key === 'Enter' && void handleAddContainer()}
               autoFocus
             />
+            <select
+              value={newContainerType}
+              onChange={(e) => setNewContainerType(e.target.value as typeof newContainerType)}
+            >
+              {CONTAINER_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
             <button className="primary-button" type="button" onClick={() => void handleAddContainer()}>
               Confirm
             </button>
             <button
               className="ghost-button"
               type="button"
-              onClick={() => { setIsAddingContainer(false); setNewContainerName('') }}
+              onClick={() => { setIsAddingContainer(false); setNewContainerName(''); setNewContainerType(CONTAINER_TYPE_OPTIONS[0].value) }}
             >
               Cancel
             </button>
