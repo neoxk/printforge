@@ -145,6 +145,37 @@ export async function removeItemFromContainer(
   }
 }
 
+// ─── Product Config ───────────────────────────────────────────────────────────
+
+export async function getProductConfig(productId: string) {
+  await requireProduct(productId)
+  const containers = await prisma.optionsContainer.findMany({
+    where: { productId },
+    orderBy: { sortOrder: 'asc' },
+    include: {
+      items: {
+        include: { item: true },
+        orderBy: { sortOrder: 'asc' },
+      },
+    },
+  })
+  return {
+    containers: containers.map((c) => ({
+      id: c.id,
+      name: c.name,
+      containerType: c.containerType,
+      isHidden: c.isHidden,
+      isRequired: c.isRequired,
+      defaultItemId: c.defaultItemId,
+      items: c.items.map((slot) => ({
+        id: slot.itemId,
+        name: slot.name ?? slot.item.name,
+        slug: slot.item.slug,
+      })),
+    })),
+  }
+}
+
 export async function patchContainerItem(
   productId: string,
   containerId: string,

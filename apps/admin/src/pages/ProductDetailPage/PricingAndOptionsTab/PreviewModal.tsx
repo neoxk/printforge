@@ -1,7 +1,7 @@
 import { X } from 'lucide-react'
 
 // TODO: replace with env variable or derive from deployment config
-const CONFIGURATOR_URL = 'http://localhost:5174'
+const CONFIGURATOR_URL = 'http://localhost:5175'
 
 type Props = {
   productId: string
@@ -12,7 +12,7 @@ type Props = {
 export function PreviewModal({ productId, isOpen, onClose }: Props) {
   if (!isOpen) return null
 
-  const src = `${CONFIGURATOR_URL}?productId=${productId}`
+  const src = `${CONFIGURATOR_URL}/${productId}`
 
   return (
     <div className="preview-modal-backdrop" onClick={onClose} aria-hidden="true">

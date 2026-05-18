@@ -42,6 +42,7 @@ docs/
 - [`local.md`](setup/local.md) — Local development setup
 
 ### backend/
+- [`products/api.md`](backend/products/api.md) — Products HTTP API specification (containers, config endpoint)
 - [`pricing/overview.md`](backend/pricing/overview.md) — Pricing engine mental model, data model, calculation bases
 - [`pricing/api.md`](backend/pricing/api.md) — Pricing HTTP API specification
 - [`pricing/lib-usage.md`](backend/pricing/lib-usage.md) — Pricing lib API reference (`calculate`, `buildOrderContext`, types)

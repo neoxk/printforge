@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { authenticate } from '../../middleware/authenticate.js'
 import {
   listProductsHandler,
+  getProductConfigHandler,
   listContainersHandler,
   getContainerHandler,
   createContainerHandler,
@@ -24,6 +25,7 @@ import {
 
 export async function productsRoutes(app: FastifyInstance) {
   app.get('/', { preHandler: authenticate }, listProductsHandler)
+  app.get('/:id/config', { schema: { params: productIdParam } }, getProductConfigHandler)
 
   // Containers
   app.get('/:id/containers', { preHandler: authenticate, schema: { params: productIdParam } }, listContainersHandler)

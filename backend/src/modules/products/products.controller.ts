@@ -37,6 +37,13 @@ export async function deleteContainerHandler(req: FastifyRequest, reply: Fastify
   return reply.status(204).send()
 }
 
+// ─── Product Config ───────────────────────────────────────────────────────────
+
+export async function getProductConfigHandler(req: FastifyRequest, reply: FastifyReply) {
+  const { id } = req.params as { id: string }
+  return reply.send(await productsService.getProductConfig(id))
+}
+
 // ─── Container Items ──────────────────────────────────────────────────────────
 
 export async function listContainerItemsHandler(req: FastifyRequest, reply: FastifyReply) {
