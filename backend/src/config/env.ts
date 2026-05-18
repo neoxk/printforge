@@ -14,6 +14,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string(),
   JWT_SECRET: z.string(),
   JWT_REFRESH_SECRET: z.string(),
+  WOOCOMMERCE_INTERNAL_URL: z.string().optional(),
 })
 
 export const env = envSchema.parse(process.env)

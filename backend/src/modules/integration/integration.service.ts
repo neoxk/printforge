@@ -1,6 +1,7 @@
 import { WooAuthMethod, type IntegrationConnection } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { AppError } from '../../lib/errors.js'
+import { env } from '../../config/env.js'
 
 type IntegrationPayload = {
   connectionName: string
@@ -66,6 +67,26 @@ function parseSyncLabel(value: string) {
 
 function trimTrailingSlashes(value: string) {
   return value.trim().replace(/\/+$/g, '')
+}
+
+function resolveInternalWooCommerceUrl(value: string) {
+  if (!env.WOOCOMMERCE_INTERNAL_URL) {
+    return value
+  }
+
+  const url = new URL(value)
+  const isLocalWordPressUrl =
+    ['localhost', '127.0.0.1'].includes(url.hostname) && url.port === '8080'
+
+  if (!isLocalWordPressUrl) {
+    return value
+  }
+
+  const internalUrl = new URL(env.WOOCOMMERCE_INTERNAL_URL)
+  url.protocol = internalUrl.protocol
+  url.hostname = internalUrl.hostname
+  url.port = internalUrl.port
+  return url.toString()
 }
 
 function getDefaultConnection() {
@@ -195,9 +216,10 @@ function buildProductsRequestUrl(connection: IntegrationConnection) {
     throw new AppError(400, 'WooCommerce API base URL is required.')
   }
 
-  const productsUrl = configuredValue.endsWith('/products')
+  const externalProductsUrl = configuredValue.endsWith('/products')
     ? configuredValue
     : `${configuredValue}/products`
+  const productsUrl = resolveInternalWooCommerceUrl(externalProductsUrl)
 
   if (connection.authMethod !== WooAuthMethod.consumer_keys) {
     return productsUrl

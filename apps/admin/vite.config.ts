@@ -41,6 +41,10 @@ function buildWooProductsUrl(payload: {
   return url.toString()
 }
 
+const hmrHost = process.env.VITE_HMR_HOST
+const hmrClientPort = process.env.VITE_HMR_CLIENT_PORT
+const hmrPath = process.env.VITE_HMR_PATH
+
 export default defineConfig({
   plugins: [
     react(),
@@ -105,6 +109,13 @@ export default defineConfig({
   ],
   base: process.env.VITE_BASE_PATH ?? '/',
   server: {
+    hmr: hmrHost || hmrClientPort || hmrPath
+      ? {
+          host: hmrHost,
+          clientPort: hmrClientPort ? Number(hmrClientPort) : undefined,
+          path: hmrPath,
+        }
+      : undefined,
     proxy: {
       '/api': process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:3000',
     },

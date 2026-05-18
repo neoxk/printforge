@@ -1,0 +1,25 @@
+:5174 {
+	@adminRoot path /pf-admin
+	redir @adminRoot /pf-admin/ 308
+
+	@configuratorRoot path /pf
+	redir @configuratorRoot /pf/ 308
+
+	handle /api/* {
+		reverse_proxy fastify:3000
+	}
+
+	handle /__printforge/woocommerce-sync {
+		reverse_proxy admin:5173
+	}
+
+	handle /pf-admin/* {
+		reverse_proxy admin:5173
+	}
+
+	handle /pf/* {
+		reverse_proxy configurator:5174
+	}
+
+	respond "PrintForge local router. Use /pf-admin/ or /pf/." 200
+}

@@ -1,0 +1,57 @@
+services:
+  fastify:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    env_file:
+      - .env.server
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - printforge
+
+  admin:
+    build:
+      context: ../..
+      dockerfile: apps/admin/Dockerfile
+      args:
+        VITE_BASE_PATH: /pf-admin/
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5173:80"
+    networks:
+      - printforge
+
+  configurator:
+    build:
+      context: ../..
+      dockerfile: apps/configurator/Dockerfile
+      args:
+        VITE_BASE_PATH: /pf/
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5174:80"
+    networks:
+      - printforge
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    depends_on:
+      - postgres
+    env_file:
+      - .env.server
+    command: npx prisma migrate deploy --schema backend/prisma/schema.prisma
+    restart: "no"
+    profiles:
+      - tools
+    networks:
+      - printforge
+
+  postgres:
+    env_file:
+      - .env.server
