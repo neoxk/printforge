@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { Plus, Eye } from 'lucide-react'
 import { useEffect, useReducer, useState } from 'react'
 import { SectionCard, useAppAlerts } from '@printforge/ui'
 import type { ProductRecord } from '@printforge/ui'
@@ -16,6 +16,7 @@ import { Containers } from '../../../lib/services/containers'
 import type { ContainerItemPatchPayload } from '../../../lib/services/containers'
 import { Groups, Items } from '../../../lib/services'
 import { ContainerCard } from './ContainerCard'
+import { PreviewModal } from './PreviewModal'
 
 type Props = { product: ProductRecord }
 
@@ -25,6 +26,7 @@ export function PricingAndOptionsTab({ product }: Props) {
   const [pricingState, pricingDispatch] = useReducer(pricingReducer, initialPricingState)
   const [isAddingContainer, setIsAddingContainer] = useState(false)
   const [newContainerName, setNewContainerName] = useState('')
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -124,16 +126,26 @@ export function PricingAndOptionsTab({ product }: Props) {
     <div className="page-stack">
       <SectionCard
         title="Options & Pricing"
-        description="Build the pricing structure for this product by adding containers and assigning library items to them."
+        description="Build the options and pricing structure for this product"
         actions={
-          <button
-            className="ghost-button"
-            type="button"
-            onClick={() => setIsAddingContainer((v) => !v)}
-          >
-            <Plus className="button-icon" aria-hidden="true" />
-            Add container
-          </button>
+          <>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => setIsPreviewOpen(true)}
+            >
+              <Eye className="button-icon" aria-hidden="true" />
+              Preview
+            </button>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => setIsAddingContainer((v) => !v)}
+            >
+              <Plus className="button-icon" aria-hidden="true" />
+              Add container
+            </button>
+          </>
         }
       >
         {isAddingContainer && (
@@ -186,6 +198,12 @@ export function PricingAndOptionsTab({ product }: Props) {
           </div>
         )}
       </SectionCard>
+
+      <PreviewModal
+        productId={product.id}
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+      />
     </div>
   )
 }

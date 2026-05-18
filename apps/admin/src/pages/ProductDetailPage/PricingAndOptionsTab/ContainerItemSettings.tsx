@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { ContainerItemPatchPayload } from '../../../lib/services/containers'
-import type { ContainerOptionItem, DisplayMode } from '@printforge/ui'
+import { DisplayMode } from '@printforge/ui'
+import type { ContainerOptionItem } from '@printforge/ui'
+import { DISPLAY_OPTIONS as BASE_DISPLAY_OPTIONS } from '../../../lib/options-meta'
 
 type Props = {
   containerItem: ContainerOptionItem
@@ -8,12 +10,7 @@ type Props = {
   onClose: () => void
 }
 
-const DISPLAY_OPTIONS: { value: DisplayMode | ''; label: string }[] = [
-  { value: '', label: '— item default —' },
-  { value: 'SELECTABLE', label: 'Selectable' },
-  { value: 'REQUIRED', label: 'Required' },
-  { value: 'HIDDEN', label: 'Hidden' },
-]
+const DISPLAY_OPTIONS = [{ value: '' as const, label: '— item default —' }, ...BASE_DISPLAY_OPTIONS]
 
 export function ContainerItemSettings({ containerItem, onPatch, onClose }: Props) {
   const [priceUnit, setPriceUnit] = useState(

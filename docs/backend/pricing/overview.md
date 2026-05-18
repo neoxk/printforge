@@ -43,6 +43,8 @@ Each container:
 - Is **owned by its product** and is not shared or reused across products
 - Holds a curated list of OptionItems the customer can choose from
 - Has an optional **default item** — the item pre-selected when the product page loads
+- Has a **type** that controls how the customer interacts with it (see Container Types below)
+- Has **visibility and validation flags** controlling how it behaves in the UI (see Container Flags below)
 
 Example — a business card product might have:
 

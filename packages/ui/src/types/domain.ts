@@ -47,8 +47,23 @@ export type SyncProductsResponse = {
   authMethod: IntegrationStatus['authMethod']
 }
 
-export type CalculationBasis = 'YIELD_PCS' | 'LINEAR_M' | 'SQM' | 'PERIMETER' | 'PCS' | 'ORDER' | 'FREE'
-export type DisplayMode = 'SELECTABLE' | 'HIDDEN' | 'REQUIRED'
+export const CalcBasis = {
+  YIELD_PCS: 'YIELD_PCS',
+  LINEAR_M:  'LINEAR_M',
+  SQM:       'SQM',
+  PERIMETER: 'PERIMETER',
+  PCS:       'PCS',
+  ORDER:     'ORDER',
+  FREE:      'FREE',
+} as const
+export type CalcBasis = typeof CalcBasis[keyof typeof CalcBasis]
+
+export const DisplayMode = {
+  SELECTABLE: 'SELECTABLE',
+  REQUIRED:   'REQUIRED',
+  HIDDEN:     'HIDDEN',
+} as const
+export type DisplayMode = typeof DisplayMode[keyof typeof DisplayMode]
 
 export type OptionsGroup = {
   id: string
@@ -61,7 +76,7 @@ export type OptionItem = {
   name: string
   slug: string
   priceUnit: number
-  calculationBasis: CalculationBasis
+  calculationBasis: CalcBasis
   displayMode: DisplayMode
   lengthMm: number | null
   widthMm: number | null
@@ -88,7 +103,7 @@ export type ContainerOptionItem = {
 export type PriceLineItem = {
   itemId: string
   name: string
-  calculationBasis: CalculationBasis
+  calculationBasis: CalcBasis
   cost: number
 }
 

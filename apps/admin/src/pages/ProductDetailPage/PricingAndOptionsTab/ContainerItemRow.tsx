@@ -2,6 +2,8 @@ import { Settings, X } from 'lucide-react'
 import { useState } from 'react'
 import type { ContainerItemPatchPayload } from '../../../lib/services/containers'
 import type { ContainerOptionItem, OptionsGroup } from '@printforge/ui'
+import { CalcBasis, DisplayMode } from '@printforge/ui'
+import { BASIS_UNIT, DISPLAY_LABEL } from '../../../lib/options-meta'
 import { ContainerItemSettings } from './ContainerItemSettings'
 
 type Props = {
@@ -11,22 +13,6 @@ type Props = {
   onRemove: () => void
   onPatch: (payload: ContainerItemPatchPayload) => void
   onSetDefault: () => void
-}
-
-const BASIS_UNIT: Record<string, string> = {
-  YIELD_PCS: '/ sheet',
-  LINEAR_M: '/ m',
-  SQM: '/ m²',
-  PERIMETER: '/ m',
-  PCS: '/ pc',
-  ORDER: 'fixed',
-  FREE: '',
-}
-
-const DISPLAY_LABEL: Record<string, string> = {
-  SELECTABLE: 'selectable',
-  REQUIRED: 'required',
-  HIDDEN: 'hidden',
 }
 
 export function ContainerItemRow({
@@ -78,7 +64,7 @@ export function ContainerItemRow({
         <span className="container-item-basis">{item.calculationBasis}</span>
 
         <div className="container-item-price">
-          {item.calculationBasis === 'FREE' ? (
+          {item.calculationBasis === CalcBasis.FREE ? (
             <span className="muted-copy">— always 0</span>
           ) : isOverridden ? (
             <>
@@ -97,7 +83,7 @@ export function ContainerItemRow({
 
         <div>
           <span
-            className={`display-mode-badge${effectiveDisplayMode === 'REQUIRED' ? ' display-required' : ''}`}
+            className={`display-mode-badge${effectiveDisplayMode === DisplayMode.REQUIRED ? ' display-required' : ''}`}
           >
             {DISPLAY_LABEL[effectiveDisplayMode]}
           </span>
