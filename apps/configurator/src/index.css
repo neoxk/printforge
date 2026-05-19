@@ -90,6 +90,96 @@ body {
   font-weight: 500;
 }
 
+/* ── Dimensions ── */
+
+.dimensions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dimensions-row input {
+  width: 90px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.dimensions-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.dimensions-sep {
+  color: var(--text-muted);
+  font-size: 16px;
+}
+
+.quantity-input {
+  width: 90px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.quantity-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ── Price panel ── */
+
+.price-panel {
+  border-top: 1.5px solid var(--border);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.price-loading {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.price-error {
+  font-size: 13px;
+  color: #dc2626;
+}
+
+.price-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.price-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.price-line-cost {
+  font-variant-numeric: tabular-nums;
+}
+
+.price-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
 /* ── States ── */
 
 .cf-loading {

@@ -18,6 +18,7 @@ Intended for the Configurator SPA. This endpoint is **public** (no authenticatio
 
 ```json
 {
+  "dimensions": { "type": "fixed", "widthMm": 85, "heightMm": 55 },
   "containers": [
     {
       "id": "8628e066-a8a1-4d8a-8ba9-2b0f3f6631ad",
@@ -34,6 +35,15 @@ Intended for the Configurator SPA. This endpoint is **public** (no authenticatio
   ]
 }
 ```
+
+**`dimensions` field:**
+
+Controls whether the configurator shows a width × height input to the customer.
+
+| `type` | Shape | Meaning |
+|---|---|---|
+| `"fixed"` | `{ type, widthMm, heightMm }` | Dimensions are predetermined; do not show dimension inputs |
+| `"custom"` | `{ type }` | Customer must enter dimensions before the order can be priced |
 
 **Container fields:**
 

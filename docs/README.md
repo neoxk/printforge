@@ -11,6 +11,7 @@ docs/
   plugin/            WordPress / WooCommerce plugin
   packages/          Shared packages (e.g. @printforge/ui)
   infrastructure/    Docker, Caddy, deployment, environment variables
+  libdocs/           Library documentations
 ```
 
 ## What goes where

@@ -1,3 +1,4 @@
+import './PricingAndOptionsTab.css'
 import { Plus, Eye } from 'lucide-react'
 import { useEffect, useReducer, useState } from 'react'
 import { SectionCard, useAppAlerts } from '@printforge/ui'
@@ -17,6 +18,7 @@ import type { ContainerItemPatchPayload } from '../../../lib/services/containers
 import { Groups, Items } from '../../../lib/services'
 import { CONTAINER_TYPE_OPTIONS } from '../../../lib/options-meta'
 import { ContainerCard } from './ContainerCard'
+import { ProductSettingsCard } from './ProductSettingsCard'
 import { PreviewModal } from './PreviewModal'
 
 type Props = { product: ProductRecord }
@@ -127,6 +129,8 @@ export function PricingAndOptionsTab({ product }: Props) {
 
   return (
     <div className="page-stack">
+      <ProductSettingsCard productId={product.id} />
+
       <SectionCard
         title="Options & Pricing"
         description="Build the options and pricing structure for this product"

@@ -46,3 +46,8 @@ export const patchContainerItemBody = z.object({
   priceUnit: z.number().nonnegative().nullable().optional(),
   name: z.string().max(120).nullable().optional(),
 })
+
+export const updateProductBody = z.object({
+  widthMm: z.number().int().positive().nullable(),
+  heightMm: z.number().int().positive().nullable(),
+})

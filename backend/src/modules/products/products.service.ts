@@ -145,10 +145,29 @@ export async function removeItemFromContainer(
   }
 }
 
+// ─── Product Update ───────────────────────────────────────────────────────────
+
+export async function updateProduct(
+  productId: string,
+  data: { widthMm: number | null; heightMm: number | null },
+) {
+  await requireProduct(productId)
+  const updated = await prisma.product.update({
+    where: { id: productId },
+    data: { width: data.widthMm, height: data.heightMm },
+    select: { id: true, width: true, height: true },
+  })
+  return {
+    id: updated.id,
+    widthMm: updated.width != null ? Number(updated.width) : null,
+    heightMm: updated.height != null ? Number(updated.height) : null,
+  }
+}
+
 // ─── Product Config ───────────────────────────────────────────────────────────
 
 export async function getProductConfig(productId: string) {
-  await requireProduct(productId)
+  const product = await requireProduct(productId)
   const containers = await prisma.optionsContainer.findMany({
     where: { productId },
     orderBy: { sortOrder: 'asc' },
@@ -159,7 +178,14 @@ export async function getProductConfig(productId: string) {
       },
     },
   })
+
+  const dimensions =
+    product.width != null && product.height != null
+      ? { type: 'fixed' as const, widthMm: Number(product.width), heightMm: Number(product.height) }
+      : { type: 'custom' as const }
+
   return {
+    dimensions,
     containers: containers.map((c) => ({
       id: c.id,
       name: c.name,

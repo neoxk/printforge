@@ -14,6 +14,23 @@ export type ConfigContainer = {
   items: ConfigItem[]
 }
 
+export type Dimensions =
+  | { type: 'fixed'; widthMm: number; heightMm: number }
+  | { type: 'custom' }
+
 export type ProductConfig = {
+  dimensions: Dimensions
   containers: ConfigContainer[]
+}
+
+export type PriceLineItem = {
+  itemId: string
+  name: string
+  calculationBasis: string
+  cost: number
+}
+
+export type PricingResult = {
+  total: number
+  breakdown: PriceLineItem[]
 }
