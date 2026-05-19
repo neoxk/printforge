@@ -1,75 +1,174 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
+import { NotFoundError, ConflictError } from '../../lib/errors.js'
+import { calculate, buildOrderContext } from '../../lib/pricing/index.js'
+import type { OptionItemShape } from '../../lib/pricing/index.js'
 
-export async function calculatePrice(productId: string, options: Record<string, string>) {
-  const pricingRuleModel = (prisma as any).pricingRule
-  const rules = await pricingRuleModel.findMany({
-    where: {
-      productId: BigInt(productId),
-      isActive: true,
-    },
+// ─── Groups ──────────────────────────────────────────────────────────────────
+
+export async function listGroups() {
+  return prisma.optionsGroup.findMany({ orderBy: { name: 'asc' } })
+}
+
+export async function getGroup(id: string) {
+  const group = await prisma.optionsGroup.findUnique({
+    where: { id },
+    include: { items: { orderBy: { name: 'asc' } } },
   })
+  if (!group) throw new NotFoundError('Group not found.')
+  return group
+}
 
-  const breakdown = rules.map((rule: any) => ({
-    ruleId: rule.id,
-    label: rule.name,
-    amount: Number(rule.amount),
-    trigger: rule.triggerLabel,
-  }))
+export async function createGroup(name: string) {
+  try {
+    return await prisma.optionsGroup.create({ data: { name } })
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      throw new ConflictError('A group with that name already exists.')
+    }
+    throw e
+  }
+}
 
-  const basePrice = breakdown.reduce(
-    (total: number, item: { amount: number }) => total + item.amount,
-    0,
+export async function updateGroup(id: string, name: string) {
+  try {
+    return await prisma.optionsGroup.update({ where: { id }, data: { name } })
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+      if (e.code === 'P2025') throw new NotFoundError('Group not found.')
+      if (e.code === 'P2002') throw new ConflictError('A group with that name already exists.')
+    }
+    throw e
+  }
+}
+
+export async function deleteGroup(id: string) {
+  const group = await prisma.optionsGroup.findUnique({ where: { id } })
+  if (!group) throw new NotFoundError('Group not found.')
+  await prisma.$transaction(async (tx) => {
+    await tx.optionItem.updateMany({ where: { groupId: id }, data: { groupId: null } })
+    await tx.optionsGroup.delete({ where: { id } })
+  })
+}
+
+// ─── Items ────────────────────────────────────────────────────────────────────
+
+type ItemBody = {
+  name: string
+  slug: string
+  priceUnit: number
+  calculationBasis: string
+  lengthMm?: number | null
+  widthMm?: number | null
+}
+
+export async function listItems(groupId?: string) {
+  return prisma.optionItem.findMany({
+    where: groupId ? { groupId } : undefined,
+    orderBy: { name: 'asc' },
+  })
+}
+
+export async function getItem(id: string) {
+  const item = await prisma.optionItem.findUnique({ where: { id } })
+  if (!item) throw new NotFoundError('Item not found.')
+  return item
+}
+
+export async function createItem(body: ItemBody) {
+  try {
+    return await prisma.optionItem.create({
+      data: {
+        name: body.name,
+        slug: body.slug,
+        priceUnit: body.priceUnit,
+        calculationBasis: body.calculationBasis as never,
+        lengthMm: body.lengthMm ?? null,
+        widthMm: body.widthMm ?? null,
+      },
+    })
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      throw new ConflictError('An item with that name or slug already exists.')
+    }
+    throw e
+  }
+}
+
+export async function updateItem(id: string, body: ItemBody) {
+  await getItem(id)
+  try {
+    return await prisma.optionItem.update({
+      where: { id },
+      data: {
+        name: body.name,
+        slug: body.slug,
+        priceUnit: body.priceUnit,
+        calculationBasis: body.calculationBasis as never,
+        lengthMm: body.lengthMm ?? null,
+        widthMm: body.widthMm ?? null,
+      },
+    })
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      throw new ConflictError('An item with that name or slug already exists.')
+    }
+    throw e
+  }
+}
+
+export async function deleteItem(id: string) {
+  await getItem(id)
+  const usageCount = await prisma.containerOptionItem.count({ where: { itemId: id } })
+  if (usageCount > 0) throw new ConflictError('Item is in use by one or more containers.')
+  await prisma.optionItem.delete({ where: { id } })
+}
+
+export async function addItemToGroup(groupId: string, itemId: string) {
+  const group = await prisma.optionsGroup.findUnique({ where: { id: groupId } })
+  if (!group) throw new NotFoundError('Group not found.')
+  const item = await prisma.optionItem.findUnique({ where: { id: itemId } })
+  if (!item) throw new NotFoundError('Item not found.')
+  return prisma.optionItem.update({ where: { id: itemId }, data: { groupId } })
+}
+
+export async function removeItemFromGroup(groupId: string, itemId: string) {
+  const item = await prisma.optionItem.findUnique({ where: { id: itemId } })
+  if (!item) throw new NotFoundError('Item not found.')
+  if (item.groupId !== groupId) throw new NotFoundError('Item does not belong to this group.')
+  return prisma.optionItem.update({ where: { id: itemId }, data: { groupId: null } })
+}
+
+// ─── Calculate ────────────────────────────────────────────────────────────────
+
+export async function calculatePrice(
+  productId: string,
+  selectedItemIds: string[],
+  rawContext: unknown,
+) {
+  const product = await prisma.product.findUnique({ where: { id: productId } })
+  if (!product) throw new NotFoundError('Product not found.')
+
+  const slots = await Promise.all(
+    selectedItemIds.map((itemId) =>
+      prisma.containerOptionItem.findFirst({
+        where: { itemId, container: { productId } },
+        include: { item: true },
+      }),
+    ),
   )
 
-  return {
-    price: basePrice,
-    breakdown,
-    options,
-  }
-}
+  const items: OptionItemShape[] = slots
+    .filter((slot) => slot !== null)
+    .map((slot) => ({
+      id: slot!.item.id,
+      name: slot!.name ?? slot!.item.name,
+      priceUnit: (slot!.priceUnit ?? slot!.item.priceUnit).toNumber(),
+      lengthMm: slot!.item.lengthMm,
+      widthMm: slot!.item.widthMm,
+      calculationBasis: (slot!.item.calculationBasis as string) as OptionItemShape['calculationBasis'],
+    }))
 
-export async function listPricingRules() {
-  const pricingRuleModel = (prisma as any).pricingRule
-  const rules = await pricingRuleModel.findMany({
-    orderBy: { id: 'desc' as const },
-  })
-
-  return rules.map((rule: any) => ({
-    id: rule.id,
-    name: rule.name,
-    summary: rule.description ?? 'No summary provided yet.',
-    trigger: rule.triggerLabel,
-    status: rule.status,
-  }))
-}
-
-export async function createPricingRule(input: {
-  name: string
-  summary: string
-  trigger: string
-  status: string
-}) {
-  const pricingRuleModel = (prisma as any).pricingRule
-  const rule = await pricingRuleModel.create({
-    data: {
-      name: input.name,
-      productId: BigInt(0),
-      triggerLabel: input.trigger,
-      operator: 'eq',
-      triggerValue: input.trigger,
-      ruleType: 'flat_surcharge',
-      amount: 0,
-      description: input.summary,
-      status: input.status,
-      isActive: input.status.toLowerCase() === 'active',
-    },
-  })
-
-  return {
-    id: rule.id,
-    name: rule.name,
-    summary: rule.description ?? '',
-    trigger: rule.triggerLabel,
-    status: rule.status,
-  }
+  const ctx = buildOrderContext(rawContext)
+  return calculate(items, ctx)
 }

@@ -123,67 +123,6 @@ function serializeIntegration(connection: IntegrationConnection) {
   }
 }
 
-function slugify(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-}
-
-function createOption(productId: number, attributeKey: string, label: string, index: number) {
-  const normalizedLabel = label.trim()
-
-  return {
-    id: `${productId}-${attributeKey}-${index}`,
-    label: normalizedLabel,
-    value: slugify(normalizedLabel),
-    description: '',
-    price: '',
-  }
-}
-
-function mapWooAttributesToFields(product: WooStoreProduct) {
-  return (
-    product.attributes
-      ?.map((attribute) => {
-        const attributeKey = slugify(attribute.name)
-        const termOptions =
-          attribute.terms
-            ?.map((term, index) => {
-              const label = term.name?.trim()
-              return label ? createOption(product.id, attributeKey, label, index) : null
-            })
-            .filter((option): option is ReturnType<typeof createOption> => option !== null) ?? []
-
-        const fallbackOptions =
-          attribute.options?.map((option, index) =>
-            createOption(product.id, attributeKey, option, index),
-          ) ?? []
-
-        const options = termOptions.length > 0 ? termOptions : fallbackOptions
-
-        if (options.length === 0) {
-          return null
-        }
-
-        return {
-          id: `${product.id}-${attribute.id ?? attributeKey}`,
-          key: attributeKey,
-          label: attribute.name,
-          type: 'select',
-          source: 'woocommerce',
-          sourceAttributeId: attribute.id ?? null,
-          options,
-          visibleInProductDetails: true,
-          usedForPricing: attributeKey === 'material',
-          helpText: 'Imported automatically from the WooCommerce product attribute.',
-        }
-      })
-      .filter((field): field is NonNullable<typeof field> => field !== null) ?? []
-  )
-}
-
 function formatStorePrice(product: WooStoreProduct) {
   const rawPrice = product.prices?.price
 
@@ -316,26 +255,19 @@ export async function syncWooProducts() {
   const syncedAt = new Date()
 
   await prisma.$transaction([
-    prisma.syncedProduct.deleteMany({
+    prisma.product.deleteMany({
       where: { connectionId: connection.id },
     }),
     ...products.map((product) =>
-      prisma.syncedProduct.create({
+      prisma.product.create({
         data: {
           connectionId: connection.id,
           wooProductId: BigInt(product.id),
           name: product.name,
           category: product.categories?.map((category) => category.name).join(', ') || 'Uncategorized',
           status: 'Store synced',
-          syncStatus: 'Live from WooCommerce',
           sku: getSku(product),
-          material: 'Configured later',
-          printArea: 'Configured later',
-          template: 'Configured later',
           basePrice: formatStorePrice(product),
-          updatedAtLabel: 'Live store data',
-          importedFields: mapWooAttributesToFields(product),
-          rawPayload: product,
         },
       }),
     ),
@@ -358,23 +290,18 @@ export async function syncWooProducts() {
 
 export async function listSyncedProducts() {
   const connection = await getCurrentConnectionRecord()
-  const products = await prisma.syncedProduct.findMany({
+  const products = await prisma.product.findMany({
     where: { connectionId: connection.id },
     orderBy: { updatedAt: 'desc' },
   })
 
   return products.map((product) => ({
-    id: product.wooProductId.toString(),
+    id: product.id,
+    wooProductId: product.wooProductId.toString(),
     name: product.name,
     category: product.category,
     status: product.status,
-    syncStatus: product.syncStatus,
     sku: product.sku,
-    material: product.material,
-    printArea: product.printArea,
-    template: product.template,
     basePrice: product.basePrice,
-    updatedAt: product.updatedAtLabel,
-    importedFields: product.importedFields,
   }))
 }

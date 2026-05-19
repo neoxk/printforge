@@ -1,13 +1,35 @@
 import { z } from 'zod'
 
-export const calculatePriceBody = z.object({
-  productId: z.string(),
-  options: z.record(z.string()),
+const calculationBasisValues = ['YIELD_PCS', 'LINEAR_M', 'SQM', 'PERIMETER', 'PCS', 'ORDER', 'FREE'] as const
+
+export const groupIdParam = z.object({ id: z.string().uuid() })
+export const itemIdParam = z.object({ id: z.string().uuid() })
+export const groupItemParams = z.object({
+  id: z.string().uuid(),
+  itemId: z.string().uuid(),
 })
 
-export const createPricingRuleBody = z.object({
-  name: z.string().trim().min(2).max(120),
-  summary: z.string().trim().min(2).max(255),
-  trigger: z.string().trim().min(2).max(120),
-  status: z.string().trim().min(2).max(40),
+export const createGroupBody = z.object({ name: z.string().min(1).max(120) })
+export const updateGroupBody = createGroupBody
+
+export const createItemBody = z.object({
+  name: z.string().min(1).max(120),
+  slug: z.string().min(1).max(120),
+  priceUnit: z.number().nonnegative(),
+  calculationBasis: z.enum(calculationBasisValues),
+  lengthMm: z.number().int().nullable().optional(),
+  widthMm: z.number().int().nullable().optional(),
+})
+export const updateItemBody = createItemBody
+
+export const listItemsQuery = z.object({ groupId: z.string().uuid().optional() })
+
+export const calculateBody = z.object({
+  productId: z.string().uuid(),
+  selectedItemIds: z.array(z.string().uuid()),
+  context: z.object({
+    widthMm: z.number().positive(),
+    heightMm: z.number().positive(),
+    quantity: z.number().int().positive(),
+  }),
 })

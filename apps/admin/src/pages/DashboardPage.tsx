@@ -6,84 +6,82 @@ import {
   ShieldCheck,
   SlidersHorizontal,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { useAppAlerts } from '@printforge/ui'
+import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { PageHeader } from '../components/PageHeader'
-import { SectionCard } from '../components/SectionCard'
-import { StatCard } from '../components/StatCard'
-import { StatusPill } from '../components/StatusPill'
+import {
+  PageHeader,
+  SectionCard,
+  StatCard,
+  StatusPill,
+  useAppAlerts,
+  useAsync,
+} from '@printforge/ui'
 import {
   getIntegrationRequest,
   getPricingRulesRequest,
   getProductsRequest,
   getValidationRulesRequest,
 } from '../lib/Api'
-import type { IntegrationStatus, ProductRecord } from '../types/domain'
 
 export function DashboardPage() {
   const { showError } = useAppAlerts()
-  const [integration, setIntegration] = useState<IntegrationStatus | null>(null)
-  const [recentProducts, setRecentProducts] = useState<ProductRecord[]>([])
-  const [pricingRuleCount, setPricingRuleCount] = useState(0)
-  const [validationRuleCount, setValidationRuleCount] = useState(0)
+
+  const { data, error } = useAsync(() =>
+    Promise.all([
+      getIntegrationRequest(),
+      getProductsRequest(),
+      getPricingRulesRequest(),
+      getValidationRulesRequest(),
+    ]),
+  )
+
+  const integration = data?.[0] ?? null
+  const products = data?.[1] ?? []
+  const pricingRules = data?.[2] ?? []
+  const validationRules = data?.[3] ?? []
 
   useEffect(() => {
-    async function loadDashboardData() {
-      try {
-        const [integrationResponse, productsResponse] = await Promise.all([
-          getIntegrationRequest(),
-          getProductsRequest(),
-        ])
-        const [pricingRulesResponse, validationRulesResponse] = await Promise.all([
-          getPricingRulesRequest(),
-          getValidationRulesRequest(),
-        ])
-
-        setIntegration(integrationResponse)
-        setRecentProducts(productsResponse)
-        setPricingRuleCount(pricingRulesResponse.length)
-        setValidationRuleCount(validationRulesResponse.length)
-      } catch (error) {
-        setRecentProducts([])
-        showError(
-          error instanceof Error ? error.message : 'Unable to load dashboard data.',
-          'Dashboard load failed',
-        )
-      }
-    }
-
-    void loadDashboardData()
-  }, [])
+    if (error) showError(error.message, 'Dashboard load failed')
+  }, [error, showError])
 
   const derivedMetrics = useMemo(() => {
-    const syncedCount = recentProducts.length
+    const syncedCount = products.length
     const validationCoverage =
-      syncedCount === 0 ? 0 : Math.min(100, Math.round((validationRuleCount / syncedCount) * 100))
+      syncedCount === 0
+        ? 0
+        : Math.min(100, Math.round((validationRules.length / syncedCount) * 100))
 
     return [
       {
         label: 'Synced products',
         value: String(syncedCount).padStart(2, '0'),
         trend: integration ? `Last sync ${integration.lastSync}` : 'Waiting for backend data',
+        icon: <Boxes className="stat-icon" />,
+        progress: undefined as number | undefined,
       },
       {
         label: 'Active pricing rules',
-        value: String(pricingRuleCount).padStart(2, '0'),
+        value: String(pricingRules.length).padStart(2, '0'),
         trend: 'Backend pricing registry',
+        icon: <SlidersHorizontal className="stat-icon" />,
+        progress: undefined as number | undefined,
       },
       {
         label: 'Validation rules',
-        value: String(validationRuleCount).padStart(2, '0'),
+        value: String(validationRules.length).padStart(2, '0'),
         trend: `${validationCoverage}% coverage across synced products`,
+        icon: <ShieldCheck className="stat-icon" />,
+        progress: syncedCount > 0 ? validationCoverage : undefined,
       },
       {
         label: 'Connection status',
         value: integration?.apiStatus ?? 'Pending',
         trend: integration?.connectionName ?? 'No integration configured',
+        icon: <Activity className="stat-icon" />,
+        progress: undefined as number | undefined,
       },
     ]
-  }, [integration, pricingRuleCount, recentProducts.length, validationRuleCount])
+  }, [integration, pricingRules.length, products.length, validationRules])
 
   return (
     <div className="page-stack">
@@ -92,26 +90,16 @@ export function DashboardPage() {
         title="Dashboard Overview"
         description="Synced product setup, validation coverage, and WooCommerce readiness."
       />
+
       <section className="stats-grid">
-        {derivedMetrics.map((metric, index) => (
+        {derivedMetrics.map((metric) => (
           <StatCard
             key={metric.label}
             label={metric.label}
             value={metric.value}
             trend={metric.trend}
-            icon={
-              [
-                <Boxes className="stat-icon" />,
-                <SlidersHorizontal className="stat-icon" />,
-                <ShieldCheck className="stat-icon" />,
-                <Activity className="stat-icon" />,
-              ][index]
-            }
-            progress={
-              metric.label === 'Validation rules' && recentProducts.length > 0
-                ? Math.min(100, Math.round((validationRuleCount / recentProducts.length) * 100))
-                : undefined
-            }
+            icon={metric.icon}
+            progress={metric.progress}
           />
         ))}
       </section>
@@ -138,7 +126,7 @@ export function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {recentProducts.slice(0, 4).map((product) => (
+                {products.slice(0, 4).map((product) => (
                   <tr key={product.id}>
                     <td>{product.name}</td>
                     <td>{product.sku}</td>
@@ -147,9 +135,7 @@ export function DashboardPage() {
                     <td>
                       <StatusPill
                         label={product.syncStatus}
-                        tone={
-                          product.syncStatus === 'Live from WooCommerce' ? 'info' : 'neutral'
-                        }
+                        tone={product.syncStatus === 'Live from WooCommerce' ? 'info' : 'neutral'}
                       />
                     </td>
                   </tr>
@@ -225,7 +211,7 @@ export function DashboardPage() {
           </div>
           <div>
             <span>Cached products</span>
-            <strong>{recentProducts.length}</strong>
+            <strong>{products.length}</strong>
           </div>
           <div>
             <span>Source</span>

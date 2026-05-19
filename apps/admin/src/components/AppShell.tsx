@@ -13,7 +13,7 @@ import { useAuth } from '../app/Auth'
 const navigation = [
   { to: '/', label: 'Dashboard', icon: Gauge },
   { to: '/products', label: 'Products', icon: Package2 },
-  { to: '/pricing', label: 'Pricing', icon: Sparkles },
+  { to: '/pricing', label: 'General Definitions', icon: Sparkles },
   { to: '/validation', label: 'Validation', icon: ShieldCheck },
   { to: '/settings', label: 'Integration', icon: Settings },
 ]

@@ -1,6 +1,7 @@
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 const WOO_PROXY_PATH = '/__printforge/woocommerce-sync'
 
@@ -48,6 +49,7 @@ const hmrPath = process.env.VITE_HMR_PATH
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
     {
       name: 'printforge-woocommerce-dev-proxy',
       configureServer(server) {
@@ -122,6 +124,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@printforge/ui': fileURLToPath(new URL('../../packages/ui/src/index.ts', import.meta.url)),
     },
   },

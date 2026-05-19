@@ -4,23 +4,19 @@ import type {
   IntegrationStatus,
   PricingCalculation,
   PricingRule,
-  ProductConfiguration,
-  ProductField,
   ProductRecord,
   SyncProductsResponse,
   ValidationRule,
-} from '../types/domain'
+} from '@printforge/ui'
 
 type ApiRequestInit = RequestInit & {
   skipAuth?: boolean
 }
 
-async function refreshSession(session: AuthSession) {
+async function refreshSession(session: AuthSession): Promise<AuthSession> {
   const response = await fetch('/api/auth/refresh', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken: session.refreshToken }),
   })
 
@@ -34,23 +30,28 @@ async function refreshSession(session: AuthSession) {
   return nextSession
 }
 
+async function extractErrorMessage(response: Response): Promise<string> {
+  try {
+    const payload = (await response.json()) as { error?: string }
+    return payload.error ?? `Request failed with status ${response.status}`
+  } catch {
+    return `Request failed with status ${response.status}`
+  }
+}
+
 async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
   const { skipAuth, headers, body, ...requestInit } = init
   let session = readStoredSession()
+
   const baseHeaders: Record<string, string> = {
     ...(body ? { 'Content-Type': 'application/json' } : {}),
-    ...(skipAuth || !session?.accessToken
-      ? {}
-      : { Authorization: `Bearer ${session.accessToken}` }),
+    ...(skipAuth || !session?.accessToken ? {} : { Authorization: `Bearer ${session.accessToken}` }),
   }
 
   const response = await fetch(path, {
     ...requestInit,
     body,
-    headers: {
-      ...baseHeaders,
-      ...headers,
-    },
+    headers: { ...baseHeaders, ...headers },
   })
 
   if (response.status === 401 && !skipAuth && session?.refreshToken) {
@@ -78,15 +79,6 @@ async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Promise<T
   }
 
   return (await response.json()) as T
-}
-
-async function extractErrorMessage(response: Response) {
-  try {
-    const payload = (await response.json()) as { error?: string }
-    return payload.error ?? `Request failed with status ${response.status}`
-  } catch {
-    return `Request failed with status ${response.status}`
-  }
 }
 
 export function loginRequest(email: string, password: string) {
@@ -127,33 +119,11 @@ export function saveIntegrationRequest(payload: IntegrationStatus) {
 }
 
 export function syncProductsRequest() {
-  return apiRequest<SyncProductsResponse>('/api/integration/sync', {
-    method: 'POST',
-  })
+  return apiRequest<SyncProductsResponse>('/api/integration/sync', { method: 'POST' })
 }
 
 export function getProductsRequest() {
   return apiRequest<ProductRecord[]>('/api/products')
-}
-
-export function getProductConfigurationRequest(productId: string) {
-  return apiRequest<ProductConfiguration>(`/api/products/${productId}/config`)
-}
-
-export function getProductOptionsRequest(productId: string) {
-  return apiRequest<ProductField[]>(`/api/products/${productId}/options`, {
-    skipAuth: true,
-  })
-}
-
-export function saveProductConfigurationRequest(
-  productId: string,
-  payload: Pick<ProductConfiguration, 'fields' | 'savedAt'>,
-) {
-  return apiRequest<ProductConfiguration>(`/api/products/${productId}/config`, {
-    method: 'PUT',
-    body: JSON.stringify(payload),
-  })
 }
 
 export function getPricingRulesRequest() {

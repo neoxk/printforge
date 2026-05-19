@@ -1,10 +1,8 @@
 import { AlertTriangle, PlusCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useAppAlerts } from '@printforge/ui'
-import { PageHeader } from '../components/PageHeader'
-import { SectionCard } from '../components/SectionCard'
+import { PageHeader, SectionCard, useAppAlerts } from '@printforge/ui'
+import type { ValidationRule } from '@printforge/ui'
 import { createValidationRuleRequest, getValidationRulesRequest } from '../lib/Api'
-import type { ValidationRule } from '../types/domain'
 
 export function ValidationPage() {
   const { showError, showInfo } = useAppAlerts()
@@ -32,7 +30,7 @@ export function ValidationPage() {
   }, [])
 
   function updateFormState<K extends keyof typeof formState>(key: K, value: (typeof formState)[K]) {
-    setFormState((currentValue) => ({ ...currentValue, [key]: value }))
+    setFormState((current) => ({ ...current, [key]: value }))
   }
 
   async function createRule() {
@@ -40,12 +38,8 @@ export function ValidationPage() {
 
     try {
       const nextRule = await createValidationRuleRequest(formState as Omit<ValidationRule, 'id'>)
-      setRules((currentValue) => [nextRule, ...currentValue])
-      setFormState({
-        name: '',
-        summary: '',
-        severity: 'Warning',
-      })
+      setRules((current) => [nextRule, ...current])
+      setFormState({ name: '', summary: '', severity: 'Warning' })
       showInfo('The validation rule was created in the backend.', 'Validation rule created')
     } catch (error) {
       showError(
@@ -62,22 +56,31 @@ export function ValidationPage() {
       <PageHeader
         eyebrow="Validation"
         title="File validation hub"
-        description="Validation rules are now loaded from and saved to the backend instead of relying on static frontend cards."
+        description="Validation rules are loaded from and saved to the backend instead of relying on static frontend cards."
         actions={
-          <button className="primary-button" type="button" onClick={createRule} disabled={isSubmitting}>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={createRule}
+            disabled={isSubmitting}
+          >
             <PlusCircle className="button-icon" aria-hidden="true" />
             {isSubmitting ? 'Creating...' : 'Add validation rule'}
           </button>
         }
       />
-      <SectionCard title="New validation rule" description="Create a backend-backed validation rule shell.">
+
+      <SectionCard
+        title="New validation rule"
+        description="Create a backend-backed validation rule shell."
+      >
         <form className="editor-form">
           <label>
             <span>Rule name</span>
             <input
               type="text"
               value={formState.name}
-              onChange={(event) => updateFormState('name', event.target.value)}
+              onChange={(e) => updateFormState('name', e.target.value)}
             />
           </label>
           <label>
@@ -85,14 +88,14 @@ export function ValidationPage() {
             <input
               type="text"
               value={formState.summary}
-              onChange={(event) => updateFormState('summary', event.target.value)}
+              onChange={(e) => updateFormState('summary', e.target.value)}
             />
           </label>
           <label>
             <span>Severity</span>
             <select
               value={formState.severity}
-              onChange={(event) => updateFormState('severity', event.target.value)}
+              onChange={(e) => updateFormState('severity', e.target.value)}
             >
               <option value="Critical">Critical</option>
               <option value="Warning">Warning</option>
