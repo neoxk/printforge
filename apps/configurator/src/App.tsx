@@ -1,7 +1,7 @@
-import { AdminDesignerPage } from './designer/admin/AdminDesignerPage'
+import { Router } from './Router'
 
 function App() {
-  return <AdminDesignerPage />
+  return <Router />
 }
 
 export default App

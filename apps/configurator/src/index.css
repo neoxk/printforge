@@ -219,3 +219,23 @@ body {
   color: #dc2626;
   font-size: 14px;
 }
+
+.cf-route-placeholder {
+  min-height: 1px;
+}
+
+.cf-route-state {
+  max-width: 720px;
+  padding: 24px;
+}
+
+.cf-route-state h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.cf-route-state p {
+  margin: 0;
+  color: var(--text-muted);
+}
