@@ -11,6 +11,8 @@ import { RegisterPage } from '../pages/RegisterPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { ValidationPage } from '../pages/ValidationPage'
 
+const routerBasename = import.meta.env.BASE_URL.replace(/\/+$/g, '') || '/'
+
 function ProtectedLayout() {
   const { isAuthenticated } = useAuth()
 
@@ -65,7 +67,7 @@ function AppRoutes() {
 
 export function AppRouter() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename}>
       <AuthProvider>
         <AppRoutes />
       </AuthProvider>
