@@ -14,11 +14,37 @@
 }
 
 *, *::before, *::after {
+  color: #1c1b1c;
+  background: #fcf8f9;
+  font-family:
+    Inter,
+    'Segoe UI',
+    sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
   box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100vh;
 }
 
 body {
   margin: 0;
+  background:
+    linear-gradient(rgba(118, 119, 124, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(118, 119, 124, 0.08) 1px, transparent 1px),
+    #fcf8f9;
+  background-size: 32px 32px, 32px 32px, auto;
 }
 
 #root {
