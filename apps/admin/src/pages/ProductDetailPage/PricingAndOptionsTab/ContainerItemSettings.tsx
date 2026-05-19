@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import type { ContainerItemPatchPayload } from '../../../lib/services/containers'
 import type { ContainerOptionItem } from '@printforge/ui'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 type Props = {
   containerItem: ContainerOptionItem
@@ -31,10 +34,10 @@ export function ContainerItemSettings({ containerItem, onPatch, onClose }: Props
   }
 
   return (
-    <div className="slot-settings-panel">
-      <label>
-        <span>Price override</span>
-        <input
+    <div className="grid gap-3">
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs font-semibold uppercase tracking-wide">Price override</Label>
+        <Input
           type="number"
           min="0"
           step="0.01"
@@ -42,23 +45,25 @@ export function ContainerItemSettings({ containerItem, onPatch, onClose }: Props
           value={priceUnit}
           onChange={(e) => setPriceUnit(e.target.value)}
         />
-      </label>
-      <label>
-        <span>Display name override</span>
-        <input
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs font-semibold uppercase tracking-wide">
+          Display name override
+        </Label>
+        <Input
           type="text"
           placeholder={`item default: ${containerItem.item.name}`}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-      </label>
-      <div className="slot-settings-actions">
-        <button className="ghost-button" type="button" onClick={onClose}>
+      </div>
+      <div className="flex gap-2 justify-end">
+        <Button variant="ghost" size="sm" type="button" onClick={onClose}>
           Cancel
-        </button>
-        <button className="primary-button" type="button" onClick={handleApply}>
+        </Button>
+        <Button size="sm" type="button" onClick={handleApply}>
           Apply
-        </button>
+        </Button>
       </div>
     </div>
   )

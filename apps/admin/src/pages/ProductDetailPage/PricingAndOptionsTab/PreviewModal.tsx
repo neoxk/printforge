@@ -1,4 +1,12 @@
-import { X } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { XIcon } from 'lucide-react'
 
 // TODO: replace with env variable or derive from deployment config
 const CONFIGURATOR_URL = 'http://localhost:5175'
@@ -10,33 +18,31 @@ type Props = {
 }
 
 export function PreviewModal({ productId, isOpen, onClose }: Props) {
-  if (!isOpen) return null
-
   const src = `${CONFIGURATOR_URL}/${productId}`
 
   return (
-    <div className="preview-modal-backdrop" onClick={onClose} aria-hidden="true">
-      <div
-        className="preview-modal"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-label="Customer preview"
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent
+        className="sm:max-w-4xl h-[680px] p-0 flex flex-col overflow-hidden gap-0"
+        showCloseButton={false}
       >
-        <div className="preview-modal-header">
-          <span className="preview-modal-title">Customer Preview</span>
-          <button className="icon-button-sm" type="button" onClick={onClose} aria-label="Close">
-            <X size={16} aria-hidden="true" />
-          </button>
-        </div>
-        <div className="preview-modal-body">
+        <DialogHeader className="flex-row items-center justify-between px-4 py-3 border-b shrink-0">
+          <DialogTitle>Customer Preview</DialogTitle>
+          <DialogClose asChild>
+            <Button variant="ghost" size="icon-sm" aria-label="Close">
+              <XIcon />
+            </Button>
+          </DialogClose>
+        </DialogHeader>
+        <div className="flex-1 overflow-hidden">
           <iframe
             src={src}
             title="Configurator preview"
-            className="preview-modal-iframe"
+            className="w-full h-full border-none block"
             allow="same-origin"
           />
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

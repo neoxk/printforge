@@ -130,7 +130,7 @@ export function PricingPage() {
         description="Manage the reusable item library used to build product pricing."
       />
 
-      <div className="pricing-layout">
+      <div className="grid grid-cols-4 gap-4 items-start">
         <GroupSidebar
           groups={state.groups}
           items={state.items}

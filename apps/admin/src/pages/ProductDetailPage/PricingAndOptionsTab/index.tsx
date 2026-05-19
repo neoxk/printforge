@@ -1,8 +1,17 @@
-import './PricingAndOptionsTab.css'
 import { Plus, Eye } from 'lucide-react'
 import { useEffect, useReducer, useState } from 'react'
-import { SectionCard, useAppAlerts } from '@printforge/ui'
 import type { ProductRecord } from '@printforge/ui'
+import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { showError } from '@/lib/toast'
 import {
   containersReducer,
   initialContainersState,
@@ -24,7 +33,6 @@ import { PreviewModal } from './PreviewModal'
 type Props = { product: ProductRecord }
 
 export function PricingAndOptionsTab({ product }: Props) {
-  const { showError } = useAppAlerts()
   const [containersState, containersDispatch] = useReducer(containersReducer, initialContainersState)
   const [pricingState, pricingDispatch] = useReducer(pricingReducer, initialPricingState)
   const [isAddingContainer, setIsAddingContainer] = useState(false)
@@ -131,88 +139,106 @@ export function PricingAndOptionsTab({ product }: Props) {
     <div className="page-stack">
       <ProductSettingsCard productId={product.id} />
 
-      <SectionCard
-        title="Options & Pricing"
-        description="Build the options and pricing structure for this product"
-        actions={
-          <>
-            <button
-              className="ghost-button"
+      <Card>
+        <CardHeader>
+          <div>
+            <CardTitle>Options & Pricing</CardTitle>
+            <CardDescription>Build the options and pricing structure for this product</CardDescription>
+          </div>
+          <CardAction className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
               type="button"
               onClick={() => setIsPreviewOpen(true)}
             >
-              <Eye className="button-icon" aria-hidden="true" />
+              <Eye className="size-4" aria-hidden="true" />
               Preview
-            </button>
-            <button
-              className="ghost-button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               type="button"
               onClick={() => setIsAddingContainer((v) => !v)}
             >
-              <Plus className="button-icon" aria-hidden="true" />
+              <Plus className="size-4" aria-hidden="true" />
               Add container
-            </button>
-          </>
-        }
-      >
-        {isAddingContainer && (
-          <div className="add-container-row">
-            <input
-              type="text"
-              placeholder="Container name (e.g. Paper, Finish)"
-              value={newContainerName}
-              onChange={(e) => setNewContainerName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && void handleAddContainer()}
-              autoFocus
-            />
-            <select
-              value={newContainerType}
-              onChange={(e) => setNewContainerType(e.target.value as typeof newContainerType)}
-            >
-              {CONTAINER_TYPE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            <button className="primary-button" type="button" onClick={() => void handleAddContainer()}>
-              Confirm
-            </button>
-            <button
-              className="ghost-button"
-              type="button"
-              onClick={() => { setIsAddingContainer(false); setNewContainerName(''); setNewContainerType(CONTAINER_TYPE_OPTIONS[0].value) }}
-            >
-              Cancel
-            </button>
-          </div>
-        )}
+            </Button>
+          </CardAction>
+        </CardHeader>
 
-        {isLoading ? (
-          <p className="empty-row muted-copy">Loading…</p>
-        ) : containers.length === 0 ? (
-          <p className="empty-row muted-copy">
-            No containers yet. Add one to start building the pricing structure.
-          </p>
-        ) : (
-          <div className="container-list">
-            {containers.map((container, idx) => (
-              <ContainerCard
-                key={container.id}
-                container={container}
-                containerItems={items[container.id] ?? []}
-                position={idx + 1}
-                total={containers.length}
-                libraryItems={pricingState.items}
-                groups={pricingState.groups}
-                onDelete={() => void handleDeleteContainer(container.id)}
-                onSetDefault={(itemId) => void handleSetDefault(container.id, itemId)}
-                onAddItem={(itemId) => void handleAddItem(container.id, itemId)}
-                onRemoveItem={(itemId) => void handleRemoveItem(container.id, itemId)}
-                onPatchItem={(itemId, payload) => void handlePatchItem(container.id, itemId, payload)}
+        <CardContent className="flex flex-col gap-3">
+          {isAddingContainer && (
+            <div className="flex gap-2 items-center">
+              <Input
+                className="flex-1"
+                type="text"
+                placeholder="Container name (e.g. Paper, Finish)"
+                value={newContainerName}
+                onChange={(e) => setNewContainerName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && void handleAddContainer()}
+                autoFocus
               />
-            ))}
-          </div>
-        )}
-      </SectionCard>
+              <Select
+                value={newContainerType}
+                onValueChange={(v) => setNewContainerType(v as typeof newContainerType)}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONTAINER_TYPE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button type="button" onClick={() => void handleAddContainer()}>
+                Confirm
+              </Button>
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => {
+                  setIsAddingContainer(false)
+                  setNewContainerName('')
+                  setNewContainerType(CONTAINER_TYPE_OPTIONS[0].value)
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
+
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground py-2">Loading…</p>
+          ) : containers.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">
+              No containers yet. Add one to start building the pricing structure.
+            </p>
+          ) : (
+            <div className="grid gap-3">
+              {containers.map((container, idx) => (
+                <ContainerCard
+                  key={container.id}
+                  container={container}
+                  containerItems={items[container.id] ?? []}
+                  position={idx + 1}
+                  total={containers.length}
+                  libraryItems={pricingState.items}
+                  groups={pricingState.groups}
+                  onDelete={() => void handleDeleteContainer(container.id)}
+                  onSetDefault={(itemId) => void handleSetDefault(container.id, itemId)}
+                  onAddItem={(itemId) => void handleAddItem(container.id, itemId)}
+                  onRemoveItem={(itemId) => void handleRemoveItem(container.id, itemId)}
+                  onPatchItem={(itemId, payload) => void handlePatchItem(container.id, itemId, payload)}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <PreviewModal
         productId={product.id}

@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react'
-import { SectionCard, useAppAlerts } from '@printforge/ui'
+import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { showError, showInfo } from '@/lib/toast'
 import { Products } from '../../../lib/services'
 import type { ProductDimensions } from '../../../lib/services'
 
@@ -21,7 +26,6 @@ function fromDimensions(d: ProductDimensions): State {
 }
 
 export function ProductSettingsCard({ productId }: Props) {
-  const { showError, showInfo } = useAppAlerts()
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [state, setState] = useState<State>(EMPTY)
@@ -29,8 +33,7 @@ export function ProductSettingsCard({ productId }: Props) {
   useEffect(() => {
     Products.getConfig(productId)
       .then((config) => {
-        const s = fromDimensions(config.dimensions)
-        setState(s)
+        setState(fromDimensions(config.dimensions))
       })
       .catch(() => showError('Could not load product settings.', 'Load failed'))
       .finally(() => setIsLoading(false))
@@ -51,13 +54,11 @@ export function ProductSettingsCard({ productId }: Props) {
       const widthMm = state.dimensionType === 'fixed' ? parseInt(state.widthMm, 10) : null
       const heightMm = state.dimensionType === 'fixed' ? parseInt(state.heightMm, 10) : null
       await Products.updateDimensions(productId, widthMm, heightMm)
-
-      const next: State = {
-        dimensionType: state.dimensionType,
+      setState((s) => ({
+        ...s,
         widthMm: widthMm ? String(widthMm) : '',
         heightMm: heightMm ? String(heightMm) : '',
-      }
-      setState(next)
+      }))
       showInfo('Settings saved.', 'Saved')
     } catch (err) {
       showError(err instanceof Error ? err.message : 'Failed to save settings.', 'Save failed')
@@ -67,69 +68,65 @@ export function ProductSettingsCard({ productId }: Props) {
   }
 
   return (
-    <SectionCard
-      title="Product settings"
-      actions={
-        <button
-          className="primary-button"
-          type="button"
-          disabled={isSaving || isLoading}
-          onClick={() => void handleSave()}
-        >
-          {isSaving ? 'Saving…' : 'Save'}
-        </button>
-      }
-    >
-      {isLoading ? (
-        <p className="empty-row muted-copy">Loading…</p>
-      ) : (
-        <div className="product-settings-grid">
-          <div className="product-setting">
-            <label className="toggle-row">
+    <Card>
+      <CardHeader>
+        <CardTitle>Product settings</CardTitle>
+        <CardAction>
+          <Button disabled={isSaving || isLoading} onClick={() => void handleSave()}>
+            {isSaving ? 'Saving…' : 'Save'}
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground py-2">Loading…</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2 flex items-center justify-between gap-4">
               <div>
-                <span>Fixed dimensions</span>
-                <p className="muted-copy" style={{ margin: '0.15rem 0 0' }}>Width and height fixed for all orders.</p>
+                <Label htmlFor="fixed-dims">Fixed dimensions</Label>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Width and height fixed for all orders.
+                </p>
               </div>
-              <input
-                type="checkbox"
+              <Switch
+                id="fixed-dims"
                 checked={state.dimensionType === 'fixed'}
-                onChange={(e) =>
-                  setState((s) => ({ ...s, dimensionType: e.target.checked ? 'fixed' : 'custom' }))
+                onCheckedChange={(checked) =>
+                  setState((s) => ({ ...s, dimensionType: checked ? 'fixed' : 'custom' }))
                 }
               />
-            </label>
-          </div>
+            </div>
 
-          {state.dimensionType === 'fixed' && (
-            <>
-              <div className="product-setting">
-                <label>
-                  <span>Width (mm)</span>
-                  <input
+            {state.dimensionType === 'fixed' && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="width-mm">Width (mm)</Label>
+                  <Input
+                    id="width-mm"
                     type="number"
                     min={1}
                     placeholder="e.g. 297"
                     value={state.widthMm}
                     onChange={(e) => setState((s) => ({ ...s, widthMm: e.target.value }))}
                   />
-                </label>
-              </div>
-              <div className="product-setting">
-                <label>
-                  <span>Height (mm)</span>
-                  <input
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="height-mm">Height (mm)</Label>
+                  <Input
+                    id="height-mm"
                     type="number"
                     min={1}
                     placeholder="e.g. 210"
                     value={state.heightMm}
                     onChange={(e) => setState((s) => ({ ...s, heightMm: e.target.value }))}
                   />
-                </label>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </SectionCard>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }

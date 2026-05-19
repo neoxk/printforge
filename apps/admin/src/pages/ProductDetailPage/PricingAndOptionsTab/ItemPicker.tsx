@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Search } from 'lucide-react'
 import type { OptionItem, OptionsGroup } from '@printforge/ui'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 type Props = {
   libraryItems: OptionItem[]
@@ -28,10 +30,11 @@ export function ItemPicker({ libraryItems, excludedIds, groups, onSelect, onClos
   }
 
   return (
-    <div className="item-picker-panel">
-      <div className="input-shell">
-        <Search className="input-icon" aria-hidden="true" />
-        <input
+    <div className="grid gap-2">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+        <Input
+          className="pl-8"
           type="text"
           placeholder="Search items…"
           value={query}
@@ -40,20 +43,20 @@ export function ItemPicker({ libraryItems, excludedIds, groups, onSelect, onClos
         />
       </div>
       {filtered.length === 0 ? (
-        <p className="empty-row muted-copy">No items match.</p>
+        <p className="text-sm text-muted-foreground py-1">No items match.</p>
       ) : (
-        <ul className="item-picker-list">
+        <ul className="list-none m-0 p-0 max-h-[220px] overflow-y-auto border border-border rounded-lg bg-card">
           {filtered.map((item) => {
             const groupName = item.groupId ? (groupById[item.groupId]?.name ?? '') : ''
             return (
-              <li key={item.id}>
+              <li key={item.id} className="border-b border-border last:border-b-0">
                 <button
-                  className="item-picker-entry"
+                  className="flex flex-col items-start w-full bg-transparent border-0 px-3 py-2 text-left gap-0.5 hover:bg-muted cursor-pointer"
                   type="button"
                   onClick={() => handleSelect(item.id)}
                 >
-                  <span className="item-picker-entry-name">{item.name}</span>
-                  <span className="item-picker-entry-meta">
+                  <span className="font-semibold text-sm">{item.name}</span>
+                  <span className="text-xs text-muted-foreground">
                     {[groupName, item.slug].filter(Boolean).join(' · ')}
                   </span>
                 </button>
@@ -62,9 +65,9 @@ export function ItemPicker({ libraryItems, excludedIds, groups, onSelect, onClos
           })}
         </ul>
       )}
-      <button className="ghost-button" type="button" onClick={onClose}>
+      <Button variant="ghost" type="button" onClick={onClose} className="self-start">
         Cancel
-      </button>
+      </Button>
     </div>
   )
 }
