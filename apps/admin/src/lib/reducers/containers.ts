@@ -26,6 +26,8 @@ export type ContainersAction =
   | { type: 'CONTAINER_ITEM_ADDED'; containerId: string; item: ContainerOptionItem }
   | { type: 'CONTAINER_ITEM_REMOVED'; containerId: string; itemId: string }
   | { type: 'CONTAINER_ITEM_PATCHED'; containerId: string; item: ContainerOptionItem }
+  | { type: 'CONTAINERS_REORDERED'; containers: OptionsContainer[] }
+  | { type: 'CONTAINER_ITEMS_REORDERED'; containerId: string; items: ContainerOptionItem[] }
   | { type: 'ERROR'; message: string }
 
 // ─── Action creators ─────────────────────────────────────────────────────────
@@ -60,6 +62,14 @@ export const ContainersActions = {
 
   CONTAINER_ITEM_PATCHED(containerId: string, item: ContainerOptionItem): ContainersAction {
     return { type: 'CONTAINER_ITEM_PATCHED', containerId, item }
+  },
+
+  CONTAINERS_REORDERED(containers: OptionsContainer[]): ContainersAction {
+    return { type: 'CONTAINERS_REORDERED', containers }
+  },
+
+  CONTAINER_ITEMS_REORDERED(containerId: string, items: ContainerOptionItem[]): ContainersAction {
+    return { type: 'CONTAINER_ITEMS_REORDERED', containerId, items }
   },
 
   ERROR(message: string): ContainersAction {
@@ -136,6 +146,12 @@ export function containersReducer(
           ),
         },
       }
+
+    case 'CONTAINERS_REORDERED':
+      return { ...state, containers: action.containers }
+
+    case 'CONTAINER_ITEMS_REORDERED':
+      return { ...state, items: { ...state.items, [action.containerId]: action.items } }
 
     case 'ERROR':
       return { ...state, error: action.message, isLoading: false }

@@ -63,12 +63,12 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Pr
       throw new Error(await extractErrorMessage(retryResponse))
     }
 
-    return (await retryResponse.json()) as T
+    return retryResponse.status === 204 ? (undefined as T) : ((await retryResponse.json()) as T)
   }
 
   if (!response.ok) {
     throw new Error(await extractErrorMessage(response))
   }
 
-  return (await response.json()) as T
+  return response.status === 204 ? (undefined as T) : ((await response.json()) as T)
 }

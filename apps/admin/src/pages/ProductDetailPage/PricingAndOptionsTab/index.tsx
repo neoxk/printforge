@@ -1,5 +1,8 @@
 import { Plus, Eye } from 'lucide-react'
-import { useEffect, useReducer, useState } from 'react'
+import { type ComponentProps, useEffect, useReducer, useState } from 'react'
+import { DragDropProvider } from '@dnd-kit/react'
+import { useSortable, isSortable } from '@dnd-kit/react/sortable'
+import { PointerSensor, PointerActivationConstraints } from '@dnd-kit/dom'
 import type { ProductRecord } from '@printforge/ui'
 import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -23,12 +26,20 @@ import {
   PricingActions,
 } from '../../../lib/reducers/pricing'
 import { Containers } from '../../../lib/services/containers'
-import type { ContainerItemPatchPayload } from '../../../lib/services/containers'
+import type { ContainerItemPatchPayload, ContainerPatchPayload } from '../../../lib/services/containers'
+import type { ContainerOptionItem } from '@printforge/ui'
 import { Groups, Items } from '../../../lib/services'
 import { CONTAINER_TYPE_OPTIONS } from '../../../lib/options-meta'
 import { ContainerCard } from './ContainerCard'
 import { ProductSettingsCard } from './ProductSettingsCard'
 import { PreviewModal } from './PreviewModal'
+
+type SortableContainerCardProps = ComponentProps<typeof ContainerCard> & { index: number }
+
+function SortableContainerCard({ index, ...props }: SortableContainerCardProps) {
+  const { ref, handleRef } = useSortable({ id: props.container.id, index })
+  return <ContainerCard ref={ref} handleRef={handleRef} {...props} />
+}
 
 type Props = { product: ProductRecord }
 
@@ -133,6 +144,33 @@ export function PricingAndOptionsTab({ product }: Props) {
     }
   }
 
+  async function handlePatchContainer(containerId: string, payload: ContainerPatchPayload) {
+    try {
+      const updated = await Containers.update(product.id, containerId, payload)
+      containersDispatch(ContainersActions.CONTAINER_UPDATED(updated))
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Failed to update container.', 'Update failed')
+    }
+  }
+
+  async function handleReorderItems(containerId: string, newOrder: ContainerOptionItem[]) {
+    containersDispatch(ContainersActions.CONTAINER_ITEMS_REORDERED(containerId, newOrder))
+    try {
+      await Containers.reorderItems(product.id, containerId, newOrder.map((ci) => ci.itemId))
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Failed to reorder items.', 'Reorder failed')
+    }
+  }
+
+  async function handleReorderContainers(newOrder: typeof containersState.containers) {
+    containersDispatch(ContainersActions.CONTAINERS_REORDERED(newOrder))
+    try {
+      await Containers.reorder(product.id, newOrder.map((c) => c.id))
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Failed to reorder.', 'Reorder failed')
+    }
+  }
+
   const { containers, items, isLoading } = containersState
 
   return (
@@ -218,24 +256,40 @@ export function PricingAndOptionsTab({ product }: Props) {
               No containers yet. Add one to start building the pricing structure.
             </p>
           ) : (
-            <div className="grid gap-3">
-              {containers.map((container, idx) => (
-                <ContainerCard
-                  key={container.id}
-                  container={container}
-                  containerItems={items[container.id] ?? []}
-                  position={idx + 1}
-                  total={containers.length}
-                  libraryItems={pricingState.items}
-                  groups={pricingState.groups}
-                  onDelete={() => void handleDeleteContainer(container.id)}
-                  onSetDefault={(itemId) => void handleSetDefault(container.id, itemId)}
-                  onAddItem={(itemId) => void handleAddItem(container.id, itemId)}
-                  onRemoveItem={(itemId) => void handleRemoveItem(container.id, itemId)}
-                  onPatchItem={(itemId, payload) => void handlePatchItem(container.id, itemId, payload)}
-                />
-              ))}
-            </div>
+            <DragDropProvider
+              sensors={[PointerSensor.configure({ activationConstraints: [new PointerActivationConstraints.Distance({ value: 8 })] })]}
+              onDragEnd={(event) => {
+                if (event.canceled) return
+                const { source } = event.operation
+                if (!isSortable(source)) return
+                const { initialIndex, index } = source
+                if (initialIndex === index) return
+                const newOrder = [...containers]
+                const [moved] = newOrder.splice(initialIndex, 1)
+                newOrder.splice(index, 0, moved)
+                void handleReorderContainers(newOrder)
+              }}
+            >
+              <div className="grid gap-3">
+                {containers.map((container, idx) => (
+                  <SortableContainerCard
+                    key={container.id}
+                    index={idx}
+                    container={container}
+                    containerItems={items[container.id] ?? []}
+                    libraryItems={pricingState.items}
+                    groups={pricingState.groups}
+                    onDelete={() => void handleDeleteContainer(container.id)}
+                    onSetDefault={(itemId) => void handleSetDefault(container.id, itemId)}
+                    onAddItem={(itemId) => void handleAddItem(container.id, itemId)}
+                    onRemoveItem={(itemId) => void handleRemoveItem(container.id, itemId)}
+                    onPatchItem={(itemId, payload) => void handlePatchItem(container.id, itemId, payload)}
+                    onReorderItems={(newOrder) => void handleReorderItems(container.id, newOrder)}
+                    onPatchContainer={(payload) => void handlePatchContainer(container.id, payload)}
+                  />
+                ))}
+              </div>
+            </DragDropProvider>
           )}
         </CardContent>
       </Card>

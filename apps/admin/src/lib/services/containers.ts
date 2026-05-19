@@ -34,6 +34,12 @@ export const Containers = {
     })
   },
 
+  reorder(productId: string, orderedIds: string[]): Promise<void> {
+    return Promise.all(
+      orderedIds.map((id, index) => Containers.update(productId, id, { sortOrder: index })),
+    ).then(() => undefined)
+  },
+
   remove(productId: string, containerId: string) {
     return apiRequest<void>(`/api/products/${productId}/containers/${containerId}`, {
       method: 'DELETE',
@@ -70,5 +76,16 @@ export const Containers = {
       `/api/products/${productId}/containers/${containerId}/items/${itemId}`,
       { method: 'PATCH', body: JSON.stringify(payload) },
     )
+  },
+
+  reorderItems(productId: string, containerId: string, orderedItemIds: string[]): Promise<void> {
+    return Promise.all(
+      orderedItemIds.map((itemId, index) =>
+        apiRequest<ContainerOptionItem>(
+          `/api/products/${productId}/containers/${containerId}/items/${itemId}`,
+          { method: 'PATCH', body: JSON.stringify({ sortOrder: index }) },
+        ),
+      ),
+    ).then(() => undefined)
   },
 }

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Search } from 'lucide-react'
 import type { OptionItem, OptionsGroup } from '@printforge/ui'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 type Props = {
   libraryItems: OptionItem[]
@@ -14,11 +15,18 @@ type Props = {
 
 export function ItemPicker({ libraryItems, excludedIds, groups, onSelect, onClose }: Props) {
   const [query, setQuery] = useState('')
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
 
-  const groupById = Object.fromEntries(groups.map((g) => [g.id, g]))
+  const availableItems = libraryItems.filter((item) => !excludedIds.has(item.id))
 
-  const filtered = libraryItems.filter((item) => {
-    if (excludedIds.has(item.id)) return false
+  const filteredItems = availableItems.filter((item) => {
+    const matchesGroup =
+      selectedGroupId === null
+        ? true
+        : selectedGroupId === 'ungrouped'
+          ? item.groupId === null
+          : item.groupId === selectedGroupId
+    if (!matchesGroup) return false
     if (!query) return true
     const q = query.toLowerCase()
     return item.name.toLowerCase().includes(q) || item.slug.toLowerCase().includes(q)
@@ -29,45 +37,111 @@ export function ItemPicker({ libraryItems, excludedIds, groups, onSelect, onClos
     onClose()
   }
 
+  const ungroupedCount = availableItems.filter((i) => i.groupId === null).length
+
   return (
-    <div className="grid gap-2">
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-        <Input
-          className="pl-8"
-          type="text"
-          placeholder="Search items…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          autoFocus
-        />
-      </div>
-      {filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-1">No items match.</p>
-      ) : (
-        <ul className="list-none m-0 p-0 max-h-[220px] overflow-y-auto border border-border rounded-lg bg-card">
-          {filtered.map((item) => {
-            const groupName = item.groupId ? (groupById[item.groupId]?.name ?? '') : ''
-            return (
-              <li key={item.id} className="border-b border-border last:border-b-0">
-                <button
-                  className="flex flex-col items-start w-full bg-transparent border-0 px-3 py-2 text-left gap-0.5 hover:bg-muted cursor-pointer"
-                  type="button"
-                  onClick={() => handleSelect(item.id)}
+    <div className="flex h-[360px] overflow-hidden">
+      <div className="w-44 shrink-0 border-r border-border flex flex-col overflow-hidden">
+        <div className="py-1 flex-1 overflow-y-auto">
+          <div className="px-1">
+            <button
+              type="button"
+              className={cn(
+                'flex w-full items-center gap-1 px-2 py-1.5 rounded text-sm cursor-pointer transition-colors hover:bg-accent',
+                selectedGroupId === null && 'bg-primary/10 text-primary font-medium'
+              )}
+              onClick={() => setSelectedGroupId(null)}
+            >
+              <span className="flex-1 truncate text-left">All items</span>
+              <Badge
+                variant="secondary"
+                className={cn('ml-auto text-xs min-w-[1.5rem] justify-center rounded-full font-normal', selectedGroupId === null && 'bg-primary/20 text-primary')}
+              >
+                {availableItems.length}
+              </Badge>
+            </button>
+          </div>
+
+          {groups.map((group) => (
+            <div key={group.id} className="px-1">
+              <button
+                type="button"
+                className={cn(
+                  'flex w-full items-center gap-1 px-2 py-1.5 rounded text-sm cursor-pointer transition-colors hover:bg-accent',
+                  selectedGroupId === group.id && 'bg-primary/10 text-primary font-medium'
+                )}
+                onClick={() => setSelectedGroupId(group.id)}
+              >
+                <span className="flex-1 truncate text-left">{group.name}</span>
+                <Badge
+                  variant="secondary"
+                  className={cn('ml-auto text-xs min-w-[1.5rem] justify-center rounded-full font-normal', selectedGroupId === group.id && 'bg-primary/20 text-primary')}
                 >
-                  <span className="font-semibold text-sm">{item.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {[groupName, item.slug].filter(Boolean).join(' · ')}
-                  </span>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-      <Button variant="ghost" type="button" onClick={onClose} className="self-start">
-        Cancel
-      </Button>
+                  {availableItems.filter((i) => i.groupId === group.id).length}
+                </Badge>
+              </button>
+            </div>
+          ))}
+
+          {ungroupedCount > 0 && (
+            <div className="px-1">
+              <button
+                type="button"
+                className={cn(
+                  'flex w-full items-center gap-1 px-2 py-1.5 rounded text-sm cursor-pointer transition-colors hover:bg-accent',
+                  selectedGroupId === 'ungrouped' && 'bg-primary/10 text-primary font-medium'
+                )}
+                onClick={() => setSelectedGroupId('ungrouped')}
+              >
+                <span className="flex-1 truncate text-left">Ungrouped</span>
+                <Badge
+                  variant="secondary"
+                  className={cn('ml-auto text-xs min-w-[1.5rem] justify-center rounded-full font-normal', selectedGroupId === 'ungrouped' && 'bg-primary/20 text-primary')}
+                >
+                  {ungroupedCount}
+                </Badge>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="p-2 border-b border-border">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input
+              className="pl-8"
+              type="text"
+              placeholder="Search items…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              autoFocus
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {filteredItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground p-3">No items match.</p>
+          ) : (
+            <ul className="list-none m-0 p-0">
+              {filteredItems.map((item) => (
+                <li key={item.id} className="border-b border-border last:border-b-0">
+                  <button
+                    className="flex flex-col items-start w-full bg-transparent border-0 px-3 py-2 text-left gap-0.5 hover:bg-muted cursor-pointer"
+                    type="button"
+                    onClick={() => handleSelect(item.id)}
+                  >
+                    <span className="font-semibold text-sm">{item.name}</span>
+                    <span className="text-xs text-muted-foreground">{item.slug}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

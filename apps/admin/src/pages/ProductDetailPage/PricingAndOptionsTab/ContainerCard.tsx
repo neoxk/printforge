@@ -1,20 +1,29 @@
 import { Plus, X } from 'lucide-react'
-import { useState } from 'react'
-import type { ContainerItemPatchPayload } from '../../../lib/services/containers'
+import { type ComponentProps, type KeyboardEvent, type Ref, forwardRef, useRef, useState } from 'react'
+import { DragDropProvider } from '@dnd-kit/react'
+import { useSortable, isSortable } from '@dnd-kit/react/sortable'
+import { PointerSensor, PointerActivationConstraints } from '@dnd-kit/dom'
+import type { ContainerItemPatchPayload, ContainerPatchPayload } from '../../../lib/services/containers'
 import type { ContainerOptionItem, OptionItem, OptionsContainer, OptionsGroup } from '@printforge/ui'
-import { CONTAINER_TYPE_LABEL } from '../../../lib/options-meta'
+import { CONTAINER_TYPE_OPTIONS } from '../../../lib/options-meta'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ContainerItemRow } from './ContainerItemRow'
 import { ItemPicker } from './ItemPicker'
 
+type SortableContainerItemRowProps = ComponentProps<typeof ContainerItemRow> & { index: number }
+
+function SortableContainerItemRow({ index, ...props }: SortableContainerItemRowProps) {
+  const { ref, handleRef } = useSortable({ id: props.containerItem.itemId, index })
+  return <ContainerItemRow ref={ref} handleRef={handleRef} {...props} />
+}
+
 type Props = {
   container: OptionsContainer
   containerItems: ContainerOptionItem[]
-  position: number
-  total: number
   libraryItems: OptionItem[]
   groups: OptionsGroup[]
   onDelete: () => void
@@ -22,13 +31,14 @@ type Props = {
   onAddItem: (itemId: string) => void
   onRemoveItem: (itemId: string) => void
   onPatchItem: (itemId: string, payload: ContainerItemPatchPayload) => void
+  onReorderItems: (newOrder: ContainerOptionItem[]) => void
+  onPatchContainer: (payload: ContainerPatchPayload) => void
+  handleRef?: Ref<HTMLElement>
 }
 
-export function ContainerCard({
+export const ContainerCard = forwardRef<HTMLDivElement, Props>(function ContainerCard({
   container,
   containerItems,
-  position,
-  total,
   libraryItems,
   groups,
   onDelete,
@@ -36,25 +46,82 @@ export function ContainerCard({
   onAddItem,
   onRemoveItem,
   onPatchItem,
-}: Props) {
+  onReorderItems,
+  onPatchContainer,
+  handleRef,
+}, ref) {
   const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [nameValue, setNameValue] = useState(container.name)
+  const nameInputRef = useRef<HTMLInputElement>(null)
 
   const defaultItemName = container.defaultItem?.name ?? 'none'
   const excludedIds = new Set(containerItems.map((i) => i.itemId))
 
+  function commitName() {
+    const trimmed = nameValue.trim()
+    if (trimmed && trimmed !== container.name) {
+      onPatchContainer({ name: trimmed })
+    } else {
+      setNameValue(container.name)
+    }
+    setIsEditingName(false)
+  }
+
+  function handleNameKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') commitName()
+    if (e.key === 'Escape') {
+      setNameValue(container.name)
+      setIsEditingName(false)
+    }
+  }
+
   return (
-    <div className="border border-dashed border-border rounded-xl bg-muted/20 overflow-hidden">
+    <div ref={ref} className="border border-dashed border-border rounded-xl bg-muted/20 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2.5 bg-card border-b border-dashed border-border">
-        <span className="text-muted-foreground/30 hover:text-muted-foreground cursor-grab select-none text-base" aria-hidden="true">
+        <span ref={handleRef as Ref<HTMLSpanElement>} className="text-muted-foreground/30 hover:text-muted-foreground cursor-grab select-none text-base" aria-hidden="true">
           ⠿
         </span>
-        <span className="italic font-bold text-base">{container.name}</span>
-        <Badge variant="outline">{CONTAINER_TYPE_LABEL[container.containerType]}</Badge>
-        {container.isHidden && <Badge variant="secondary">Hidden</Badge>}
-        {container.isRequired && <Badge variant="secondary">Required</Badge>}
-        <Badge variant="outline" className="text-[11px] text-muted-foreground font-normal">
-          {position} of {total}
-        </Badge>
+
+        {isEditingName ? (
+          <Input
+            ref={nameInputRef}
+            className="h-7 py-0 px-1.5 text-sm italic font-bold w-48"
+            value={nameValue}
+            onChange={(e) => setNameValue(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={handleNameKeyDown}
+            autoFocus
+          />
+        ) : (
+          <span
+            className="italic font-bold text-base cursor-text hover:bg-muted/60 rounded px-1 -mx-1 transition-colors"
+            title="Double-click to rename"
+            onDoubleClick={() => {
+              setNameValue(container.name)
+              setIsEditingName(true)
+            }}
+          >
+            {container.name}
+          </span>
+        )}
+
+        <Select
+          value={container.containerType}
+          onValueChange={(v) => onPatchContainer({ containerType: v as OptionsContainer['containerType'] })}
+        >
+          <SelectTrigger className="h-6 px-2 text-xs w-auto gap-1 border-dashed font-normal text-muted-foreground">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CONTAINER_TYPE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap">
           {containerItems.length} items · default: {defaultItemName}
         </span>
@@ -84,19 +151,35 @@ export function ContainerCard({
           </TableHeader>
         )}
         <TableBody className="[&_tr]:border-border/60">
-          {containerItems.map((ci) => (
-            <ContainerItemRow
-              key={ci.itemId}
-              containerItem={ci}
-              isDefault={ci.itemId === container.defaultItemId}
-              groups={groups}
-              onRemove={() => onRemoveItem(ci.itemId)}
-              onPatch={(payload) => onPatchItem(ci.itemId, payload)}
-              onSetDefault={() =>
-                onSetDefault(ci.itemId === container.defaultItemId ? null : ci.itemId)
-              }
-            />
-          ))}
+          <DragDropProvider
+            sensors={[PointerSensor.configure({ activationConstraints: [new PointerActivationConstraints.Distance({ value: 8 })] })]}
+            onDragEnd={(event) => {
+              if (event.canceled) return
+              const { source } = event.operation
+              if (!isSortable(source)) return
+              const { initialIndex, index } = source
+              if (initialIndex === index) return
+              const newOrder = [...containerItems]
+              const [moved] = newOrder.splice(initialIndex, 1)
+              newOrder.splice(index, 0, moved)
+              onReorderItems(newOrder)
+            }}
+          >
+            {containerItems.map((ci, idx) => (
+              <SortableContainerItemRow
+                key={ci.itemId}
+                index={idx}
+                containerItem={ci}
+                isDefault={ci.itemId === container.defaultItemId}
+                groups={groups}
+                onRemove={() => onRemoveItem(ci.itemId)}
+                onPatch={(payload) => onPatchItem(ci.itemId, payload)}
+                onSetDefault={() =>
+                  onSetDefault(ci.itemId === container.defaultItemId ? null : ci.itemId)
+                }
+              />
+            ))}
+          </DragDropProvider>
         </TableBody>
       </Table>
 
@@ -113,7 +196,7 @@ export function ContainerCard({
               add item from library
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="start" className="w-80 p-3">
+          <PopoverContent align="start" className="w-[50vw] min-w-[400px] p-0 overflow-hidden">
             <ItemPicker
               libraryItems={libraryItems}
               excludedIds={excludedIds}
@@ -126,4 +209,4 @@ export function ContainerCard({
       </div>
     </div>
   )
-}
+})
