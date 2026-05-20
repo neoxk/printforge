@@ -19,6 +19,7 @@ export type Dimensions =
   | { type: 'custom' }
 
 export type ProductConfig = {
+  productId: string
   dimensions: Dimensions
   containers: ConfigContainer[]
 }

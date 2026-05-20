@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { NotFoundError, ConflictError } from '../../lib/errors.js'
-import { listSyncedProducts } from '../integration/integration.service.js'
+import { getCurrentConnectionRecord, listSyncedProducts } from '../integration/integration.service.js'
 
 // ─── Products ─────────────────────────────────────────────────────────────────
 
@@ -185,6 +185,7 @@ export async function getProductConfig(productId: string) {
       : { type: 'custom' as const }
 
   return {
+    productId: product.id,
     dimensions,
     containers: containers.map((c) => ({
       id: c.id,
@@ -200,6 +201,22 @@ export async function getProductConfig(productId: string) {
       })),
     })),
   }
+}
+
+export async function getProductConfigByWooId(wooProductId: string) {
+  const connection = await getCurrentConnectionRecord()
+  const product = await prisma.product.findUnique({
+    where: {
+      uq_synced_product_connection_woo_id: {
+        connectionId: connection.id,
+        wooProductId: BigInt(wooProductId),
+      },
+    },
+  })
+
+  if (!product) throw new NotFoundError('Product not found.')
+
+  return getProductConfig(product.id)
 }
 
 export async function patchContainerItem(

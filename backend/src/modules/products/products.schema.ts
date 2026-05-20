@@ -3,6 +3,7 @@ import { z } from 'zod'
 const containerTypeValues = ['SINGLE_SELECT', 'MULTI_SELECT', 'AUTO_APPLIED'] as const
 
 export const productIdParam = z.object({ id: z.string() })
+export const wooProductIdParam = z.object({ wooProductId: z.string().regex(/^\d+$/) })
 
 // ─── Containers ───────────────────────────────────────────────────────────────
 

@@ -6,6 +6,12 @@ export async function fetchProductConfig(productId: string): Promise<ProductConf
   return res.json() as Promise<ProductConfig>
 }
 
+export async function fetchProductConfigByWooId(wooProductId: string): Promise<ProductConfig> {
+  const res = await fetch(`/api/products/woo/${wooProductId}/config`)
+  if (!res.ok) throw new Error(`Failed to load product config (${res.status})`)
+  return res.json() as Promise<ProductConfig>
+}
+
 export async function calculatePrice(
   productId: string,
   selectedItemIds: string[],

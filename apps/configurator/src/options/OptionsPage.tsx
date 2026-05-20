@@ -1,0 +1,182 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ContainerGroup } from '../components/ContainerGroup.js'
+import { calculatePrice } from '../lib/api.js'
+import type { PricingResult, ProductConfig } from '../types.js'
+import { DimensionsFields } from './DimensionsFields.js'
+import {
+  DEFAULT_DIMENSIONS_STATE,
+  fetchOptionsConfig,
+  getBasePriceFromSearch,
+  getDefaultSelections,
+  getDimensionsState,
+  getProductIdFromPath,
+  getSelectedItemIds,
+  isValidProductId,
+} from './optionsConfig.js'
+import { PricePanel } from './PricePanel.js'
+import type { DimensionsState, SelectedByContainer } from './types.js'
+import { useIframeResize } from './useIframeResize.js'
+import { useParentConfigurationSync } from './useParentConfigurationSync.js'
+import { useParentQuantitySync } from './useParentQuantitySync.js'
+
+export function OptionsPage() {
+  const pageRef = useRef<HTMLElement | null>(null)
+  const productId = useMemo(() => getProductIdFromPath(window.location.pathname), [])
+  const basePrice = useMemo(() => getBasePriceFromSearch(window.location.search), [])
+  const [config, setConfig] = useState<ProductConfig | null>(null)
+  const [selectedByContainer, setSelectedByContainer] = useState<SelectedByContainer>({})
+  const [dimensions, setDimensions] = useState<DimensionsState>(DEFAULT_DIMENSIONS_STATE)
+  const [price, setPrice] = useState<PricingResult | null>(null)
+  const [isPriceLoading, setIsPriceLoading] = useState(false)
+  const [priceError, setPriceError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useIframeResize(pageRef)
+  useParentQuantitySync(setDimensions)
+  useParentConfigurationSync({
+    config,
+    routeProductId: productId,
+    selectedByContainer,
+    dimensions,
+    price,
+  })
+
+  useEffect(() => {
+    if (!productId) {
+      setIsLoading(false)
+      setError('Missing product id.')
+      return
+    }
+
+    if (!isValidProductId(productId)) {
+      setIsLoading(false)
+      setError('Invalid product id.')
+      return
+    }
+
+    let isCancelled = false
+
+    setIsLoading(true)
+    setError(null)
+
+    fetchOptionsConfig(productId)
+      .then((nextConfig) => {
+        if (isCancelled) return
+
+        setConfig(nextConfig)
+        setSelectedByContainer(getDefaultSelections(nextConfig))
+        setDimensions(getDimensionsState(nextConfig))
+      })
+      .catch((nextError: unknown) => {
+        if (isCancelled) return
+
+        setConfig(null)
+        setSelectedByContainer({})
+        setPrice(null)
+        setError(nextError instanceof Error ? nextError.message : 'Failed to load product options.')
+      })
+      .finally(() => {
+        if (!isCancelled) setIsLoading(false)
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [productId])
+
+  useEffect(() => {
+    if (!config) return
+
+    const widthMm = Number(dimensions.widthMm)
+    const heightMm = Number(dimensions.heightMm)
+    const quantity = Number(dimensions.quantity)
+
+    if (widthMm <= 0 || heightMm <= 0 || quantity <= 0 || !Number.isInteger(quantity)) {
+      setPrice(null)
+      setPriceError('Enter dimensions and quantity to calculate price.')
+      return
+    }
+
+    let isCancelled = false
+
+    setIsPriceLoading(true)
+    setPriceError(null)
+
+    calculatePrice(config.productId, getSelectedItemIds(selectedByContainer), {
+      widthMm,
+      heightMm,
+      quantity,
+    })
+      .then((nextPrice) => {
+        if (!isCancelled) setPrice(nextPrice)
+      })
+      .catch((nextError: unknown) => {
+        if (isCancelled) return
+
+        setPrice(null)
+        setPriceError(nextError instanceof Error ? nextError.message : 'Failed to calculate price.')
+      })
+      .finally(() => {
+        if (!isCancelled) setIsPriceLoading(false)
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [config, dimensions.heightMm, dimensions.quantity, dimensions.widthMm, selectedByContainer])
+
+  function handleContainerChange(containerId: string, selected: string[]) {
+    setSelectedByContainer((current) => ({
+      ...current,
+      [containerId]: selected,
+    }))
+  }
+
+  if (isLoading) {
+    return <main className="cf-loading">Loading product options...</main>
+  }
+
+  if (error) {
+    return <main className="cf-error">{error}</main>
+  }
+
+  if (!config) {
+    return <main className="cf-error">Product options are unavailable.</main>
+  }
+
+  const visibleContainers = config.containers.filter(
+    (container) => !container.isHidden && container.containerType !== 'AUTO_APPLIED',
+  )
+
+  if (visibleContainers.length === 0) {
+    return <main className="cf-loading">No configurable options are available for this product.</main>
+  }
+
+  return (
+    <main ref={pageRef}>
+      <form className="configurator-form">
+        {config.dimensions.type === 'custom' && (
+          <DimensionsFields dimensions={dimensions} onChange={setDimensions} />
+        )}
+
+        {visibleContainers.map((container) => (
+          <ContainerGroup
+            key={container.id}
+            container={container}
+            selected={selectedByContainer[container.id] ?? []}
+            onChange={handleContainerChange}
+          />
+        ))}
+
+        <PricePanel
+          price={price}
+          isLoading={isPriceLoading}
+          error={priceError}
+          basePrice={basePrice}
+          quantity={Number(dimensions.quantity)}
+        />
+      </form>
+    </main>
+  )
+}

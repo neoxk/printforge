@@ -52,6 +52,11 @@ export async function getProductConfigHandler(req: FastifyRequest, reply: Fastif
   return reply.send(await productsService.getProductConfig(id))
 }
 
+export async function getProductConfigByWooIdHandler(req: FastifyRequest, reply: FastifyReply) {
+  const { wooProductId } = req.params as { wooProductId: string }
+  return reply.send(await productsService.getProductConfigByWooId(wooProductId))
+}
+
 // ─── Container Items ──────────────────────────────────────────────────────────
 
 export async function listContainerItemsHandler(req: FastifyRequest, reply: FastifyReply) {
