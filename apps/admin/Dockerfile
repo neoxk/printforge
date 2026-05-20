@@ -13,6 +13,7 @@ COPY packages/ui/package.json packages/ui/package.json
 RUN npm ci --include=optional
 
 COPY apps/admin apps/admin
+COPY apps/configurator/src/designer/shared apps/configurator/src/designer/shared
 COPY packages/ui packages/ui
 
 RUN npm run build --workspace=apps/admin
