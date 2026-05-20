@@ -1,169 +1,251 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { prisma } from '../../lib/prisma.js'
-import {
-  calculatePrice,
-  createPricingRule,
-  listPricingRules,
-} from './pricing.service.js'
+import { AppError, NotFoundError } from '../../lib/errors.js'
+import { calculatePrice } from './pricing.service.js'
 
 vi.mock('../../lib/prisma.js', () => ({
   prisma: {
-    pricingRule: {
-      create: vi.fn(),
+    product: {
+      findUnique: vi.fn(),
+    },
+    optionsContainer: {
       findMany: vi.fn(),
     },
   },
 }))
 
-const pricingRule = (prisma as any).pricingRule as {
-  create: ReturnType<typeof vi.fn>
+const product = (prisma as any).product as {
+  findUnique: ReturnType<typeof vi.fn>
+}
+
+const optionsContainer = (prisma as any).optionsContainer as {
   findMany: ReturnType<typeof vi.fn>
 }
+
+const decimal = (value: number) => ({
+  toNumber: () => value,
+})
+
+const item = (
+  id: string,
+  overrides: Partial<{
+    name: string
+    priceUnit: number
+    calculationBasis: 'YIELD_PCS' | 'LINEAR_M' | 'SQM' | 'PERIMETER' | 'PCS' | 'ORDER' | 'FREE'
+    lengthMm: number | null
+    widthMm: number | null
+  }> = {},
+) => ({
+  id,
+  name: overrides.name ?? id,
+  priceUnit: decimal(overrides.priceUnit ?? 0),
+  lengthMm: overrides.lengthMm ?? null,
+  widthMm: overrides.widthMm ?? null,
+  calculationBasis: overrides.calculationBasis ?? 'PCS',
+})
+
+const slot = (
+  containerId: string,
+  itemId: string,
+  itemData: ReturnType<typeof item>,
+  overrides: Partial<{
+    id: string
+    sortOrder: number
+    name: string | null
+    priceUnit: number | null
+  }> = {},
+) => ({
+  id: overrides.id ?? `${containerId}-${itemId}`,
+  containerId,
+  itemId,
+  sortOrder: overrides.sortOrder ?? 0,
+  name: overrides.name,
+  priceUnit: overrides.priceUnit == null ? null : decimal(overrides.priceUnit),
+  item: itemData,
+})
 
 describe('calculatePrice', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    product.findUnique.mockResolvedValue({ id: 'product-1' })
+    optionsContainer.findMany.mockResolvedValue([])
   })
 
-  it('returns the total price and breakdown for active pricing rules', async () => {
-    pricingRule.findMany.mockResolvedValue([
+  it('returns calculator totals for selected and auto-applied option items', async () => {
+    optionsContainer.findMany.mockResolvedValue([
       {
-        id: BigInt(1),
-        name: 'Large size',
-        amount: 12.5,
-        triggerLabel: 'Size',
+        id: 'container-size',
+        productId: 'product-1',
+        name: 'Size',
+        sortOrder: 0,
+        containerType: 'SINGLE_SELECT',
+        isRequired: true,
+        items: [
+          slot(
+            'container-size',
+            'item-large',
+            item('item-large', { name: 'Large', priceUnit: 5, calculationBasis: 'PCS' }),
+            { name: 'Large print', priceUnit: 6 },
+          ),
+        ],
       },
       {
-        id: BigInt(2),
-        name: 'Rush order',
-        amount: 8,
-        triggerLabel: 'Delivery',
+        id: 'container-setup',
+        productId: 'product-1',
+        name: 'Setup',
+        sortOrder: 1,
+        containerType: 'AUTO_APPLIED',
+        isRequired: false,
+        items: [
+          slot(
+            'container-setup',
+            'item-setup',
+            item('item-setup', { name: 'Setup fee', priceUnit: 10, calculationBasis: 'ORDER' }),
+          ),
+        ],
       },
     ])
 
-    const result = await calculatePrice('123', {
-      size: 'large',
-      delivery: 'rush',
+    const result = await calculatePrice('product-1', ['item-large'], {
+      widthMm: 100,
+      heightMm: 200,
+      quantity: 3,
     })
 
-    expect(pricingRule.findMany).toHaveBeenCalledWith({
-      where: {
-        productId: BigInt(123),
-        isActive: true,
+    expect(product.findUnique).toHaveBeenCalledWith({ where: { id: 'product-1' } })
+    expect(optionsContainer.findMany).toHaveBeenCalledWith({
+      where: { productId: 'product-1' },
+      include: {
+        items: { include: { item: true }, orderBy: { sortOrder: 'asc' } },
       },
+      orderBy: { sortOrder: 'asc' },
     })
     expect(result).toEqual({
-      price: 20.5,
+      total: 28,
       breakdown: [
         {
-          ruleId: BigInt(1),
-          label: 'Large size',
-          amount: 12.5,
-          trigger: 'Size',
+          itemId: 'item-large',
+          name: 'Large print',
+          calculationBasis: 'PCS',
+          cost: 18,
         },
         {
-          ruleId: BigInt(2),
-          label: 'Rush order',
-          amount: 8,
-          trigger: 'Delivery',
+          itemId: 'item-setup',
+          name: 'Setup fee',
+          calculationBasis: 'ORDER',
+          cost: 10,
         },
       ],
-      options: {
-        size: 'large',
-        delivery: 'rush',
-      },
     })
   })
-})
 
-describe('listPricingRules', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
+  it('throws when the product does not exist', async () => {
+    product.findUnique.mockResolvedValue(null)
+
+    await expect(
+      calculatePrice('missing-product', [], { widthMm: 100, heightMm: 200, quantity: 1 }),
+    ).rejects.toBeInstanceOf(NotFoundError)
   })
 
-  it('returns pricing rules formatted for the API', async () => {
-    pricingRule.findMany.mockResolvedValue([
+  it('throws when the same option item is selected more than once', async () => {
+    await expect(
+      calculatePrice('product-1', ['item-large', 'item-large'], {
+        widthMm: 100,
+        heightMm: 200,
+        quantity: 1,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Duplicate option item selected.',
+    } satisfies Partial<AppError>)
+
+    expect(optionsContainer.findMany).not.toHaveBeenCalled()
+  })
+
+  it('throws when a selected item is not available for the product', async () => {
+    optionsContainer.findMany.mockResolvedValue([
       {
-        id: BigInt(2),
-        name: 'Rush order',
-        description: 'Adds rush order surcharge.',
-        triggerLabel: 'Delivery',
-        status: 'Active',
-      },
-      {
-        id: BigInt(1),
-        name: 'Large size',
-        description: null,
-        triggerLabel: 'Size',
-        status: 'Draft',
+        id: 'container-size',
+        name: 'Size',
+        sortOrder: 0,
+        containerType: 'SINGLE_SELECT',
+        isRequired: false,
+        items: [
+          slot(
+            'container-size',
+            'item-small',
+            item('item-small', { name: 'Small', priceUnit: 2, calculationBasis: 'PCS' }),
+          ),
+        ],
       },
     ])
 
-    const result = await listPricingRules()
+    await expect(
+      calculatePrice('product-1', ['item-large'], { widthMm: 100, heightMm: 200, quantity: 1 }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'One or more selected option items are not available for this product.',
+    } satisfies Partial<AppError>)
+  })
 
-    expect(pricingRule.findMany).toHaveBeenCalledWith({
-      orderBy: { id: 'desc' },
-    })
-    expect(result).toEqual([
+  it('throws when a required container has no selected item', async () => {
+    optionsContainer.findMany.mockResolvedValue([
       {
-        id: BigInt(2),
-        name: 'Rush order',
-        summary: 'Adds rush order surcharge.',
-        trigger: 'Delivery',
-        status: 'Active',
-      },
-      {
-        id: BigInt(1),
-        name: 'Large size',
-        summary: 'No summary provided yet.',
-        trigger: 'Size',
-        status: 'Draft',
+        id: 'container-size',
+        name: 'Size',
+        sortOrder: 0,
+        containerType: 'SINGLE_SELECT',
+        isRequired: true,
+        items: [
+          slot(
+            'container-size',
+            'item-small',
+            item('item-small', { name: 'Small', priceUnit: 2, calculationBasis: 'PCS' }),
+          ),
+        ],
       },
     ])
+
+    await expect(
+      calculatePrice('product-1', [], { widthMm: 100, heightMm: 200, quantity: 1 }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Size is required.',
+    } satisfies Partial<AppError>)
   })
-})
 
-describe('createPricingRule', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it('creates an active pricing rule and returns it formatted for the API', async () => {
-    pricingRule.create.mockResolvedValue({
-      id: BigInt(3),
-      name: 'Rush order',
-      description: 'Adds rush order surcharge.',
-      triggerLabel: 'Delivery',
-      status: 'Active',
-    })
-
-    const result = await createPricingRule({
-      name: 'Rush order',
-      summary: 'Adds rush order surcharge.',
-      trigger: 'Delivery',
-      status: 'Active',
-    })
-
-    expect(pricingRule.create).toHaveBeenCalledWith({
-      data: {
-        name: 'Rush order',
-        productId: BigInt(0),
-        triggerLabel: 'Delivery',
-        operator: 'eq',
-        triggerValue: 'Delivery',
-        ruleType: 'flat_surcharge',
-        amount: 0,
-        description: 'Adds rush order surcharge.',
-        status: 'Active',
-        isActive: true,
+  it('throws when multiple items are selected for a single-select container', async () => {
+    optionsContainer.findMany.mockResolvedValue([
+      {
+        id: 'container-size',
+        name: 'Size',
+        sortOrder: 0,
+        containerType: 'SINGLE_SELECT',
+        isRequired: false,
+        items: [
+          slot(
+            'container-size',
+            'item-small',
+            item('item-small', { name: 'Small', priceUnit: 2, calculationBasis: 'PCS' }),
+          ),
+          slot(
+            'container-size',
+            'item-large',
+            item('item-large', { name: 'Large', priceUnit: 4, calculationBasis: 'PCS' }),
+          ),
+        ],
       },
-    })
-    expect(result).toEqual({
-      id: BigInt(3),
-      name: 'Rush order',
-      summary: 'Adds rush order surcharge.',
-      trigger: 'Delivery',
-      status: 'Active',
-    })
+    ])
+
+    await expect(
+      calculatePrice('product-1', ['item-small', 'item-large'], {
+        widthMm: 100,
+        heightMm: 200,
+        quantity: 1,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Only one option may be selected for Size.',
+    } satisfies Partial<AppError>)
   })
 })

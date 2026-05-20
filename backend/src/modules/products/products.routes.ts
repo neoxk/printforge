@@ -13,9 +13,11 @@ import {
   addItemToContainerHandler,
   removeItemFromContainerHandler,
   patchContainerItemHandler,
+  getProductConfigByWooIdHandler,
 } from './products.controller.js'
 import {
   productIdParam,
+  wooProductIdParam,
   containerIdParams,
   containerItemParams,
   createContainerBody,
@@ -28,6 +30,7 @@ import {
 export async function productsRoutes(app: FastifyInstance) {
   app.get('/', { preHandler: authenticate }, listProductsHandler)
   app.patch('/:id', { preHandler: authenticate, schema: { params: productIdParam, body: updateProductBody } }, updateProductHandler)
+  app.get('/woo/:wooProductId/config', { schema: { params: wooProductIdParam } }, getProductConfigByWooIdHandler)
   app.get('/:id/config', { schema: { params: productIdParam } }, getProductConfigHandler)
 
   // Containers

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AdminDesignerPage } from './designer/admin/AdminDesignerPage'
+import { OptionsPage } from './options/OptionsPage'
 
 type Route = 'configurator' | 'options' | 'not-found'
 
@@ -21,10 +22,6 @@ function getRoute(pathname: string): Route {
   }
 
   return 'not-found'
-}
-
-function OptionsRoute() {
-  return <div className="cf-route-placeholder" aria-label="PrintForge product options" />
 }
 
 function NotFoundRoute() {
@@ -62,7 +59,7 @@ export function Router() {
   }
 
   if (route === 'options') {
-    return <OptionsRoute />
+    return <OptionsPage />
   }
 
   return <NotFoundRoute />

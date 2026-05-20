@@ -7,4 +7,5 @@
     width: 100%;
     min-height: 420px;
     border: 0;
+    overflow: hidden;
 }

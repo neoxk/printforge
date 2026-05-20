@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
-import { NotFoundError, ConflictError } from '../../lib/errors.js'
+import { AppError, NotFoundError, ConflictError } from '../../lib/errors.js'
 import { calculate, buildOrderContext } from '../../lib/pricing/index.js'
 import type { OptionItemShape } from '../../lib/pricing/index.js'
 
@@ -149,24 +149,69 @@ export async function calculatePrice(
   const product = await prisma.product.findUnique({ where: { id: productId } })
   if (!product) throw new NotFoundError('Product not found.')
 
-  const slots = await Promise.all(
-    selectedItemIds.map((itemId) =>
-      prisma.containerOptionItem.findFirst({
-        where: { itemId, container: { productId } },
-        include: { item: true },
-      }),
-    ),
+  const uniqueSelectedItemIds = [...new Set(selectedItemIds)]
+
+  if (uniqueSelectedItemIds.length !== selectedItemIds.length) {
+    throw new AppError(400, 'Duplicate option item selected.')
+  }
+
+  const containers = await prisma.optionsContainer.findMany({
+    where: { productId },
+    include: {
+      items: { include: { item: true }, orderBy: { sortOrder: 'asc' } },
+    },
+    orderBy: { sortOrder: 'asc' },
+  })
+
+  const slots = containers.flatMap((container) =>
+    container.items.map((slot) => ({ ...slot, container })),
   )
+  const selectedSlots = slots.filter((slot) => uniqueSelectedItemIds.includes(slot.itemId))
+  const selectedSlotIds = new Set(selectedSlots.map((slot) => slot.itemId))
+  const invalidItemIds = uniqueSelectedItemIds.filter((itemId) => !selectedSlotIds.has(itemId))
+
+  if (invalidItemIds.length > 0) {
+    throw new AppError(400, 'One or more selected option items are not available for this product.')
+  }
+
+  for (const container of containers) {
+    const selectedCount = selectedSlots.filter((slot) => slot.containerId === container.id).length
+
+    if (container.containerType === 'AUTO_APPLIED') {
+      continue
+    }
+
+    if (container.containerType === 'SINGLE_SELECT' && selectedCount > 1) {
+      throw new AppError(400, `Only one option may be selected for ${container.name}.`)
+    }
+
+    if (container.isRequired && selectedCount === 0) {
+      throw new AppError(400, `${container.name} is required.`)
+    }
+  }
+
+  const autoAppliedSlots = slots.filter((slot) => slot.container.containerType === 'AUTO_APPLIED')
+  const effectiveSlots = [...selectedSlots]
+
+  for (const slot of autoAppliedSlots) {
+    if (!effectiveSlots.some((selectedSlot) => selectedSlot.containerId === slot.containerId && selectedSlot.itemId === slot.itemId)) {
+      effectiveSlots.push(slot)
+    }
+  }
 
   const items: OptionItemShape[] = slots
-    .filter((slot) => slot !== null)
+    .filter((slot) =>
+      effectiveSlots.some(
+        (selectedSlot) => selectedSlot.containerId === slot.containerId && selectedSlot.itemId === slot.itemId,
+      ),
+    )
     .map((slot) => ({
-      id: slot!.item.id,
-      name: slot!.name ?? slot!.item.name,
-      priceUnit: (slot!.priceUnit ?? slot!.item.priceUnit).toNumber(),
-      lengthMm: slot!.item.lengthMm,
-      widthMm: slot!.item.widthMm,
-      calculationBasis: (slot!.item.calculationBasis as string) as OptionItemShape['calculationBasis'],
+      id: slot.item.id,
+      name: slot.name ?? slot.item.name,
+      priceUnit: (slot.priceUnit ?? slot.item.priceUnit).toNumber(),
+      lengthMm: slot.item.lengthMm,
+      widthMm: slot.item.widthMm,
+      calculationBasis: (slot.item.calculationBasis as string) as OptionItemShape['calculationBasis'],
     }))
 
   const ctx = buildOrderContext(rawContext)
