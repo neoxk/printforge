@@ -1,9 +1,29 @@
-import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { NotFoundError, ConflictError } from '../../lib/errors.js'
 import { getCurrentConnectionRecord, listSyncedProducts } from '../integration/integration.service.js'
 
 // ─── Products ─────────────────────────────────────────────────────────────────
+
+function hasPrismaErrorCode(error: unknown, code: string) {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === code
+}
+
+type ProductConfigContainer = {
+  id: string
+  name: string
+  containerType: string
+  isHidden: boolean
+  isRequired: boolean
+  defaultItemId: string | null
+  items: Array<{
+    itemId: string
+    name: string | null
+    item: {
+      name: string
+      slug: string
+    }
+  }>
+}
 
 export async function listProducts() {
   return listSyncedProducts()
@@ -120,7 +140,7 @@ export async function addItemToContainer(
       include: { item: true },
     })
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+    if (hasPrismaErrorCode(e, 'P2002')) {
       throw new ConflictError('Item is already in this container.')
     }
     throw e
@@ -138,7 +158,7 @@ export async function removeItemFromContainer(
       where: { uq_container_option_item: { containerId, itemId } },
     })
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+    if (hasPrismaErrorCode(e, 'P2025')) {
       throw new NotFoundError('Item not found in this container.')
     }
     throw e
@@ -187,7 +207,7 @@ export async function getProductConfig(productId: string) {
   return {
     productId: product.id,
     dimensions,
-    containers: containers.map((c) => ({
+    containers: containers.map((c: ProductConfigContainer) => ({
       id: c.id,
       name: c.name,
       containerType: c.containerType,
@@ -237,7 +257,7 @@ export async function patchContainerItem(
       include: { item: true },
     })
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+    if (hasPrismaErrorCode(e, 'P2025')) {
       throw new NotFoundError('Item not found in this container.')
     }
     throw e

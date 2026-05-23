@@ -1,10 +1,40 @@
-import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { AppError, NotFoundError, ConflictError } from '../../lib/errors.js'
 import { calculate, buildOrderContext } from '../../lib/pricing/index.js'
 import type { OptionItemShape } from '../../lib/pricing/index.js'
 
 // ─── Groups ──────────────────────────────────────────────────────────────────
+
+function hasPrismaErrorCode(error: unknown, code: string) {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === code
+}
+
+type PricingContainerSlot = {
+  containerId: string
+  itemId: string
+  name: string | null
+  priceUnit: { toNumber: () => number } | null
+  item: {
+    id: string
+    name: string
+    priceUnit: { toNumber: () => number }
+    lengthMm: number | null
+    widthMm: number | null
+    calculationBasis: string
+  }
+}
+
+type PricingContainer = {
+  id: string
+  name: string
+  containerType: string
+  isRequired: boolean
+  items: PricingContainerSlot[]
+}
+
+type PricingSlot = PricingContainerSlot & {
+  container: PricingContainer
+}
 
 export async function listGroups() {
   return prisma.optionsGroup.findMany({ orderBy: { name: 'asc' } })
@@ -23,7 +53,7 @@ export async function createGroup(name: string) {
   try {
     return await prisma.optionsGroup.create({ data: { name } })
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+    if (hasPrismaErrorCode(e, 'P2002')) {
       throw new ConflictError('A group with that name already exists.')
     }
     throw e
@@ -34,10 +64,8 @@ export async function updateGroup(id: string, name: string) {
   try {
     return await prisma.optionsGroup.update({ where: { id }, data: { name } })
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
-      if (e.code === 'P2025') throw new NotFoundError('Group not found.')
-      if (e.code === 'P2002') throw new ConflictError('A group with that name already exists.')
-    }
+    if (hasPrismaErrorCode(e, 'P2025')) throw new NotFoundError('Group not found.')
+    if (hasPrismaErrorCode(e, 'P2002')) throw new ConflictError('A group with that name already exists.')
     throw e
   }
 }
@@ -45,7 +73,7 @@ export async function updateGroup(id: string, name: string) {
 export async function deleteGroup(id: string) {
   const group = await prisma.optionsGroup.findUnique({ where: { id } })
   if (!group) throw new NotFoundError('Group not found.')
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     await tx.optionItem.updateMany({ where: { groupId: id }, data: { groupId: null } })
     await tx.optionsGroup.delete({ where: { id } })
   })
@@ -88,7 +116,7 @@ export async function createItem(body: ItemBody) {
       },
     })
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+    if (hasPrismaErrorCode(e, 'P2002')) {
       throw new ConflictError('An item with that name or slug already exists.')
     }
     throw e
@@ -110,7 +138,7 @@ export async function updateItem(id: string, body: ItemBody) {
       },
     })
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+    if (hasPrismaErrorCode(e, 'P2002')) {
       throw new ConflictError('An item with that name or slug already exists.')
     }
     throw e
@@ -163,8 +191,8 @@ export async function calculatePrice(
     orderBy: { sortOrder: 'asc' },
   })
 
-  const slots = containers.flatMap((container) =>
-    container.items.map((slot) => ({ ...slot, container })),
+  const slots = (containers as PricingContainer[]).flatMap((container) =>
+    container.items.map((slot): PricingSlot => ({ ...slot, container })),
   )
   const selectedSlots = slots.filter((slot) => uniqueSelectedItemIds.includes(slot.itemId))
   const selectedSlotIds = new Set(selectedSlots.map((slot) => slot.itemId))
