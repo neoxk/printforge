@@ -94,7 +94,7 @@ export function OptionsPage() {
 
     if (widthMm <= 0 || heightMm <= 0 || quantity <= 0 || !Number.isInteger(quantity)) {
       setPrice(null)
-      setPriceError('Enter dimensions and quantity to calculate price.')
+      setPriceError('Enter dimensions to calculate price.')
       return
     }
 

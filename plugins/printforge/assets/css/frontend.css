@@ -9,3 +9,12 @@
     border: 0;
     overflow: hidden;
 }
+
+.printforge-cart-option-row {
+    display: block;
+    margin-top: 2px;
+}
+
+.printforge-cart-option-row__label {
+    font-weight: 500;
+}
