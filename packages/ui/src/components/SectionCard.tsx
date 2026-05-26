@@ -1,22 +1,22 @@
-import type { PropsWithChildren, ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 
-type SectionCardProps = PropsWithChildren<{
-  title: string
-  description?: string
+type SectionCardProps = {
+  title: ReactNode
+  description?: ReactNode
   actions?: ReactNode
-}>
+  children?: ReactNode
+}
 
 export function SectionCard({ title, description, actions, children }: SectionCardProps) {
   return (
-    <section className="section-card">
-      <header className="section-card-header">
-        <div>
-          <h4>{title}</h4>
-          {description ? <p className="muted-copy">{description}</p> : null}
-        </div>
-        {actions ? <div className="section-card-actions">{actions}</div> : null}
-      </header>
-      {children}
-    </section>
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+        {actions && <CardAction>{actions}</CardAction>}
+      </CardHeader>
+      {children && <CardContent>{children}</CardContent>}
+    </Card>
   )
 }

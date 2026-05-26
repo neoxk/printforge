@@ -5,10 +5,10 @@ import type { ContainerItemPatchPayload } from '../../../lib/services/containers
 import type { ContainerOptionItem, OptionsGroup } from '@printforge/ui'
 import { CalcBasis } from '@printforge/ui'
 import { BASIS_UNIT } from '../../../lib/options-meta'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { TableCell, TableRow } from '@/components/ui/table'
+import { Button } from '@printforge/ui/components/ui/button'
+import { Badge } from '@printforge/ui/components/ui/badge'
+import { Input } from '@printforge/ui/components/ui/input'
+import { TableCell, TableRow } from '@printforge/ui/components/ui/table'
 
 type EditingField = 'name' | 'price' | null
 
@@ -137,7 +137,7 @@ export const ContainerItemRow = forwardRef<HTMLTableRowElement, Props>(function 
         </TableCell>
 
         <TableCell
-          className="px-1 py-1.5 min-w-[100px] text-sm tabular-nums cursor-text"
+          className="px-1 py-1.5 min-w-25 text-sm tabular-nums cursor-text"
           onDoubleClick={() => item.calculationBasis !== CalcBasis.FREE && startEdit('price')}
           title={item.calculationBasis !== CalcBasis.FREE ? 'Double-click to override price' : undefined}
         >

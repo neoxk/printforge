@@ -2,6 +2,17 @@ import { AlertTriangle, PlusCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { PageHeader, SectionCard, useAppAlerts } from '@printforge/ui'
 import type { ValidationRule } from '@printforge/ui'
+import { Badge } from '@printforge/ui/components/ui/badge'
+import { Button } from '@printforge/ui/components/ui/button'
+import { Input } from '@printforge/ui/components/ui/input'
+import { Label } from '@printforge/ui/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@printforge/ui/components/ui/select'
 import { createValidationRuleRequest, getValidationRulesRequest } from '../lib/Api'
 
 export function ValidationPage() {
@@ -25,7 +36,6 @@ export function ValidationPage() {
         )
       }
     }
-
     void loadValidationRules()
   }, [])
 
@@ -35,7 +45,6 @@ export function ValidationPage() {
 
   async function createRule() {
     setIsSubmitting(true)
-
     try {
       const nextRule = await createValidationRuleRequest(formState as Omit<ValidationRule, 'id'>)
       setRules((current) => [nextRule, ...current])
@@ -52,21 +61,16 @@ export function ValidationPage() {
   }
 
   return (
-    <div className="page-stack">
+    <div className="flex flex-col gap-4">
       <PageHeader
         eyebrow="Validation"
         title="File validation hub"
         description="Validation rules are loaded from and saved to the backend instead of relying on static frontend cards."
         actions={
-          <button
-            className="primary-button"
-            type="button"
-            onClick={createRule}
-            disabled={isSubmitting}
-          >
-            <PlusCircle className="button-icon" aria-hidden="true" />
-            {isSubmitting ? 'Creating...' : 'Add validation rule'}
-          </button>
+          <Button onClick={createRule} disabled={isSubmitting}>
+            <PlusCircle />
+            {isSubmitting ? 'Creating…' : 'Add validation rule'}
+          </Button>
         }
       />
 
@@ -74,51 +78,60 @@ export function ValidationPage() {
         title="New validation rule"
         description="Create a backend-backed validation rule shell."
       >
-        <form className="editor-form">
-          <label>
-            <span>Rule name</span>
-            <input
+        <div className="grid gap-4">
+          <div className="grid gap-1.5">
+            <Label htmlFor="rule-name">Rule name</Label>
+            <Input
+              id="rule-name"
               type="text"
               value={formState.name}
               onChange={(e) => updateFormState('name', e.target.value)}
             />
-          </label>
-          <label>
-            <span>Summary</span>
-            <input
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="rule-summary">Summary</Label>
+            <Input
+              id="rule-summary"
               type="text"
               value={formState.summary}
               onChange={(e) => updateFormState('summary', e.target.value)}
             />
-          </label>
-          <label>
-            <span>Severity</span>
-            <select
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Severity</Label>
+            <Select
               value={formState.severity}
-              onChange={(e) => updateFormState('severity', e.target.value)}
+              onValueChange={(value) => updateFormState('severity', value)}
             >
-              <option value="Critical">Critical</option>
-              <option value="Warning">Warning</option>
-              <option value="Info">Info</option>
-            </select>
-          </label>
-        </form>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Critical">Critical</SelectItem>
+                <SelectItem value="Warning">Warning</SelectItem>
+                <SelectItem value="Info">Info</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </SectionCard>
 
-      <section className="rule-grid">
+      <section className="grid grid-cols-2 gap-4">
         {rules.map((rule) => (
           <SectionCard
             key={rule.id}
             title={rule.name}
             description={rule.summary}
             actions={
-              <div className="card-tag-row">
-                <AlertTriangle className="inline-icon" aria-hidden="true" />
-                <span className="inline-tag">{rule.severity}</span>
+              <div className="flex items-center gap-1.5">
+                <AlertTriangle className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                <Badge variant="secondary">{rule.severity}</Badge>
               </div>
             }
           >
-            <p className="muted-copy">This validation rule is persisted in the backend database.</p>
+            <p className="text-sm text-muted-foreground">
+              This validation rule is persisted in the backend database.
+            </p>
           </SectionCard>
         ))}
       </section>

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AdminDesignerPage } from './designer/admin/AdminDesignerPage'
 import { OptionsPage } from './options/OptionsPage'
 
 type Route = 'configurator' | 'options' | 'not-found'
@@ -55,7 +54,11 @@ export function Router() {
   const route = useMemo(() => getRoute(pathname), [pathname])
 
   if (route === 'configurator') {
-    return <AdminDesignerPage />
+    return (
+      <main className="cf-route-state">
+        <p>User designer coming soon.</p>
+      </main>
+    )
   }
 
   if (route === 'options') {

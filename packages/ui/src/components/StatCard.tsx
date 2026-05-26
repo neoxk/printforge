@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { Card, CardContent, CardHeader } from './ui/card'
+import { Progress } from './ui/progress'
 
 type StatCardProps = {
   label: string
@@ -10,18 +12,20 @@ type StatCardProps = {
 
 export function StatCard({ label, value, trend, icon, progress }: StatCardProps) {
   return (
-    <article className="stat-card">
-      <div className="stat-card-head">
-        <p className="stat-label">{label}</p>
-        {icon ? <span className="stat-icon-wrap">{icon}</span> : null}
-      </div>
-      <strong className="stat-value">{value}</strong>
-      <span className="stat-trend">{trend}</span>
-      {typeof progress === 'number' ? (
-        <div className="progress-track" aria-hidden="true">
-          <span className="progress-fill" style={{ width: `${progress}%` }} />
-        </div>
-      ) : null}
-    </article>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        {icon && (
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary [&>svg]:size-4">
+            {icon}
+          </span>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-1.5">
+        <p className="text-2xl font-bold tracking-tight text-foreground">{value}</p>
+        <p className="text-xs text-muted-foreground">{trend}</p>
+        {typeof progress === 'number' && <Progress value={progress} className="mt-2 h-1.5" />}
+      </CardContent>
+    </Card>
   )
 }

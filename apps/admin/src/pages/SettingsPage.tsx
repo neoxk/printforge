@@ -2,6 +2,17 @@ import { CheckCircle2, Globe, KeyRound, RefreshCw, ShieldCheck } from 'lucide-re
 import { useEffect, useMemo, useState } from 'react'
 import { PageHeader, SectionCard, useAppAlerts } from '@printforge/ui'
 import type { IntegrationStatus } from '@printforge/ui'
+import { Button } from '@printforge/ui/components/ui/button'
+import { Input } from '@printforge/ui/components/ui/input'
+import { Label } from '@printforge/ui/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@printforge/ui/components/ui/select'
+import { Switch } from '@printforge/ui/components/ui/switch'
 import { getIntegrationRequest, saveIntegrationRequest } from '../lib/Api'
 
 const emptyIntegration: IntegrationStatus = {
@@ -70,7 +81,6 @@ export function SettingsPage() {
         setIsLoading(false)
       }
     }
-
     void loadIntegration()
   }, [])
 
@@ -80,7 +90,6 @@ export function SettingsPage() {
 
   async function saveConnection() {
     setIsSaving(true)
-
     try {
       const nextSettings = await saveIntegrationRequest(settings)
       setSettings(nextSettings)
@@ -96,142 +105,142 @@ export function SettingsPage() {
     }
   }
 
+  const statusRows = useMemo(
+    () => [
+      { label: 'Saved connection', value: settings.connectionName || 'Not configured yet' },
+      {
+        label: 'Authentication',
+        value: usesConsumerKeys ? 'WooCommerce consumer key / secret' : 'Public Store API',
+      },
+      { label: 'API status', value: settings.apiStatus },
+      { label: 'Last saved', value: savedAtLabel },
+      { label: 'Current endpoint', value: settings.restApiBase || 'No endpoint configured yet' },
+    ],
+    [settings, savedAtLabel, usesConsumerKeys],
+  )
+
   return (
-    <div className="page-stack">
+    <div className="flex flex-col gap-4">
       <PageHeader
         eyebrow="WooCommerce"
         title="Integration"
         description="Configure the WooCommerce connection once, then let backend-owned sync and mapping keep your PrintForge catalog current."
         actions={
-          <button
-            className="primary-button"
-            type="button"
-            onClick={saveConnection}
-            disabled={isSaving || isLoading}
-          >
-            <RefreshCw className="button-icon" aria-hidden="true" />
-            {isSaving ? 'Saving...' : 'Save connection'}
-          </button>
+          <Button onClick={saveConnection} disabled={isSaving || isLoading}>
+            <RefreshCw className={isSaving ? 'animate-spin' : ''} />
+            {isSaving ? 'Saving…' : 'Save connection'}
+          </Button>
         }
       />
 
-      <section className="content-grid">
+      <section className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[2fr_1fr]">
         <SectionCard
           title="Connection setup"
           description="These are the core values needed to connect PrintForge to any WooCommerce store."
-          actions={<Globe className="card-action-icon" aria-hidden="true" />}
+          actions={<Globe className="size-4 text-primary" aria-hidden="true" />}
         >
-          <form className="editor-form">
-            <label>
-              <span>Connection name</span>
-              <input
+          <div className="grid gap-4">
+            <div className="grid gap-1.5">
+              <Label htmlFor="conn-name">Connection name</Label>
+              <Input
+                id="conn-name"
                 type="text"
                 value={settings.connectionName}
                 onChange={(e) => updateSettings('connectionName', e.target.value)}
                 disabled={isLoading}
               />
-            </label>
-
-            <label>
-              <span>Store URL</span>
-              <input
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="store-url">Store URL</Label>
+              <Input
+                id="store-url"
                 type="url"
                 placeholder="https://store.example.com"
                 value={settings.storeUrl}
                 onChange={(e) => updateSettings('storeUrl', e.target.value)}
                 disabled={isLoading}
               />
-            </label>
-
-            <label>
-              <span>{endpointFieldLabel}</span>
-              <input
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="api-base">{endpointFieldLabel}</Label>
+              <Input
+                id="api-base"
                 type="text"
                 placeholder={endpointPlaceholder}
                 value={settings.restApiBase}
                 onChange={(e) => updateSettings('restApiBase', e.target.value)}
                 disabled={isLoading}
               />
-            </label>
-
-            <label>
-              <span>Authentication method</span>
-              <select
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Authentication method</Label>
+              <Select
                 value={settings.authMethod}
-                onChange={(e) =>
-                  updateSettings('authMethod', e.target.value as IntegrationStatus['authMethod'])
+                onValueChange={(v) =>
+                  updateSettings('authMethod', v as IntegrationStatus['authMethod'])
                 }
                 disabled={isLoading}
               >
-                <option value="public_store_api">Public Store API</option>
-                <option value="consumer_keys">WooCommerce consumer key / secret</option>
-              </select>
-            </label>
-
-            {usesConsumerKeys ? (
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public_store_api">Public Store API</SelectItem>
+                  <SelectItem value="consumer_keys">
+                    WooCommerce consumer key / secret
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {usesConsumerKeys && (
               <>
-                <label>
-                  <span>Consumer key</span>
-                  <input
+                <div className="grid gap-1.5">
+                  <Label htmlFor="consumer-key">Consumer key</Label>
+                  <Input
+                    id="consumer-key"
                     type="password"
                     value={settings.consumerKey}
                     onChange={(e) => updateSettings('consumerKey', e.target.value)}
                     disabled={isLoading}
                   />
-                </label>
-
-                <label>
-                  <span>Consumer secret</span>
-                  <input
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="consumer-secret">Consumer secret</Label>
+                  <Input
+                    id="consumer-secret"
                     type="password"
                     value={settings.consumerSecret}
                     onChange={(e) => updateSettings('consumerSecret', e.target.value)}
                     disabled={isLoading}
                   />
-                </label>
+                </div>
               </>
-            ) : null}
-
-            <label>
-              <span>Sync mode</span>
-              <input
+            )}
+            <div className="grid gap-1.5">
+              <Label htmlFor="sync-mode">Sync mode</Label>
+              <Input
+                id="sync-mode"
                 type="text"
                 value={settings.mode}
                 onChange={(e) => updateSettings('mode', e.target.value)}
                 disabled={isLoading}
               />
-            </label>
-          </form>
+            </div>
+          </div>
         </SectionCard>
 
         <SectionCard
           title="Connection status"
           description="Backend-visible state for the currently saved WooCommerce connection."
-          actions={<ShieldCheck className="card-action-icon" aria-hidden="true" />}
+          actions={<ShieldCheck className="size-4 text-primary" aria-hidden="true" />}
         >
-          <div className="detail-list">
-            <div>
-              <span>Saved connection</span>
-              <strong>{settings.connectionName || 'Not configured yet'}</strong>
-            </div>
-            <div>
-              <span>Authentication</span>
-              <strong>
-                {usesConsumerKeys ? 'WooCommerce consumer key / secret' : 'Public Store API'}
-              </strong>
-            </div>
-            <div>
-              <span>API status</span>
-              <strong>{settings.apiStatus}</strong>
-            </div>
-            <div>
-              <span>Last saved</span>
-              <strong>{savedAtLabel}</strong>
-            </div>
-            <div>
-              <span>Current endpoint</span>
-              <strong>{settings.restApiBase || 'No endpoint configured yet'}</strong>
-            </div>
+          <div className="divide-y divide-border">
+            {statusRows.map(({ label, value }) => (
+              <div key={label} className="grid gap-0.5 py-3">
+                <span className="text-xs text-muted-foreground">{label}</span>
+                <strong className="text-sm font-medium">{value}</strong>
+              </div>
+            ))}
           </div>
         </SectionCard>
       </section>
@@ -239,51 +248,41 @@ export function SettingsPage() {
       <SectionCard
         title="Import scope"
         description="These options define what should be brought in from WooCommerce when the backend sync runs."
-        actions={<CheckCircle2 className="card-action-icon" aria-hidden="true" />}
+        actions={<CheckCircle2 className="size-4 text-primary" aria-hidden="true" />}
       >
-        <form className="editor-form">
-          <label className="toggle-row">
-            <span>Published products</span>
-            <input
-              type="checkbox"
-              checked={settings.importPublishedProducts}
-              onChange={(e) => updateSettings('importPublishedProducts', e.target.checked)}
-              disabled={isLoading}
-            />
-          </label>
-
-          <label className="toggle-row">
-            <span>Global and product-level attributes</span>
-            <input
-              type="checkbox"
-              checked={settings.importAttributes}
-              onChange={(e) => updateSettings('importAttributes', e.target.checked)}
-              disabled={isLoading}
-            />
-          </label>
-
-          <label className="toggle-row">
-            <span>Variations and option sets</span>
-            <input
-              type="checkbox"
-              checked={settings.importVariations}
-              onChange={(e) => updateSettings('importVariations', e.target.checked)}
-              disabled={isLoading}
-            />
-          </label>
-        </form>
+        <div className="grid gap-4">
+          {(
+            [
+              ['importPublishedProducts', 'Published products'],
+              ['importAttributes', 'Global and product-level attributes'],
+              ['importVariations', 'Variations and option sets'],
+            ] as const
+          ).map(([key, label]) => (
+            <div key={key} className="flex items-center justify-between gap-4">
+              <Label htmlFor={key} className="cursor-pointer">
+                {label}
+              </Label>
+              <Switch
+                id={key}
+                checked={settings[key]}
+                onCheckedChange={(checked) => updateSettings(key, checked)}
+                disabled={isLoading}
+              />
+            </div>
+          ))}
+        </div>
       </SectionCard>
 
       <SectionCard
         title="What a real connection needs"
         description="For a live WooCommerce store, these are the pieces that matter in practice."
-        actions={<KeyRound className="card-action-icon" aria-hidden="true" />}
+        actions={<KeyRound className="size-4 text-primary" aria-hidden="true" />}
       >
-        <div className="detail-list">
+        <div className="divide-y divide-border">
           {connectionChecklist.map((item) => (
-            <div key={item.label}>
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
+            <div key={item.label} className="grid gap-0.5 py-3">
+              <span className="text-xs text-muted-foreground">{item.label}</span>
+              <strong className="text-sm font-medium">{item.value}</strong>
             </div>
           ))}
         </div>

@@ -4,8 +4,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+} from '@printforge/ui/components/ui/dialog'
+import { Button } from '@printforge/ui/components/ui/button'
 import { XIcon } from 'lucide-react'
 
 // TODO: replace with env variable or derive from deployment config

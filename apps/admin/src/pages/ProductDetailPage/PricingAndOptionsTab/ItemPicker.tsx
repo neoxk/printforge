@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Search } from 'lucide-react'
 import type { OptionItem, OptionsGroup } from '@printforge/ui'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+import { Input } from '@printforge/ui/components/ui/input'
+import { Badge } from '@printforge/ui/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 type Props = {

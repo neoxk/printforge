@@ -2,25 +2,16 @@ import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { PageHeader } from '@printforge/ui'
 import type { ProductRecord } from '@printforge/ui'
-import { TabBar, TabPanel } from '../../components/TabBar'
-import type { CreateViewDraft, DesignerTool, DesignerView, ZoneKey } from '../../../../configurator/src/designer/shared'
-import { createEmptyDraft } from '../../../../configurator/src/designer/shared'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@printforge/ui/components/ui/tabs'
+import type { CreateViewDraft, DesignerTool, DesignerView, ZoneKey } from '@printforge/ui/designer'
+import { createEmptyDraft } from '@printforge/ui/designer'
 import { getProductsRequest } from '../../lib/Api'
 import { GeneralInfoTab } from './GeneralInfoTab'
 import { PricingAndOptionsTab } from './PricingAndOptionsTab/index'
 import { PrintAreasTab } from './PrintAreasTab'
 
-type ProductTab = 'general' | 'pricing-options' | 'print-areas'
-
-const TABS = [
-  { id: 'general' as const, label: 'General Info' },
-  { id: 'pricing-options' as const, label: 'Pricing & Options' },
-  { id: 'print-areas' as const, label: 'Print Areas' },
-]
-
 export function ProductDetailPage() {
   const { productId } = useParams()
-  const [activeTab, setActiveTab] = useState<ProductTab>('general')
   const [product, setProduct] = useState<ProductRecord | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [printAreaViews, setPrintAreaViews] = useState<DesignerView[]>([])
@@ -56,7 +47,7 @@ export function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="page-stack">
+      <div className="flex flex-col gap-4">
         <PageHeader
           eyebrow="Product Editor"
           title="Loading product"
@@ -67,47 +58,53 @@ export function ProductDetailPage() {
   }
 
   return (
-    <div className="page-stack">
+    <div className="flex flex-col gap-4">
       <PageHeader
         eyebrow="Product Editor"
         title={product.name}
         description="Configure pricing rules and print areas for this product."
       />
 
-      <TabBar<ProductTab> tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
+      <Tabs defaultValue="general">
+        <TabsList>
+          <TabsTrigger value="general">General Info</TabsTrigger>
+          <TabsTrigger value="pricing-options">Pricing & Options</TabsTrigger>
+          <TabsTrigger value="print-areas">Print Areas</TabsTrigger>
+        </TabsList>
 
-      <TabPanel<ProductTab> id="general" activeId={activeTab}>
-        <GeneralInfoTab product={product} />
-      </TabPanel>
+        <TabsContent value="general" className="mt-4">
+          <GeneralInfoTab product={product} />
+        </TabsContent>
 
-      <TabPanel<ProductTab> id="pricing-options" activeId={activeTab}>
-        <PricingAndOptionsTab product={product} />
-      </TabPanel>
+        <TabsContent value="pricing-options" className="mt-4">
+          <PricingAndOptionsTab product={product} />
+        </TabsContent>
 
-      <TabPanel<ProductTab> id="print-areas" activeId={activeTab}>
-        <PrintAreasTab
-          state={{
-            views: printAreaViews,
-            selectedViewId: selectedPrintAreaViewId,
-            draft: printAreaDraft,
-            activeTool: printAreaTool,
-            activeDrawTarget,
-            zoom: printAreaZoom,
-            pan: printAreaPan,
-            statusMessage: printAreaStatusMessage,
-          }}
-          actions={{
-            setViews: setPrintAreaViews,
-            setSelectedViewId: setSelectedPrintAreaViewId,
-            setDraft: setPrintAreaDraft,
-            setActiveTool: setPrintAreaTool,
-            setActiveDrawTarget,
-            setZoom: setPrintAreaZoom,
-            setPan: setPrintAreaPan,
-            setStatusMessage: setPrintAreaStatusMessage,
-          }}
-        />
-      </TabPanel>
+        <TabsContent value="print-areas" className="mt-4">
+          <PrintAreasTab
+            state={{
+              views: printAreaViews,
+              selectedViewId: selectedPrintAreaViewId,
+              draft: printAreaDraft,
+              activeTool: printAreaTool,
+              activeDrawTarget,
+              zoom: printAreaZoom,
+              pan: printAreaPan,
+              statusMessage: printAreaStatusMessage,
+            }}
+            actions={{
+              setViews: setPrintAreaViews,
+              setSelectedViewId: setSelectedPrintAreaViewId,
+              setDraft: setPrintAreaDraft,
+              setActiveTool: setPrintAreaTool,
+              setActiveDrawTarget,
+              setZoom: setPrintAreaZoom,
+              setPan: setPrintAreaPan,
+              setStatusMessage: setPrintAreaStatusMessage,
+            }}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

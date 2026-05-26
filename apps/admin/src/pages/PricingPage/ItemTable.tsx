@@ -1,9 +1,9 @@
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import type { OptionItem, OptionsGroup } from '@printforge/ui'
 import { BASIS_LABEL, BASIS_UNIT } from '../../lib/options-meta'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Button } from '@printforge/ui/components/ui/button'
+import { Badge } from '@printforge/ui/components/ui/badge'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@printforge/ui/components/ui/table'
 
 type Props = {
   items: OptionItem[]

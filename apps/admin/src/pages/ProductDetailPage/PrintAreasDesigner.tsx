@@ -12,7 +12,8 @@ import {
 } from 'lucide-react'
 import { Canvas, FabricImage, Rect } from 'fabric'
 import { useEffect, useMemo, useRef } from 'react'
-import { SectionCard } from '../../components/SectionCard'
+import type { CSSProperties } from 'react'
+import { SectionCard } from '@printforge/ui'
 import {
   createEmptyDraft,
   createViewFromDraft,
@@ -25,7 +26,7 @@ import {
   validateDesignerView,
   zoneVisual,
   zoneSupportsPosition,
-} from '../../../../configurator/src/designer/shared'
+} from '@printforge/ui/designer'
 import type {
   CreateViewDraft,
   DesignerTool,
@@ -33,7 +34,18 @@ import type {
   InlineAlert,
   ZoneKey,
   ZoneRect,
-} from '../../../../configurator/src/designer/shared'
+} from '@printforge/ui/designer'
+import { cn } from '@/lib/utils'
+import { Button } from '@printforge/ui/components/ui/button'
+import { Input } from '@printforge/ui/components/ui/input'
+import { Label } from '@printforge/ui/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@printforge/ui/components/ui/select'
 
 type PrintAreasDesignerState = {
   views: DesignerView[]
@@ -94,10 +106,18 @@ function updateViewCollection(
   return views.map((view) => (view.id === selectedViewId ? updater(view) : view))
 }
 
+// ─── Inline alerts ────────────────────────────────────────────────────────────
+
+const ALERT_TONE_CLASS: Record<InlineAlert['tone'], string> = {
+  error: 'text-destructive',
+  warning: 'text-amber-700',
+  info: 'text-primary',
+}
+
 function InlineAlertIcon({ tone }: { tone: InlineAlert['tone'] }) {
   if (tone === 'error') {
     return (
-      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="inline-alert-icon">
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="size-4 shrink-0">
         <path
           d="M10 2.5L18 17.5H2L10 2.5Z"
           stroke="currentColor"
@@ -112,7 +132,7 @@ function InlineAlertIcon({ tone }: { tone: InlineAlert['tone'] }) {
 
   if (tone === 'warning') {
     return (
-      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="inline-alert-icon">
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="size-4 shrink-0">
         <path
           d="M10 2.5L18 17.5H2L10 2.5Z"
           stroke="currentColor"
@@ -126,7 +146,7 @@ function InlineAlertIcon({ tone }: { tone: InlineAlert['tone'] }) {
   }
 
   return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="inline-alert-icon">
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="size-4 shrink-0">
       <circle cx="10" cy="10" r="7.25" stroke="currentColor" strokeWidth="1.5" />
       <path d="M10 8V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       <circle cx="10" cy="5.75" r="1" fill="currentColor" />
@@ -138,9 +158,15 @@ function InlineZoneAlerts({ alerts }: { alerts: InlineAlert[] }) {
   if (alerts.length === 0) return null
 
   return (
-    <div className="inline-alert-stack">
+    <div className="mt-3 flex flex-col gap-2">
       {alerts.map((alert, index) => (
-        <p key={`${alert.tone}-${index}`} className={`inline-alert inline-alert-${alert.tone}`}>
+        <p
+          key={`${alert.tone}-${index}`}
+          className={cn(
+            'm-0 flex items-start gap-2 text-xs leading-snug',
+            ALERT_TONE_CLASS[alert.tone],
+          )}
+        >
           <InlineAlertIcon tone={alert.tone} />
           <span>{alert.message}</span>
         </p>
@@ -148,6 +174,8 @@ function InlineZoneAlerts({ alerts }: { alerts: InlineAlert[] }) {
     </div>
   )
 }
+
+// ─── Stage geometry helpers ───────────────────────────────────────────────────
 
 function viewportStageMetrics(
   viewportWidth: number,
@@ -248,6 +276,25 @@ function rectToMetricsWithinStage(rect: Rect, stage: StageMetrics): ZoneRect {
   }
 }
 
+// ─── Swatch styles for canvas legend ─────────────────────────────────────────
+
+const ZONE_SWATCH_STYLE: Record<string, CSSProperties> = {
+  cutArea: { background: '#ffffff', border: '2px solid #050809' },
+  bleedArea: { background: 'rgba(255,90,90,0.28)', border: '2px dashed #ba1a1a' },
+  safeZone: { background: 'rgba(67,160,71,0.22)', border: '2px dashed #2e7d32' },
+  allowedPrintArea: { background: 'rgba(2,102,255,0.18)', border: '2px solid #0050cc' },
+}
+
+const VIEWPORT_BG: CSSProperties = {
+  background:
+    'linear-gradient(rgba(118,119,124,0.08) 1px,transparent 1px),' +
+    'linear-gradient(90deg,rgba(118,119,124,0.08) 1px,transparent 1px),' +
+    'oklch(0.964 0.005 60)',
+  backgroundSize: '24px 24px, 24px 24px, auto',
+}
+
+// ─── Fabric canvas component ──────────────────────────────────────────────────
+
 function FabricPrintAreaCanvas({
   view,
   activeTool,
@@ -304,7 +351,7 @@ function FabricPrintAreaCanvas({
     if (!host) return
 
     const canvasElement = document.createElement('canvas')
-    canvasElement.className = 'fabric-stage-canvas'
+    canvasElement.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:1'
     host.replaceChildren(canvasElement)
 
     const canvas = new Canvas(canvasElement, {
@@ -621,34 +668,57 @@ function FabricPrintAreaCanvas({
   }, [activeTool, onPanChange, onZoomChange, pan.x, pan.y, zoom])
 
   return (
-    <div className="fabric-stage-shell">
+    <div className="flex flex-1 flex-col gap-3">
       <div
         ref={wrapperRef}
-        className={activeTool === 'pan' ? 'fabric-stage-viewport fabric-stage-viewport-pan' : 'fabric-stage-viewport'}
+        className={cn(
+          'relative min-h-[640px] overflow-hidden rounded-2xl border border-border',
+          activeTool === 'pan' && 'cursor-grab',
+        )}
+        style={VIEWPORT_BG}
       >
-        <div ref={canvasHostRef} className="fabric-stage-canvas-host" />
-        <div className="canvas-legend">
+        <div ref={canvasHostRef} className="absolute inset-0" />
+        <div className="absolute bottom-3.5 right-3.5 z-10 flex flex-col gap-2 rounded-xl border border-border/30 bg-white/90 p-3 backdrop-blur-sm">
           {fieldOrder
             .filter((key) => view.fields[key].enabled)
             .map((key) => (
-              <div key={key} className="legend-item">
-                <span className={`legend-swatch legend-swatch-${key}`} />
+              <div key={key} className="inline-flex items-center gap-2 text-xs text-foreground">
+                <span
+                  className="h-4 w-4 rounded-[4px]"
+                  style={ZONE_SWATCH_STYLE[key] ?? {}}
+                />
                 <span>{fieldLabel(key)}</span>
               </div>
             ))}
         </div>
       </div>
 
-      <div className="canvas-footnote">
+      <p className="text-[13px] text-muted-foreground">
         {activeTool === 'draw'
           ? `Drawing ${activeDrawTarget ? view.fields[activeDrawTarget].label : 'zone'} directly on the canvas.`
           : activeTool === 'pan'
             ? 'Hand tool active. Drag to pan. Use Ctrl + wheel to zoom.'
             : 'Select a guide once to move, resize, or rotate it. Use Ctrl + wheel to zoom.'}
-      </div>
+      </p>
     </div>
   )
 }
+
+// ─── Shared chip/pill styles ──────────────────────────────────────────────────
+
+const CHIP_BASE =
+  'inline-flex cursor-pointer items-center gap-2 rounded-[10px] border px-3.5 py-2 text-sm transition-colors'
+const CHIP_INACTIVE = 'border-border bg-white text-foreground hover:border-primary'
+const CHIP_ACTIVE = 'border-primary bg-[#eef4ff] text-[#001849]'
+
+const PILL_BASE =
+  'inline-flex cursor-pointer items-center gap-2 rounded-[10px] border px-3 py-2.5 text-sm transition-colors'
+
+const TILE_BASE = 'grid cursor-pointer gap-2 rounded-xl border p-3.5 text-left transition-colors'
+const TILE_INACTIVE = 'border-border bg-white text-foreground hover:border-primary'
+const TILE_ACTIVE = 'border-primary bg-[#eef4ff] text-[#001849]'
+
+// ─── Main designer component ──────────────────────────────────────────────────
 
 export function PrintAreasDesigner({ state, actions }: Props) {
   const {
@@ -779,31 +849,34 @@ export function PrintAreasDesigner({ state, actions }: Props) {
   }
 
   return (
-    <div className="print-areas-layout">
-      <aside className="designer-sidebar">
+    <div className="grid grid-cols-[360px_minmax(0,1fr)] items-start gap-4">
+      <aside className="flex flex-col gap-4">
         <SectionCard title="Canvas setup" description="Add and switch between product print views.">
-          <div className="view-list">
+          <div className="my-4 flex flex-wrap gap-2">
             {views.length === 0 ? (
-              <p className="empty-copy">No views created yet.</p>
+              <p className="m-0 text-sm text-muted-foreground">No views created yet.</p>
             ) : (
               views.map((view) => (
                 <button
                   key={view.id}
                   type="button"
-                  className={selectedViewId === view.id ? 'view-pill view-pill-active' : 'view-pill'}
+                  className={cn(
+                    PILL_BASE,
+                    selectedViewId === view.id ? CHIP_ACTIVE : CHIP_INACTIVE,
+                  )}
                   onClick={() => handleSelectView(view.id)}
                 >
-                  <Layers3 className="button-icon" aria-hidden="true" />
+                  <Layers3 className="size-4" aria-hidden="true" />
                   <span>{view.name}</span>
                 </button>
               ))
             )}
           </div>
 
-          <div className="creation-form">
-            <label>
-              <span>View name</span>
-              <input
+          <div className="flex flex-col gap-3.5">
+            <div className="flex flex-col gap-1.5">
+              <Label>View name</Label>
+              <Input
                 type="text"
                 value={draft.name}
                 placeholder="Front, Back, Sleeve, Lid..."
@@ -811,80 +884,102 @@ export function PrintAreasDesigner({ state, actions }: Props) {
                   setDraft((currentDraft) => ({ ...currentDraft, name: event.target.value }))
                 }
               />
-            </label>
+            </div>
 
-            <div className="source-grid">
+            <div className="grid gap-2.5">
               <button
                 type="button"
-                className={draft.sourceMode === 'template' ? 'source-tile source-tile-active' : 'source-tile'}
+                className={cn(
+                  TILE_BASE,
+                  draft.sourceMode === 'template' ? TILE_ACTIVE : TILE_INACTIVE,
+                )}
                 onClick={() => setDraft((currentDraft) => ({ ...currentDraft, sourceMode: 'template' }))}
               >
-                <Shapes className="button-icon" aria-hidden="true" />
+                <Shapes className="size-4" aria-hidden="true" />
                 <strong>Predefined product template</strong>
-                <span>Business cards, flyers, mugs, apparel, packaging.</span>
+                <span className="text-[13px] leading-snug text-muted-foreground">
+                  Business cards, flyers, mugs, apparel, packaging.
+                </span>
               </button>
 
               <button
                 type="button"
-                className={draft.sourceMode === 'upload' ? 'source-tile source-tile-active' : 'source-tile'}
+                className={cn(
+                  TILE_BASE,
+                  draft.sourceMode === 'upload' ? TILE_ACTIVE : TILE_INACTIVE,
+                )}
                 onClick={() => setDraft((currentDraft) => ({ ...currentDraft, sourceMode: 'upload' }))}
               >
-                <ImagePlus className="button-icon" aria-hidden="true" />
+                <ImagePlus className="size-4" aria-hidden="true" />
                 <strong>Upload mockup</strong>
-                <span>Use a reference image and draw the print zones manually.</span>
+                <span className="text-[13px] leading-snug text-muted-foreground">
+                  Use a reference image and draw the print zones manually.
+                </span>
               </button>
 
               <button
                 type="button"
-                className={draft.sourceMode === 'blank' ? 'source-tile source-tile-active' : 'source-tile'}
+                className={cn(
+                  TILE_BASE,
+                  draft.sourceMode === 'blank' ? TILE_ACTIVE : TILE_INACTIVE,
+                )}
                 onClick={() => setDraft((currentDraft) => ({ ...currentDraft, sourceMode: 'blank' }))}
               >
-                <Plus className="button-icon" aria-hidden="true" />
+                <Plus className="size-4" aria-hidden="true" />
                 <strong>Blank canvas</strong>
-                <span>Start with a clean artboard and define every zone manually.</span>
+                <span className="text-[13px] leading-snug text-muted-foreground">
+                  Start with a clean artboard and define every zone manually.
+                </span>
               </button>
             </div>
 
             {draft.sourceMode === 'template' ? (
-              <label>
-                <span>Template preset</span>
-                <select
+              <div className="flex flex-col gap-1.5">
+                <Label>Template preset</Label>
+                <Select
                   value={draft.templateId}
-                  onChange={(event) =>
-                    setDraft((currentDraft) => ({ ...currentDraft, templateId: event.target.value }))
+                  onValueChange={(value) =>
+                    setDraft((currentDraft) => ({ ...currentDraft, templateId: value }))
                   }
                 >
-                  {templatePresets.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templatePresets.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             ) : null}
 
             {draft.sourceMode === 'upload' ? (
-              <label>
-                <span>Mockup file</span>
-                <input
+              <div className="flex flex-col gap-1.5">
+                <Label>Mockup file</Label>
+                <Input
                   type="file"
                   accept="image/*"
                   onChange={(event) => {
                     void handleMockupChange(event.target.files?.[0] ?? null)
                   }}
                 />
-                <small>{draft.mockupName ?? 'No mockup selected yet.'}</small>
-              </label>
+                <p className="text-xs text-muted-foreground">
+                  {draft.mockupName ?? 'No mockup selected yet.'}
+                </p>
+              </div>
             ) : null}
 
-            <button
+            <Button
               type="button"
-              className="create-view-button"
+              className="w-full"
               disabled={draft.sourceMode === 'upload' && !draft.mockupSrc}
               onClick={handleCreateView}
             >
               Add canvas
-            </button>
+            </Button>
           </div>
         </SectionCard>
 
@@ -893,55 +988,63 @@ export function PrintAreasDesigner({ state, actions }: Props) {
             title={selectedView.name}
             description="Configure optional print-area guides for the selected view."
             actions={
-              <button
+              <Button
                 type="button"
-                className={validation?.hasErrors ? 'save-button save-button-disabled' : 'save-button'}
+                size="sm"
                 disabled={validation?.hasErrors}
                 onClick={() =>
-                  setStatusMessage('Designer state saved locally. Backend persistence will be connected later.')
+                  setStatusMessage(
+                    'Designer state saved locally. Backend persistence will be connected later.',
+                  )
                 }
               >
-                <Save className="button-icon" aria-hidden="true" />
+                <Save className="size-4" aria-hidden="true" />
                 Save
-              </button>
+              </Button>
             }
           >
-            <div className="tool-row">
+            <div className="mb-4 mt-2 flex flex-wrap gap-2.5">
               <button
                 type="button"
-                className={activeTool === 'select' ? 'tool-chip tool-chip-active' : 'tool-chip'}
+                className={cn(CHIP_BASE, activeTool === 'select' ? CHIP_ACTIVE : CHIP_INACTIVE)}
                 onClick={() => {
                   setActiveTool('select')
                   setActiveDrawTarget(null)
                   setStatusMessage('Select mode active. Tap a guide once to move, resize, or rotate it.')
                 }}
               >
-                <MousePointer2 className="button-icon" aria-hidden="true" />
+                <MousePointer2 className="size-4" aria-hidden="true" />
                 Select
               </button>
               <button
                 type="button"
-                className={activeTool === 'pan' ? 'tool-chip tool-chip-active' : 'tool-chip'}
+                className={cn(CHIP_BASE, activeTool === 'pan' ? CHIP_ACTIVE : CHIP_INACTIVE)}
                 onClick={() => {
                   setActiveTool('pan')
                   setActiveDrawTarget(null)
                   setStatusMessage('Hand tool active. Drag anywhere on the stage to pan around the view.')
                 }}
               >
-                <Hand className="button-icon" aria-hidden="true" />
+                <Hand className="size-4" aria-hidden="true" />
                 Hand
               </button>
             </div>
 
-            <div className="field-groups">
+            <div className="flex flex-col gap-3.5">
               {fieldOrder.map((key) => {
                 const field = selectedView.fields[key]
                 const isDisabled = !field.enabled
 
                 return (
-                  <section key={field.key} className={isDisabled ? 'field-group field-group-disabled' : 'field-group'}>
-                    <header className="field-group-header">
-                      <label className="field-toggle">
+                  <section
+                    key={field.key}
+                    className={cn(
+                      'rounded-xl border border-border p-3.5 transition-opacity',
+                      isDisabled && 'opacity-50',
+                    )}
+                  >
+                    <header className="mb-3 flex items-center justify-between gap-2.5">
+                      <label className="inline-flex cursor-pointer items-center gap-2.5 font-semibold text-foreground">
                         <input
                           type="checkbox"
                           checked={field.enabled}
@@ -951,13 +1054,16 @@ export function PrintAreasDesigner({ state, actions }: Props) {
                         <span>{field.label}</span>
                       </label>
 
-                      <button
+                      <Button
                         type="button"
-                        className={
-                          activeDrawTarget === key && activeTool === 'draw'
-                            ? 'draw-trigger draw-trigger-active'
-                            : 'draw-trigger'
-                        }
+                        variant="outline"
+                        size="icon"
+                        className={cn(
+                          'size-9 rounded-[10px]',
+                          activeDrawTarget === key &&
+                            activeTool === 'draw' &&
+                            'border-primary bg-[#eef4ff] text-[#001849]',
+                        )}
                         disabled={!field.enabled}
                         onClick={() => {
                           setActiveTool('draw')
@@ -967,57 +1073,75 @@ export function PrintAreasDesigner({ state, actions }: Props) {
                           )
                         }}
                       >
-                        <SquarePen className="button-icon" aria-hidden="true" />
-                      </button>
+                        <SquarePen className="size-4" aria-hidden="true" />
+                      </Button>
                     </header>
 
-                    <div className={zoneSupportsPosition(key) ? 'field-input-grid field-input-grid-rotation' : 'field-input-grid'}>
+                    <div className="grid grid-cols-2 gap-2.5">
                       {zoneSupportsPosition(key) ? (
                         <>
-                          <label>
-                            <span>X</span>
-                            <input
+                          <div className="flex flex-col gap-1.5">
+                            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              X
+                            </Label>
+                            <Input
                               type="number"
                               disabled={!field.enabled}
                               value={field.rect.x}
-                              onChange={(event) => handleFieldRectChange(key, { x: Number(event.target.value) })}
+                              onChange={(event) =>
+                                handleFieldRectChange(key, { x: Number(event.target.value) })
+                              }
                             />
-                          </label>
-                          <label>
-                            <span>Y</span>
-                            <input
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              Y
+                            </Label>
+                            <Input
                               type="number"
                               disabled={!field.enabled}
                               value={field.rect.y}
-                              onChange={(event) => handleFieldRectChange(key, { y: Number(event.target.value) })}
+                              onChange={(event) =>
+                                handleFieldRectChange(key, { y: Number(event.target.value) })
+                              }
                             />
-                          </label>
+                          </div>
                         </>
                       ) : null}
 
-                      <label>
-                        <span>W (mm)</span>
-                        <input
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          W (mm)
+                        </Label>
+                        <Input
                           type="number"
                           disabled={!field.enabled}
                           value={field.rect.width}
-                          onChange={(event) => handleFieldRectChange(key, { width: Number(event.target.value) })}
+                          onChange={(event) =>
+                            handleFieldRectChange(key, { width: Number(event.target.value) })
+                          }
                         />
-                      </label>
-                      <label>
-                        <span>H (mm)</span>
-                        <input
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          H (mm)
+                        </Label>
+                        <Input
                           type="number"
                           disabled={!field.enabled}
                           value={field.rect.height}
-                          onChange={(event) => handleFieldRectChange(key, { height: Number(event.target.value) })}
+                          onChange={(event) =>
+                            handleFieldRectChange(key, { height: Number(event.target.value) })
+                          }
                         />
-                      </label>
+                      </div>
 
                       {zoneSupportsPosition(key) ? (
-                        <label className="field-input-rotation">
-                          <span>Rotation</span>
-                          <input
+                        <div className="col-span-2 flex flex-col gap-1.5">
+                          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Rotation
+                          </Label>
+                          <Input
                             type="number"
                             disabled={!field.enabled}
                             value={field.rect.rotation ?? 0}
@@ -1025,7 +1149,7 @@ export function PrintAreasDesigner({ state, actions }: Props) {
                               handleFieldRectChange(key, { rotation: Number(event.target.value) })
                             }
                           />
-                        </label>
+                        </div>
                       ) : null}
                     </div>
 
@@ -1036,47 +1160,61 @@ export function PrintAreasDesigner({ state, actions }: Props) {
             </div>
           </SectionCard>
         ) : (
-          <SectionCard title="No canvas selected" description="Create a view to start defining print areas.">
-            <p className="empty-copy">Select a starting mode above and add your first canvas.</p>
+          <SectionCard
+            title="No canvas selected"
+            description="Create a view to start defining print areas."
+          >
+            <p className="m-0 text-sm text-muted-foreground">
+              Select a starting mode above and add your first canvas.
+            </p>
           </SectionCard>
         )}
       </aside>
 
-      <section className="designer-workspace">
-        <div className="workspace-toolbar">
+      <section className="flex min-w-0 flex-col gap-4">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="workspace-eyebrow">Print Area Designer</p>
-            <h2>{selectedView ? selectedView.name : 'View setup workspace'}</h2>
+            <p className="mb-1.5 text-[11px] uppercase tracking-widest text-muted-foreground">
+              Print Area Designer
+            </p>
+            <h2 className="text-2xl font-bold text-foreground">
+              {selectedView ? selectedView.name : 'View setup workspace'}
+            </h2>
           </div>
-          <div className="workspace-actions">
-            <button
+          <div className="flex flex-wrap gap-2.5">
+            <Button
+              variant="outline"
               type="button"
-              className="workspace-button"
               onClick={() => setZoom((current) => clampZoom(current - 0.1))}
             >
-              <ZoomOut className="button-icon" aria-hidden="true" />
+              <ZoomOut className="size-4" aria-hidden="true" />
               Zoom out
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
               type="button"
-              className="workspace-button"
               onClick={() => setZoom((current) => clampZoom(current + 0.1))}
             >
-              <ZoomIn className="button-icon" aria-hidden="true" />
+              <ZoomIn className="size-4" aria-hidden="true" />
               Zoom in
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
               type="button"
-              className={activeTool === 'pan' ? 'workspace-button workspace-button-active' : 'workspace-button'}
+              className={cn(
+                activeTool === 'pan' && 'border-primary bg-[#eef4ff] text-[#001849]',
+              )}
               onClick={() => {
                 setActiveTool('pan')
                 setActiveDrawTarget(null)
-                setStatusMessage('Hand tool active. Drag anywhere on the stage to pan around the view.')
+                setStatusMessage(
+                  'Hand tool active. Drag anywhere on the stage to pan around the view.',
+                )
               }}
             >
-              <Hand className="button-icon" aria-hidden="true" />
+              <Hand className="size-4" aria-hidden="true" />
               Hand tool
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -1105,29 +1243,41 @@ export function PrintAreasDesigner({ state, actions }: Props) {
               onMockupRectChange={handleMockupRectChange}
             />
           ) : (
-            <div className="designer-empty-stage">
-              <div className="empty-stage-grid">
-                <article>
-                  <h3>Predefined product template</h3>
-                  <p>Start from a mock template such as a business card, flyer, mug, or T-shirt.</p>
+            <div className="flex min-h-[520px] flex-col justify-center">
+              <div className="mt-7 grid grid-cols-3 gap-4">
+                <article className="rounded-xl border border-border bg-white p-4">
+                  <h3 className="mb-2 text-sm font-semibold text-foreground">
+                    Predefined product template
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Start from a mock template such as a business card, flyer, mug, or T-shirt.
+                  </p>
                 </article>
-                <article>
-                  <h3>Upload mockup and define zones manually</h3>
-                  <p>Load a reference image and draw the print zones directly onto the view.</p>
+                <article className="rounded-xl border border-border bg-white p-4">
+                  <h3 className="mb-2 text-sm font-semibold text-foreground">
+                    Upload mockup and define zones manually
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Load a reference image and draw the print zones directly onto the view.
+                  </p>
                 </article>
-                <article>
-                  <h3>Blank canvas</h3>
-                  <p>Start with a clean artboard and define every zone manually from scratch.</p>
+                <article className="rounded-xl border border-border bg-white p-4">
+                  <h3 className="mb-2 text-sm font-semibold text-foreground">Blank canvas</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Start with a clean artboard and define every zone manually from scratch.
+                  </p>
                 </article>
               </div>
             </div>
           )}
         </SectionCard>
 
-        <div className="workspace-status">
+        <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
           <span>{statusMessage}</span>
           {selectedView && validation?.hasErrors ? (
-            <span className="workspace-status-error">Saving is disabled until the design is valid.</span>
+            <span className="font-semibold text-destructive">
+              Saving is disabled until the design is valid.
+            </span>
           ) : null}
         </div>
       </section>

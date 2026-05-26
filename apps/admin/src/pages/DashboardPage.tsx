@@ -16,6 +16,15 @@ import {
   useAppAlerts,
   useAsync,
 } from '@printforge/ui'
+import { Button } from '@printforge/ui/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@printforge/ui/components/ui/table'
 import {
   getIntegrationRequest,
   getPricingRulesRequest,
@@ -56,42 +65,43 @@ export function DashboardPage() {
         label: 'Synced products',
         value: String(syncedCount).padStart(2, '0'),
         trend: integration ? `Last sync ${integration.lastSync}` : 'Waiting for backend data',
-        icon: <Boxes className="stat-icon" />,
+        icon: <Boxes />,
         progress: undefined as number | undefined,
       },
       {
         label: 'Active pricing rules',
         value: String(pricingRules.length).padStart(2, '0'),
         trend: 'Backend pricing registry',
-        icon: <SlidersHorizontal className="stat-icon" />,
+        icon: <SlidersHorizontal />,
         progress: undefined as number | undefined,
       },
       {
         label: 'Validation rules',
         value: String(validationRules.length).padStart(2, '0'),
         trend: `${validationCoverage}% coverage across synced products`,
-        icon: <ShieldCheck className="stat-icon" />,
+        icon: <ShieldCheck />,
         progress: syncedCount > 0 ? validationCoverage : undefined,
       },
       {
         label: 'Connection status',
         value: integration?.apiStatus ?? 'Pending',
         trend: integration?.connectionName ?? 'No integration configured',
-        icon: <Activity className="stat-icon" />,
+        icon: <Activity />,
         progress: undefined as number | undefined,
       },
     ]
   }, [integration, pricingRules.length, products.length, validationRules])
 
   return (
-    <div className="page-stack">
+    <div className="flex flex-col gap-4">
       <PageHeader
         eyebrow="Overview"
         title="Dashboard Overview"
         description="Synced product setup, validation coverage, and WooCommerce readiness."
       />
 
-      <section className="stats-grid">
+      {/* Stat cards */}
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {derivedMetrics.map((metric) => (
           <StatCard
             key={metric.label}
@@ -104,119 +114,125 @@ export function DashboardPage() {
         ))}
       </section>
 
-      <section className="content-grid">
+      {/* Main content + sidebar */}
+      <section className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[2fr_1fr]">
         <SectionCard
           title="Recent products"
           description="Recently synced WooCommerce products persisted by the backend."
           actions={
-            <Link to="/products" className="text-action-button">
-              Open catalog
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/products">Open catalog</Link>
+            </Button>
           }
         >
-          <div className="table-shell">
-            <table>
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>SKU</th>
-                  <th>Category</th>
-                  <th>Base price</th>
-                  <th>Sync status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.slice(0, 4).map((product) => (
-                  <tr key={product.id}>
-                    <td>{product.name}</td>
-                    <td>{product.sku}</td>
-                    <td>{product.category}</td>
-                    <td>{product.basePrice}</td>
-                    <td>
-                      <StatusPill
-                        label={product.syncStatus}
-                        tone={product.syncStatus === 'Live from WooCommerce' ? 'info' : 'neutral'}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Product</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Base price</TableHead>
+                <TableHead>Sync status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {products.slice(0, 4).map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell>{product.sku}</TableCell>
+                  <TableCell>{product.category}</TableCell>
+                  <TableCell>{product.basePrice}</TableCell>
+                  <TableCell>
+                    <StatusPill
+                      label={product.syncStatus}
+                      tone={product.syncStatus === 'Live from WooCommerce' ? 'info' : 'neutral'}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </SectionCard>
 
-        <div className="side-column">
+        <div className="flex flex-col gap-4">
           <SectionCard title="System health" description="Integration and platform readiness.">
-            <div className="health-list">
-              <div>
-                <span>WooCommerce Sync</span>
+            <div className="divide-y divide-border">
+              <div className="flex items-center justify-between gap-3 py-3">
+                <span className="text-sm text-muted-foreground">WooCommerce Sync</span>
                 <StatusPill
                   label={integration?.lastSync === 'Not synced yet' ? 'Idle' : 'Active'}
                   tone={integration?.lastSync === 'Not synced yet' ? 'neutral' : 'success'}
                 />
               </div>
-              <div>
-                <span>API Status</span>
+              <div className="flex items-center justify-between gap-3 py-3">
+                <span className="text-sm text-muted-foreground">API Status</span>
                 <StatusPill
                   label={integration?.apiStatus ?? 'Pending'}
                   tone={integration?.apiStatus === 'Healthy' ? 'success' : 'neutral'}
                 />
               </div>
-              <div>
-                <span>Last sync</span>
-                <strong>{integration?.lastSync ?? 'Not synced yet'}</strong>
+              <div className="flex items-center justify-between gap-3 py-3">
+                <span className="text-sm text-muted-foreground">Last sync</span>
+                <strong className="text-sm">{integration?.lastSync ?? 'Not synced yet'}</strong>
               </div>
-              <div>
-                <span>Store</span>
-                <strong>{integration?.storeUrl ?? 'Not configured yet'}</strong>
+              <div className="flex items-center justify-between gap-3 py-3">
+                <span className="text-sm text-muted-foreground">Store</span>
+                <strong className="text-sm">{integration?.storeUrl ?? 'Not configured yet'}</strong>
               </div>
-              <div>
-                <span>Connection</span>
-                <strong>{integration?.connectionName ?? 'Not configured yet'}</strong>
+              <div className="flex items-center justify-between gap-3 py-3">
+                <span className="text-sm text-muted-foreground">Connection</span>
+                <strong className="text-sm">
+                  {integration?.connectionName ?? 'Not configured yet'}
+                </strong>
               </div>
             </div>
           </SectionCard>
 
           <SectionCard title="Quick actions" description="Frequent admin tasks.">
-            <div className="quick-actions">
-              <Link to="/products" className="secondary-panel-button">
-                <PlusCircle className="button-icon" aria-hidden="true" />
-                Open catalog
-              </Link>
-              <Link to="/pricing" className="secondary-panel-button">
-                <SlidersHorizontal className="button-icon" aria-hidden="true" />
-                New Pricing Rule
-              </Link>
-              <Link to="/validation" className="secondary-panel-button">
-                <FolderCheck className="button-icon" aria-hidden="true" />
-                Validation Rules
-              </Link>
+            <div className="flex flex-col gap-2">
+              <Button asChild variant="outline" className="justify-start">
+                <Link to="/products">
+                  <PlusCircle />
+                  Open catalog
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="justify-start">
+                <Link to="/pricing">
+                  <SlidersHorizontal />
+                  New Pricing Rule
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="justify-start">
+                <Link to="/validation">
+                  <FolderCheck />
+                  Validation Rules
+                </Link>
+              </Button>
             </div>
           </SectionCard>
         </div>
       </section>
 
+      {/* Sync overview */}
       <SectionCard
         title="Sync overview"
         description="Backend persistence now feeds the admin overview instead of browser-only local storage."
       >
-        <div className="detail-list compact">
-          <div>
-            <span>Storage mode</span>
-            <strong>PostgreSQL via Fastify API</strong>
-          </div>
-          <div>
-            <span>Current store</span>
-            <strong>{integration?.storeUrl ?? 'Not configured yet'}</strong>
-          </div>
-          <div>
-            <span>Cached products</span>
-            <strong>{products.length}</strong>
-          </div>
-          <div>
-            <span>Source</span>
-            <strong>{integration ? 'Backend sync store' : 'Backend data unavailable'}</strong>
-          </div>
+        <div className="grid grid-cols-2 gap-x-6">
+          {[
+            { label: 'Storage mode', value: 'PostgreSQL via Fastify API' },
+            { label: 'Current store', value: integration?.storeUrl ?? 'Not configured yet' },
+            { label: 'Cached products', value: String(products.length) },
+            {
+              label: 'Source',
+              value: integration ? 'Backend sync store' : 'Backend data unavailable',
+            },
+          ].map(({ label, value }) => (
+            <div key={label} className="grid gap-0.5 border-b border-border py-3">
+              <span className="text-xs text-muted-foreground">{label}</span>
+              <strong className="text-sm font-medium">{value}</strong>
+            </div>
+          ))}
         </div>
       </SectionCard>
     </div>

@@ -123,7 +123,7 @@ export function PricingPage() {
         : state.items
 
   return (
-    <div className="page-stack">
+    <div className="flex flex-col gap-4">
       <PageHeader
         eyebrow="Library"
         title="Option Items"
