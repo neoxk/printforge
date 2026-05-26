@@ -158,7 +158,7 @@ export function ProductsPage() {
       : Math.min(currentPage * PAGE_SIZE, visibleProducts.length)
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow="Products"
         title="Product Management"

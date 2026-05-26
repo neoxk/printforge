@@ -47,7 +47,7 @@ export function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6">
         <PageHeader
           eyebrow="Product Editor"
           title="Loading product"
@@ -58,7 +58,7 @@ export function ProductDetailPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow="Product Editor"
         title={product.name}

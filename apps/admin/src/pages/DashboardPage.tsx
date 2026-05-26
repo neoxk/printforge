@@ -93,7 +93,7 @@ export function DashboardPage() {
   }, [integration, pricingRules.length, products.length, validationRules])
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow="Overview"
         title="Dashboard Overview"

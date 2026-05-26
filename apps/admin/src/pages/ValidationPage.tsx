@@ -61,7 +61,7 @@ export function ValidationPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow="Validation"
         title="File validation hub"
