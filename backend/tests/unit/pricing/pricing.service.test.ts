@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { prisma } from '../../lib/prisma.js'
-import { AppError, NotFoundError } from '../../lib/errors.js'
-import { calculatePrice } from './pricing.service.js'
+import { AppError, NotFoundError } from '../../../src/lib/errors.js'
+import { prisma } from '../../../src/lib/prisma.js'
+import { calculatePrice } from '../../../src/modules/pricing/pricing.service.js'
 
-vi.mock('../../lib/prisma.js', () => ({
+vi.mock('../../../src/lib/prisma.js', () => ({
   prisma: {
     product: {
       findUnique: vi.fn(),

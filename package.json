@@ -13,6 +13,7 @@
     "dev:backend": "npm run dev --workspace=backend",
     "dev:admin": "npm run dev --workspace=apps/admin",
     "dev:configurator": "npm run dev --workspace=apps/configurator",
+    "test": "npm test --workspace=backend",
     "build": "npm run build --workspace=apps/configurator && npm run build --workspace=apps/admin"
   },
   "devDependencies": {

@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  test-build-sonar:
+    name: Test, Build, SonarCloud
+    runs-on: ubuntu-24.04
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://test:test@localhost:5432/test
+      JWT_SECRET: test-access-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run backend tests with coverage
+        run: npm run test:coverage --workspace=backend
+
+      - name: Build backend
+        run: npm run build --workspace=backend
+
+      - name: Build frontend apps
+        run: npm run build
+
+      - name: SonarCloud scan
+        uses: SonarSource/sonarqube-scan-action@v8
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=printforge1
+            -Dsonar.projectKey=printforge
+            -Dsonar.projectName=PrintForge
+            -Dsonar.sources=backend/src,apps,packages
+            -Dsonar.tests=backend/src,backend/tests,apps,packages
+            -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,**/*.test.js,**/*.spec.js
+            -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info
+            -Dsonar.exclusions=**/node_modules/**,**/vendor/**,**/dist/**,**/build/**,**/public/build/**,**/storage/**,**/.next/**,**/coverage/**,**/*.json,**/*.svg,**/*.md,**/*.txt,**/*.csv,**/*.min.js,**/*.min.css

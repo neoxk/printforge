@@ -1,4 +1,3 @@
-import { WooAuthMethod, type IntegrationConnection } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { AppError } from '../../lib/errors.js'
 import { env } from '../../config/env.js'
@@ -12,6 +11,27 @@ type IntegrationPayload = {
   consumerSecret: string
   apiStatus: string
   lastSync: string
+  mode: string
+  importPublishedProducts: boolean
+  importAttributes: boolean
+  importVariations: boolean
+}
+
+const WOO_AUTH_METHOD = {
+  public_store_api: 'public_store_api',
+  consumer_keys: 'consumer_keys',
+} as const
+
+type IntegrationConnection = {
+  id: string
+  connectionName: string
+  storeUrl: string
+  restApiBase: string
+  authMethod: 'public_store_api' | 'consumer_keys'
+  consumerKey: string | null
+  consumerSecret: string | null
+  apiStatus: string
+  lastSync: Date | null
   mode: string
   importPublishedProducts: boolean
   importAttributes: boolean
@@ -94,7 +114,7 @@ function getDefaultConnection() {
     connectionName: 'Primary WooCommerce Store',
     storeUrl: 'http://localhost:8080',
     restApiBase: 'http://localhost:8080/index.php?rest_route=/wc/store/v1/products',
-    authMethod: WooAuthMethod.public_store_api,
+    authMethod: WOO_AUTH_METHOD.public_store_api,
     consumerKey: '',
     consumerSecret: '',
     apiStatus: 'Not tested',
@@ -160,7 +180,7 @@ function buildProductsRequestUrl(connection: IntegrationConnection) {
     : `${configuredValue}/products`
   const productsUrl = resolveInternalWooCommerceUrl(externalProductsUrl)
 
-  if (connection.authMethod !== WooAuthMethod.consumer_keys) {
+  if (connection.authMethod !== WOO_AUTH_METHOD.consumer_keys) {
     return productsUrl
   }
 
@@ -199,8 +219,8 @@ export async function saveIntegration(payload: IntegrationPayload) {
     storeUrl: payload.storeUrl,
     restApiBase: payload.restApiBase,
     authMethod: payload.authMethod === 'consumer_keys'
-      ? WooAuthMethod.consumer_keys
-      : WooAuthMethod.public_store_api,
+      ? WOO_AUTH_METHOD.consumer_keys
+      : WOO_AUTH_METHOD.public_store_api,
     consumerKey: payload.consumerKey || null,
     consumerSecret: payload.consumerSecret || null,
     apiStatus: payload.apiStatus,
@@ -295,7 +315,15 @@ export async function listSyncedProducts() {
     orderBy: { updatedAt: 'desc' },
   })
 
-  return products.map((product) => ({
+  return products.map((product: {
+    id: string
+    wooProductId: { toString: () => string }
+    name: string
+    category: string
+    status: string
+    sku: string
+    basePrice: string
+  }) => ({
     id: product.id,
     wooProductId: product.wooProductId.toString(),
     name: product.name,
