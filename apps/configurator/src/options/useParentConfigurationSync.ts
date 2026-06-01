@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import type { PricingResult, ProductConfig } from '../types.js'
 import { getSelectedItemIds } from './optionsConfig.js'
+import { getParentTargetOrigin } from './parentMessaging.js'
 import type { DimensionsState, SelectedByContainer } from './types.js'
 
 const CONFIGURATION_MESSAGE_TYPE = 'printforge:options:change'
@@ -23,6 +24,9 @@ export function useParentConfigurationSync({
   useEffect(() => {
     if (!config || window.parent === window) return
 
+    const targetOrigin = getParentTargetOrigin()
+    if (!targetOrigin) return
+
     window.parent.postMessage(
       {
         type: CONFIGURATION_MESSAGE_TYPE,
@@ -36,7 +40,7 @@ export function useParentConfigurationSync({
         },
         price,
       },
-      '*',
+      targetOrigin,
     )
   }, [config, dimensions.heightMm, dimensions.quantity, dimensions.widthMm, price, routeProductId, selectedByContainer])
 }
