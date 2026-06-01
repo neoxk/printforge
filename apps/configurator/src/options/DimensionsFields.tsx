@@ -8,7 +8,7 @@ type Props = {
 export function DimensionsFields({ dimensions, onChange }: Props) {
   return (
     <div className="container-group">
-      <div className="container-label">Dimensions</div>
+      <div className="container-label">Choose your dimensions</div>
       <div className="dimensions-row">
         <input
           type="number"

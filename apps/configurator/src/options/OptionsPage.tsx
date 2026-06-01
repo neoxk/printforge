@@ -18,6 +18,14 @@ import type { DimensionsState, SelectedByContainer } from './types.js'
 import { useIframeResize } from './useIframeResize.js'
 import { useParentConfigurationSync } from './useParentConfigurationSync.js'
 import { useParentQuantitySync } from './useParentQuantitySync.js'
+import './options-ui.css'
+
+function getOptionHeading(name: string): string {
+  const normalizedName = name.trim()
+  if (!normalizedName) return 'Choose your option'
+
+  return `Choose your ${normalizedName.toLocaleLowerCase()}`
+}
 
 export function OptionsPage() {
   const pageRef = useRef<HTMLElement | null>(null)
@@ -41,6 +49,14 @@ export function OptionsPage() {
     dimensions,
     price,
   })
+
+  useEffect(() => {
+    document.body.classList.add('cf-options-route')
+
+    return () => {
+      document.body.classList.remove('cf-options-route')
+    }
+  }, [])
 
   useEffect(() => {
     if (!productId) {
@@ -163,7 +179,7 @@ export function OptionsPage() {
         {visibleContainers.map((container) => (
           <ContainerGroup
             key={container.id}
-            container={container}
+            container={{ ...container, name: getOptionHeading(container.name) }}
             selected={selectedByContainer[container.id] ?? []}
             onChange={handleContainerChange}
           />
