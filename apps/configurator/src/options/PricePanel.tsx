@@ -44,7 +44,6 @@ export function PricePanel({ price, isLoading, error, basePrice, quantity }: Pro
       <div className="price-summary">
         <span>
           <span className="price-summary-label">Estimated total</span>
-          {isLoading && <span className="price-loading">Calculating...</span>}
           {error && <span className="price-error">{error}</span>}
         </span>
         <strong>
