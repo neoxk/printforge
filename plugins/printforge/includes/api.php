@@ -119,7 +119,7 @@ function printforge_get_woo_base_price(int $woo_product_id): float
         return 0.0;
     }
 
-    return (float) $product->get_price();
+    return printforge_normalize_woo_price($product->get_price());
 }
 
 function printforge_fetch_product_config(int $woo_product_id)

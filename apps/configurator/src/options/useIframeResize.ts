@@ -1,10 +1,14 @@
 import { useEffect, type RefObject } from 'react'
+import { getParentTargetOrigin } from './parentMessaging.js'
 
 const RESIZE_MESSAGE_TYPE = 'printforge:options:resize'
 
 export function useIframeResize(pageRef: RefObject<HTMLElement | null>) {
   useEffect(() => {
     if (window.parent === window) return
+
+    const targetOrigin = getParentTargetOrigin()
+    if (!targetOrigin) return
 
     let animationFrame = 0
     const sendHeight = () => {
@@ -18,7 +22,7 @@ export function useIframeResize(pageRef: RefObject<HTMLElement | null>) {
           ),
         )
 
-        window.parent.postMessage({ type: RESIZE_MESSAGE_TYPE, height }, '*')
+        window.parent.postMessage({ type: RESIZE_MESSAGE_TYPE, height }, targetOrigin)
       })
     }
 

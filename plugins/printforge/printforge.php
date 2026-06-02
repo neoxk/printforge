@@ -35,13 +35,13 @@ require_once __DIR__ . '/includes/formatting.php';
 require_once __DIR__ . '/includes/cart.php';
 
 add_action('wp_enqueue_scripts', 'printforge_enqueue_frontend_assets');
-add_action('woocommerce_after_add_to_cart_form', 'printforge_render_options_iframe');
+add_action('woocommerce_single_product_summary', 'printforge_render_options_iframe', 31);
+add_filter('render_block', 'printforge_render_options_iframe_block_fallback', 10, 2);
+add_filter('woocommerce_is_purchasable', 'printforge_allow_configured_product_purchase', 10, 2);
 add_filter('woocommerce_add_to_cart_validation', 'printforge_validate_add_to_cart', 10, 5);
 add_filter('woocommerce_add_cart_item_data', 'printforge_add_cart_item_data', 10, 4);
 add_action('woocommerce_before_calculate_totals', 'printforge_apply_cart_item_price');
 add_action('woocommerce_check_cart_items', 'printforge_validate_cart_pricing');
-add_action('woocommerce_cart_calculate_fees', 'printforge_add_cart_option_fees');
-add_filter('woocommerce_cart_totals_fee_html', 'printforge_format_cart_fee_html', 10, 2);
 add_filter('woocommerce_cart_item_price', 'printforge_get_cart_item_price', 10, 3);
 add_filter('woocommerce_get_item_data', 'printforge_get_cart_item_data', 10, 2);
 add_action('woocommerce_checkout_create_order_line_item', 'printforge_add_order_line_item_meta', 10, 4);

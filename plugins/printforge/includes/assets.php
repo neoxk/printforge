@@ -6,7 +6,11 @@ if (!defined('ABSPATH')) {
 
 function printforge_enqueue_frontend_assets(): void
 {
-    if (!function_exists('is_product') || !is_product()) {
+    $is_printforge_page = (function_exists('is_product') && is_product())
+        || (function_exists('is_cart') && is_cart())
+        || (function_exists('is_checkout') && is_checkout());
+
+    if (!$is_printforge_page) {
         return;
     }
 
@@ -17,11 +21,13 @@ function printforge_enqueue_frontend_assets(): void
         PRINTFORGE_VERSION
     );
 
-    wp_enqueue_script(
-        'printforge-frontend-script',
-        PRINTFORGE_PLUGIN_URL . 'assets/js/frontend.js',
-        [],
-        PRINTFORGE_VERSION,
-        true
-    );
+    if (function_exists('is_product') && is_product()) {
+        wp_enqueue_script(
+            'printforge-frontend-script',
+            PRINTFORGE_PLUGIN_URL . 'assets/js/frontend.js',
+            [],
+            PRINTFORGE_VERSION,
+            true
+        );
+    }
 }
