@@ -1,11 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Canvas, Rect } from 'fabric'
-import {
-  mmToStage,
-  stageToMm,
-  zoneSupportsPosition,
-  zoneVisual,
-} from './geometry'
+import { mmToStage, stageToMm, zoneVisual } from './geometry'
 import type { DesignerTool, DesignerView, ZoneKey, ZoneRect } from './types'
 
 type FabricDesignerCanvasProps = {
@@ -20,12 +15,6 @@ type FabricDesignerCanvasProps = {
 }
 
 type ZoneRectObject = Rect & { __zoneKey?: ZoneKey }
-
-function zoneObjectFor(canvas: Canvas, zoneKey: ZoneKey) {
-  return canvas
-    .getObjects()
-    .find((object) => (object as ZoneRectObject).__zoneKey === zoneKey) as ZoneRectObject | undefined
-}
 
 function rectToMetrics(rect: Rect) {
   return {
@@ -67,25 +56,27 @@ export function FabricDesignerCanvas({
 
     fabricCanvasRef.current = canvas
 
-    const handleObjectModified = (event: { target?: Rect }) => {
-      if (isRenderingRef.current || !event.target) {
+    const handleObjectModified = (event: { target?: unknown }) => {
+      const target = event.target as Rect | undefined
+
+      if (isRenderingRef.current || !target) {
         return
       }
 
-      const zoneKey = (event.target as ZoneRectObject).__zoneKey
+      const zoneKey = (target as ZoneRectObject).__zoneKey
       if (!zoneKey) {
         return
       }
 
-      onZoneRectChange(zoneKey, rectToMetrics(event.target))
+      onZoneRectChange(zoneKey, rectToMetrics(target))
     }
 
-    const handleMouseDown = (event: { e: MouseEvent }) => {
+    const handleMouseDown = (event: { e: unknown }) => {
       if (activeTool !== 'draw' || !activeDrawTarget) {
         return
       }
 
-      const pointer = canvas.getScenePoint(event.e)
+      const pointer = canvas.getScenePoint(event.e as MouseEvent)
       const visual = zoneVisual(activeDrawTarget)
       const rect = new Rect({
         left: pointer.x,
@@ -111,12 +102,12 @@ export function FabricDesignerCanvas({
       canvas.add(rect)
     }
 
-    const handleMouseMove = (event: { e: MouseEvent }) => {
+    const handleMouseMove = (event: { e: unknown }) => {
       if (!drawStateRef.current) {
         return
       }
 
-      const pointer = canvas.getScenePoint(event.e)
+      const pointer = canvas.getScenePoint(event.e as MouseEvent)
       const nextLeft = Math.min(drawStateRef.current.startX, pointer.x)
       const nextTop = Math.min(drawStateRef.current.startY, pointer.y)
       const nextWidth = Math.abs(pointer.x - drawStateRef.current.startX)
@@ -148,16 +139,16 @@ export function FabricDesignerCanvas({
       onZoneRectChange(activeDrawTarget, nextMetrics)
     }
 
-    canvas.on('object:modified', handleObjectModified)
-    canvas.on('mouse:down', handleMouseDown)
-    canvas.on('mouse:move', handleMouseMove)
-    canvas.on('mouse:up', handleMouseUp)
+    canvas.on('object:modified', handleObjectModified as never)
+    canvas.on('mouse:down', handleMouseDown as never)
+    canvas.on('mouse:move', handleMouseMove as never)
+    canvas.on('mouse:up', handleMouseUp as never)
 
     return () => {
-      canvas.off('object:modified', handleObjectModified)
-      canvas.off('mouse:down', handleMouseDown)
-      canvas.off('mouse:move', handleMouseMove)
-      canvas.off('mouse:up', handleMouseUp)
+      canvas.off('object:modified', handleObjectModified as never)
+      canvas.off('mouse:down', handleMouseDown as never)
+      canvas.off('mouse:move', handleMouseMove as never)
+      canvas.off('mouse:up', handleMouseUp as never)
       canvas.dispose()
       fabricCanvasRef.current = null
     }

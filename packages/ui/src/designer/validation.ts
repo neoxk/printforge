@@ -51,7 +51,9 @@ export function validateDesignerView(view: DesignerView) {
       )
     }
 
-    if (!containsRect(physical, field.rect)) {
+    const mustStayInsidePhysical = key !== 'bleedArea'
+
+    if (mustStayInsidePhysical && !containsRect(physical, field.rect)) {
       addAlert(
         alerts,
         key,
@@ -63,23 +65,47 @@ export function validateDesignerView(view: DesignerView) {
 
   if (view.fields.cutArea.enabled && view.fields.bleedArea.enabled) {
     if (!containsRect(view.fields.bleedArea.rect, view.fields.cutArea.rect)) {
-      addAlert(alerts, 'bleedArea', 'warning', 'Bleed Area should fully contain the Cut Area.')
+      addAlert(alerts, 'bleedArea', 'error', 'Bleed Area must fully contain the Cut Area.')
     }
   }
 
   if (view.fields.cutArea.enabled && view.fields.safeZone.enabled) {
     if (!containsRect(view.fields.cutArea.rect, view.fields.safeZone.rect)) {
-      addAlert(alerts, 'safeZone', 'warning', 'Safe Zone should stay inside the Cut Area.')
+      addAlert(alerts, 'safeZone', 'error', 'Safe Zone must stay inside the Cut Area.')
     }
   }
 
-  if (!view.fields.allowedPrintArea.enabled) {
+  if (view.fields.safeZone.enabled && view.fields.allowedPrintArea.enabled) {
+    if (!containsRect(view.fields.safeZone.rect, view.fields.allowedPrintArea.rect)) {
+      addAlert(
+        alerts,
+        'allowedPrintArea',
+        'error',
+        'Allowed Print Area must stay inside the Safe Zone.',
+      )
+    }
+  } else if (view.fields.cutArea.enabled && view.fields.allowedPrintArea.enabled) {
+    if (!containsRect(view.fields.cutArea.rect, view.fields.allowedPrintArea.rect)) {
+      addAlert(
+        alerts,
+        'allowedPrintArea',
+        'error',
+        'Allowed Print Area must stay inside the Cut Area.',
+      )
+    }
+  } else if (!view.fields.allowedPrintArea.enabled) {
     addAlert(
       alerts,
       'allowedPrintArea',
       'info',
       'Allowed Print Area is disabled for this view. Use it when print placement must be constrained.',
     )
+  }
+
+  if (view.fields.bleedArea.enabled && view.fields.safeZone.enabled) {
+    if (!containsRect(view.fields.bleedArea.rect, view.fields.safeZone.rect)) {
+      addAlert(alerts, 'safeZone', 'error', 'Safe Zone must stay inside the Bleed Area.')
+    }
   }
 
   const hasErrors = Object.values(alerts).some((entries) =>

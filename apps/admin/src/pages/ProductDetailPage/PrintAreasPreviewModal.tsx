@@ -1,13 +1,13 @@
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from '@printforge/ui/components/ui/dialog'
 import { Button } from '@printforge/ui/components/ui/button'
 import { XIcon } from 'lucide-react'
-import { buildConfiguratorUrl } from '../../../lib/configuratorUrl'
+import { buildConfiguratorUrl } from '../../lib/configuratorUrl'
 
 type Props = {
   productId: string
@@ -15,28 +15,28 @@ type Props = {
   onClose: () => void
 }
 
-export function PreviewModal({ productId, isOpen, onClose }: Props) {
-  const src = buildConfiguratorUrl(`/pf/options/${encodeURIComponent(productId)}`)
+export function PrintAreasPreviewModal({ productId, isOpen, onClose }: Props) {
+  const src = buildConfiguratorUrl(`/pf/configurator/${encodeURIComponent(productId)}`)
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogContent
-        className="sm:max-w-4xl h-[680px] p-0 flex flex-col overflow-hidden gap-0"
+        className="h-[80vh] max-h-[860px] max-w-6xl gap-0 overflow-hidden p-0"
         showCloseButton={false}
       >
-        <DialogHeader className="flex-row items-center justify-between px-4 py-3 border-b shrink-0">
-          <DialogTitle>Customer Preview</DialogTitle>
+        <DialogHeader className="flex shrink-0 flex-row items-center justify-between border-b px-4 py-3">
+          <DialogTitle>End-user print area preview</DialogTitle>
           <DialogClose asChild>
             <Button variant="ghost" size="icon-sm" aria-label="Close">
               <XIcon />
             </Button>
           </DialogClose>
         </DialogHeader>
-        <div className="flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-hidden">
           <iframe
             src={src}
-            title="Configurator preview"
-            className="w-full h-full border-none block"
+            title="Print area preview"
+            className="block h-full w-full border-none"
             allow="same-origin"
           />
         </div>

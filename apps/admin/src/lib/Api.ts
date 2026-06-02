@@ -2,12 +2,10 @@ import { readStoredSession, writeStoredSession } from './Session'
 import type {
   AuthSession,
   IntegrationStatus,
-  PricingCalculation,
-  PricingRule,
   ProductRecord,
   SyncProductsResponse,
-  ValidationRule,
 } from '@printforge/ui'
+import type { DesignerView } from '@printforge/ui/designer'
 
 type ApiRequestInit = RequestInit & {
   skipAuth?: boolean
@@ -126,35 +124,18 @@ export function getProductsRequest() {
   return apiRequest<ProductRecord[]>('/api/products')
 }
 
-export function getPricingRulesRequest() {
-  return apiRequest<PricingRule[]>('/api/pricing')
-}
-
-export function calculatePriceRequest(payload: {
+export type ProductPrintAreasResponse = {
   productId: string
-  options: Record<string, string>
-}) {
-  return apiRequest<PricingCalculation>('/api/pricing/calculate', {
-    method: 'POST',
-    skipAuth: true,
-    body: JSON.stringify(payload),
-  })
+  views: DesignerView[]
 }
 
-export function createPricingRuleRequest(payload: Omit<PricingRule, 'id'>) {
-  return apiRequest<PricingRule>('/api/pricing', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  })
+export function getProductPrintAreasRequest(productId: string) {
+  return apiRequest<ProductPrintAreasResponse>(`/api/products/${productId}/print-areas`)
 }
 
-export function getValidationRulesRequest() {
-  return apiRequest<ValidationRule[]>('/api/validation')
-}
-
-export function createValidationRuleRequest(payload: Omit<ValidationRule, 'id'>) {
-  return apiRequest<ValidationRule>('/api/validation', {
-    method: 'POST',
-    body: JSON.stringify(payload),
+export function saveProductPrintAreasRequest(productId: string, views: DesignerView[]) {
+  return apiRequest<ProductPrintAreasResponse>(`/api/products/${productId}/print-areas`, {
+    method: 'PUT',
+    body: JSON.stringify({ views }),
   })
 }

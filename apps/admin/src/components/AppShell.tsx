@@ -3,7 +3,6 @@ import {
   LogOut,
   Package2,
   Settings,
-  ShieldCheck,
   Sparkles,
 } from 'lucide-react'
 import { useMemo } from 'react'
@@ -14,7 +13,6 @@ const navigation = [
   { to: '/', label: 'Dashboard', icon: Gauge },
   { to: '/products', label: 'Products', icon: Package2 },
   { to: '/pricing', label: 'Option & Price Library', icon: Sparkles },
-  { to: '/validation', label: 'Validation', icon: ShieldCheck },
   { to: '/settings', label: 'Integration', icon: Settings },
 ]
 
@@ -64,7 +62,7 @@ export function AppShell() {
                   ].join(' ')
                 }
               >
-                {({ isActive }) => (
+                {() => (
                   <>
                     <item.icon
                       className="size-[1.05rem] shrink-0 transition-colors duration-150"

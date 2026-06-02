@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { UserDesignerPage } from './designer/UserDesignerPage'
 import { OptionsPage } from './options/OptionsPage'
 
 type Route = 'configurator' | 'options' | 'not-found'
@@ -13,6 +14,10 @@ function getRoute(pathname: string): Route {
   const path = normalizePath(pathname)
 
   if (path === BASE_PATH || path === `${BASE_PATH}/configurator`) {
+    return 'configurator'
+  }
+
+  if (path.startsWith(`${BASE_PATH}/configurator/`)) {
     return 'configurator'
   }
 
@@ -54,11 +59,7 @@ export function Router() {
   const route = useMemo(() => getRoute(pathname), [pathname])
 
   if (route === 'configurator') {
-    return (
-      <main className="cf-route-state">
-        <p>User designer coming soon.</p>
-      </main>
-    )
+    return <UserDesignerPage />
   }
 
   if (route === 'options') {

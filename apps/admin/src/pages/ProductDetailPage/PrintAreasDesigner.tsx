@@ -3,6 +3,7 @@ import {
   ImagePlus,
   Layers3,
   MousePointer2,
+  Eye,
   Plus,
   Save,
   Shapes,
@@ -11,7 +12,7 @@ import {
   ZoomOut,
 } from 'lucide-react'
 import { Canvas, FabricImage, Rect } from 'fabric'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { SectionCard } from '@printforge/ui'
 import {
@@ -72,6 +73,9 @@ type PrintAreasDesignerActions = {
 type Props = {
   state: PrintAreasDesignerState
   actions: PrintAreasDesignerActions
+  isSaving: boolean
+  onSave: () => Promise<void> | void
+  onPreview: () => Promise<void> | void
 }
 
 type StageMetrics = {
@@ -285,6 +289,22 @@ const ZONE_SWATCH_STYLE: Record<string, CSSProperties> = {
   allowedPrintArea: { background: 'rgba(2,102,255,0.18)', border: '2px solid #0050cc' },
 }
 
+const ZONE_RENDER_ORDER: ZoneKey[] = [
+  'physicalSize',
+  'cutArea',
+  'bleedArea',
+  'safeZone',
+  'allowedPrintArea',
+]
+
+const ZONE_LEGEND_ORDER: ZoneKey[] = [
+  'cutArea',
+  'bleedArea',
+  'safeZone',
+  'allowedPrintArea',
+  'physicalSize',
+]
+
 const VIEWPORT_BG: CSSProperties = {
   background:
     'linear-gradient(rgba(118,119,124,0.08) 1px,transparent 1px),' +
@@ -305,6 +325,8 @@ function FabricPrintAreaCanvas({
   onZoomChange,
   onZoneRectChange,
   onMockupRectChange,
+  selectedZoneKey,
+  onSelectedZoneKeyChange,
 }: {
   view: DesignerView
   activeTool: DesignerTool
@@ -315,6 +337,8 @@ function FabricPrintAreaCanvas({
   onZoomChange: (zoom: number) => void
   onZoneRectChange: (key: ZoneKey, rect: ZoneRect) => void
   onMockupRectChange: (rect: ZoneRect) => void
+  selectedZoneKey: ZoneKey | null
+  onSelectedZoneKeyChange: (key: ZoneKey | null) => void
 }) {
   const canvasHostRef = useRef<HTMLDivElement | null>(null)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
@@ -323,10 +347,12 @@ function FabricPrintAreaCanvas({
     view,
     activeTool,
     activeDrawTarget,
+    selectedZoneKey,
     zoom,
     pan,
     onZoneRectChange,
     onMockupRectChange,
+    onSelectedZoneKeyChange,
   })
   const viewportSizeRef = useRef({ width: 0, height: 0 })
   const isRenderingRef = useRef(false)
@@ -339,12 +365,24 @@ function FabricPrintAreaCanvas({
       view,
       activeTool,
       activeDrawTarget,
+      selectedZoneKey,
       zoom,
       pan,
       onZoneRectChange,
       onMockupRectChange,
+      onSelectedZoneKeyChange,
     }
-  }, [activeDrawTarget, activeTool, onMockupRectChange, onZoneRectChange, pan, view, zoom])
+  }, [
+    activeDrawTarget,
+    activeTool,
+    onMockupRectChange,
+    onSelectedZoneKeyChange,
+    onZoneRectChange,
+    pan,
+    selectedZoneKey,
+    view,
+    zoom,
+  ])
 
   useEffect(() => {
     const host = canvasHostRef.current
@@ -392,16 +430,27 @@ function FabricPrintAreaCanvas({
     }
 
     const handleSelectionCreated = (event: { selected?: Array<{ __zoneKey?: ZoneKey }> }) => {
-      selectedZoneKeyRef.current = event.selected?.[0]?.__zoneKey ?? null
+      const nextKey = event.selected?.[0]?.__zoneKey ?? null
+      selectedZoneKeyRef.current = nextKey
+      onSelectedZoneKeyChange(nextKey)
     }
 
     const handleSelectionCleared = () => {
       selectedZoneKeyRef.current = null
+      onSelectedZoneKeyChange(null)
     }
 
     const handleMouseDown = (event: { e: MouseEvent | TouchEvent | PointerEvent; target?: Rect }) => {
       const current = liveStateRef.current
-      if (current.activeTool !== 'draw' || !current.activeDrawTarget || event.target) return
+      if (current.activeTool === 'select' && !event.target) {
+        selectedZoneKeyRef.current = null
+        current.onSelectedZoneKeyChange(null)
+        canvas.discardActiveObject()
+        canvas.requestRenderAll()
+        return
+      }
+
+      if (current.activeTool !== 'draw' || !current.activeDrawTarget) return
       const pointer = canvas.getScenePoint(event.e)
       const rect = createZoneRect(
         current.activeDrawTarget,
@@ -541,7 +590,8 @@ function FabricPrintAreaCanvas({
         canvas.add(image)
       }
 
-      for (const [key, field] of Object.entries(view.fields) as Array<[ZoneKey, DesignerView['fields'][ZoneKey]]>) {
+      for (const key of ZONE_RENDER_ORDER) {
+        const field = view.fields[key]
         if (!field.enabled) continue
         const rect = createZoneRect(key, field.rect, activeTool === 'select')
         const scaledWidth = mmToStage(field.rect.width) * stage.effectiveScale
@@ -588,15 +638,37 @@ function FabricPrintAreaCanvas({
 
   useEffect(() => {
     const canvas = fabricCanvasRef.current
+    if (!canvas || activeTool !== 'select') return
+
+    if (!selectedZoneKey) {
+      canvas.discardActiveObject()
+      canvas.requestRenderAll()
+      return
+    }
+
+    const selectedObject = canvas
+      .getObjects()
+      .find((object) => (object as ZoneRectObject).__zoneKey === selectedZoneKey)
+
+    if (selectedObject) {
+      canvas.setActiveObject(selectedObject)
+      canvas.requestRenderAll()
+    }
+  }, [activeTool, selectedZoneKey])
+
+  useEffect(() => {
+    const canvas = fabricCanvasRef.current
     if (!canvas) return
 
     const selectable = activeTool === 'select'
     for (const object of canvas.getObjects()) {
+      const zoneKey = (object as ZoneRectObject).__zoneKey ?? null
+      const isSelectedObject = selectedZoneKey ? zoneKey === selectedZoneKey : true
       object.set({
-        selectable,
-        evented: activeTool !== 'pan',
-        hasControls: selectable,
-        hasBorders: selectable,
+        selectable: selectable && isSelectedObject,
+        evented: activeTool === 'select' ? isSelectedObject : activeTool !== 'pan',
+        hasControls: selectable && isSelectedObject,
+        hasBorders: selectable && isSelectedObject,
       })
     }
 
@@ -608,7 +680,7 @@ function FabricPrintAreaCanvas({
       canvas.discardActiveObject()
     }
     canvas.requestRenderAll()
-  }, [activeTool])
+  }, [activeTool, selectedZoneKey])
 
   useEffect(() => {
     const wrapper = wrapperRef.current
@@ -679,16 +751,24 @@ function FabricPrintAreaCanvas({
       >
         <div ref={canvasHostRef} className="absolute inset-0" />
         <div className="absolute bottom-3.5 right-3.5 z-10 flex flex-col gap-2 rounded-xl border border-border/30 bg-white/90 p-3 backdrop-blur-sm">
-          {fieldOrder
+          {ZONE_LEGEND_ORDER
             .filter((key) => view.fields[key].enabled)
             .map((key) => (
-              <div key={key} className="inline-flex items-center gap-2 text-xs text-foreground">
+              <button
+                key={key}
+                type="button"
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-md px-1.5 py-1 text-left text-xs text-foreground transition-colors',
+                  selectedZoneKey === key && 'bg-[#eef4ff] text-[#001849]',
+                )}
+                onClick={() => onSelectedZoneKeyChange(key)}
+              >
                 <span
                   className="h-4 w-4 rounded-[4px]"
                   style={ZONE_SWATCH_STYLE[key] ?? {}}
                 />
                 <span>{fieldLabel(key)}</span>
-              </div>
+              </button>
             ))}
         </div>
       </div>
@@ -720,7 +800,7 @@ const TILE_ACTIVE = 'border-primary bg-[#eef4ff] text-[#001849]'
 
 // ─── Main designer component ──────────────────────────────────────────────────
 
-export function PrintAreasDesigner({ state, actions }: Props) {
+export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview }: Props) {
   const {
     views,
     selectedViewId,
@@ -743,6 +823,7 @@ export function PrintAreasDesigner({ state, actions }: Props) {
   } = actions
 
   const selectedView = views.find((view) => view.id === selectedViewId) ?? null
+  const [selectedZoneKey, setSelectedZoneKey] = useState<ZoneKey | null>(null)
   const validation = useMemo(
     () => (selectedView ? validateDesignerView(selectedView) : null),
     [selectedView],
@@ -768,6 +849,7 @@ export function PrintAreasDesigner({ state, actions }: Props) {
     setSelectedViewId(viewId)
     setActiveTool('select')
     setActiveDrawTarget(null)
+    setSelectedZoneKey(null)
     resetViewport()
   }
 
@@ -826,6 +908,7 @@ export function PrintAreasDesigner({ state, actions }: Props) {
     handleFieldRectChange(key, rect)
     setActiveTool('select')
     setActiveDrawTarget(null)
+    setSelectedZoneKey(key)
   }
 
   function handleMockupRectChange(rect: ZoneRect) {
@@ -988,19 +1071,27 @@ export function PrintAreasDesigner({ state, actions }: Props) {
             title={selectedView.name}
             description="Configure optional print-area guides for the selected view."
             actions={
-              <Button
-                type="button"
-                size="sm"
-                disabled={validation?.hasErrors}
-                onClick={() =>
-                  setStatusMessage(
-                    'Designer state saved locally. Backend persistence will be connected later.',
-                  )
-                }
-              >
-                <Save className="size-4" aria-hidden="true" />
-                Save
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={validation?.hasErrors || isSaving}
+                  onClick={() => void onPreview()}
+                >
+                  <Eye className="size-4" aria-hidden="true" />
+                  Preview
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={validation?.hasErrors || isSaving}
+                  onClick={() => void onSave()}
+                >
+                  <Save className="size-4" aria-hidden="true" />
+                  {isSaving ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
             }
           >
             <div className="mb-4 mt-2 flex flex-wrap gap-2.5">
@@ -1068,6 +1159,7 @@ export function PrintAreasDesigner({ state, actions }: Props) {
                         onClick={() => {
                           setActiveTool('draw')
                           setActiveDrawTarget(key)
+                          setSelectedZoneKey(key)
                           setStatusMessage(
                             `Draw ${field.label} directly on the canvas. Release to create the zone, then switch back to Select to fine-tune it.`,
                           )
@@ -1171,7 +1263,7 @@ export function PrintAreasDesigner({ state, actions }: Props) {
         )}
       </aside>
 
-      <section className="flex min-w-0 flex-col gap-4">
+      <section className="flex min-w-0 self-start flex-col gap-4 lg:sticky lg:top-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="mb-1.5 text-[11px] uppercase tracking-widest text-muted-foreground">
@@ -1241,6 +1333,14 @@ export function PrintAreasDesigner({ state, actions }: Props) {
               onZoomChange={setZoom}
               onZoneRectChange={handleCanvasZoneChange}
               onMockupRectChange={handleMockupRectChange}
+              selectedZoneKey={selectedZoneKey}
+              onSelectedZoneKeyChange={(key) => {
+                setSelectedZoneKey(key)
+                if (key) {
+                  setActiveTool('select')
+                  setActiveDrawTarget(null)
+                }
+              }}
             />
           ) : (
             <div className="flex min-h-[520px] flex-col justify-center">

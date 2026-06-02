@@ -1,10 +1,9 @@
 import {
   Activity,
   Boxes,
-  FolderCheck,
   PlusCircle,
-  ShieldCheck,
   SlidersHorizontal,
+  SwatchBook,
 } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
@@ -27,10 +26,9 @@ import {
 } from '@printforge/ui/components/ui/table'
 import {
   getIntegrationRequest,
-  getPricingRulesRequest,
   getProductsRequest,
-  getValidationRulesRequest,
 } from '../lib/Api'
+import { Groups, Items } from '../lib/services'
 
 export function DashboardPage() {
   const { showError } = useAppAlerts()
@@ -39,15 +37,15 @@ export function DashboardPage() {
     Promise.all([
       getIntegrationRequest(),
       getProductsRequest(),
-      getPricingRulesRequest(),
-      getValidationRulesRequest(),
+      Groups.list(),
+      Items.list(),
     ]),
   )
 
   const integration = data?.[0] ?? null
   const products = data?.[1] ?? []
-  const pricingRules = data?.[2] ?? []
-  const validationRules = data?.[3] ?? []
+  const optionGroups = data?.[2] ?? []
+  const optionItems = data?.[3] ?? []
 
   useEffect(() => {
     if (error) showError(error.message, 'Dashboard load failed')
@@ -55,10 +53,6 @@ export function DashboardPage() {
 
   const derivedMetrics = useMemo(() => {
     const syncedCount = products.length
-    const validationCoverage =
-      syncedCount === 0
-        ? 0
-        : Math.min(100, Math.round((validationRules.length / syncedCount) * 100))
 
     return [
       {
@@ -69,18 +63,18 @@ export function DashboardPage() {
         progress: undefined as number | undefined,
       },
       {
-        label: 'Active pricing rules',
-        value: String(pricingRules.length).padStart(2, '0'),
-        trend: 'Backend pricing registry',
+        label: 'Option groups',
+        value: String(optionGroups.length).padStart(2, '0'),
+        trend: 'Backend pricing library groups',
         icon: <SlidersHorizontal />,
         progress: undefined as number | undefined,
       },
       {
-        label: 'Validation rules',
-        value: String(validationRules.length).padStart(2, '0'),
-        trend: `${validationCoverage}% coverage across synced products`,
-        icon: <ShieldCheck />,
-        progress: syncedCount > 0 ? validationCoverage : undefined,
+        label: 'Option items',
+        value: String(optionItems.length).padStart(2, '0'),
+        trend: 'Reusable pricing items in library',
+        icon: <SwatchBook />,
+        progress: undefined as number | undefined,
       },
       {
         label: 'Connection status',
@@ -90,14 +84,14 @@ export function DashboardPage() {
         progress: undefined as number | undefined,
       },
     ]
-  }, [integration, pricingRules.length, products.length, validationRules])
+  }, [integration, optionGroups.length, optionItems.length, products.length])
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow="Overview"
         title="Dashboard Overview"
-        description="Synced product setup, validation coverage, and WooCommerce readiness."
+        description="Synced product setup, pricing library overview, and WooCommerce readiness."
       />
 
       {/* Stat cards */}
@@ -199,13 +193,7 @@ export function DashboardPage() {
               <Button asChild variant="outline" className="justify-start">
                 <Link to="/pricing">
                   <SlidersHorizontal />
-                  New Pricing Rule
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="justify-start">
-                <Link to="/validation">
-                  <FolderCheck />
-                  Validation Rules
+                  Open pricing library
                 </Link>
               </Button>
             </div>

@@ -1,3 +1,5 @@
+import type { DesignerView } from '@printforge/ui/designer'
+
 export type ConfigItem = {
   id: string
   name: string
@@ -34,4 +36,9 @@ export type PriceLineItem = {
 export type PricingResult = {
   total: number
   breakdown: PriceLineItem[]
+}
+
+export type ProductPrintAreaConfig = {
+  productId: string
+  views: DesignerView[]
 }

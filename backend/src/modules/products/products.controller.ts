@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import * as productsService from './products.service.js'
 
@@ -45,6 +46,23 @@ export async function updateProductHandler(req: FastifyRequest, reply: FastifyRe
   return reply.send(await productsService.updateProduct(id, body))
 }
 
+export async function getProductPrintAreasHandler(
+  req: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { id } = req.params as { id: string }
+  return reply.send(await productsService.getProductPrintAreas(id))
+}
+
+export async function saveProductPrintAreasHandler(
+  req: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { id } = req.params as { id: string }
+  const body = req.body as { views: Prisma.JsonValue }
+  return reply.send(await productsService.saveProductPrintAreas(id, body))
+}
+
 // ─── Product Config ───────────────────────────────────────────────────────────
 
 export async function getProductConfigHandler(req: FastifyRequest, reply: FastifyReply) {
@@ -55,6 +73,14 @@ export async function getProductConfigHandler(req: FastifyRequest, reply: Fastif
 export async function getProductConfigByWooIdHandler(req: FastifyRequest, reply: FastifyReply) {
   const { wooProductId } = req.params as { wooProductId: string }
   return reply.send(await productsService.getProductConfigByWooId(wooProductId))
+}
+
+export async function getProductPrintAreasByWooIdHandler(
+  req: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { wooProductId } = req.params as { wooProductId: string }
+  return reply.send(await productsService.getProductPrintAreasByWooId(wooProductId))
 }
 
 // ─── Container Items ──────────────────────────────────────────────────────────
