@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from 'react'
-import { PageHeader, useAppAlerts } from '@printforge/ui'
+import { PageHeader, PageStack, useAppAlerts } from '@printforge/ui'
 import type { OptionItem } from '@printforge/ui'
 import {
   pricingReducer,
@@ -123,14 +123,14 @@ export function PricingPage() {
         : state.items
 
   return (
-    <div className="flex flex-col gap-6">
+    <PageStack>
       <PageHeader
         eyebrow="Library"
         title="Option Items"
         description="Manage the reusable item library used to build product pricing."
       />
 
-      <div className="grid grid-cols-4 gap-4 items-start">
+      <div className="grid items-start gap-5 xl:grid-cols-4">
         <GroupSidebar
           groups={state.groups}
           items={state.items}
@@ -158,6 +158,6 @@ export function PricingPage() {
         onClose={closeSlideOver}
         onSave={handleSaveItem}
       />
-    </div>
+    </PageStack>
   )
 }

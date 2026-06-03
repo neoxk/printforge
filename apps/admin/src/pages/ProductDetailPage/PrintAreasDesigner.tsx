@@ -532,6 +532,10 @@ function FabricPrintAreaCanvas({
     let disposed = false
 
     async function renderCanvas() {
+      const canvas = fabricCanvasRef.current
+      const wrapper = wrapperRef.current
+      if (!canvas || !wrapper) return
+
       const viewportWidth = Math.max(320, wrapper.clientWidth)
       const viewportHeight = Math.max(320, wrapper.clientHeight)
       viewportSizeRef.current = { width: viewportWidth, height: viewportHeight }

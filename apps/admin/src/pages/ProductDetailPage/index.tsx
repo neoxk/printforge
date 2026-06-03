@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
-import { PageHeader, useAppAlerts } from '@printforge/ui'
+import { PageHeader, PageStack, useAppAlerts } from '@printforge/ui'
 import type { ProductRecord } from '@printforge/ui'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@printforge/ui/components/ui/tabs'
 import type { CreateViewDraft, DesignerTool, DesignerView, ZoneKey } from '@printforge/ui/designer'
@@ -132,18 +132,18 @@ export function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="flex flex-col gap-6">
+      <PageStack>
         <PageHeader
           eyebrow="Product Editor"
           title="Loading product"
           description="Fetching the product configuration from the backend."
         />
-      </div>
+      </PageStack>
     )
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <PageStack>
       <PageHeader
         eyebrow="Product Editor"
         title={product.name}
@@ -157,15 +157,15 @@ export function ProductDetailPage() {
           <TabsTrigger value="print-areas">Print Areas</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general" className="mt-4">
+        <TabsContent value="general">
           <GeneralInfoTab product={product} />
         </TabsContent>
 
-        <TabsContent value="pricing-options" className="mt-4">
+        <TabsContent value="pricing-options">
           <PricingAndOptionsTab product={product} />
         </TabsContent>
 
-        <TabsContent value="print-areas" className="mt-4">
+        <TabsContent value="print-areas">
           <PrintAreasTab
             state={{
               views: printAreaViews,
@@ -199,6 +199,6 @@ export function ProductDetailPage() {
         isOpen={isPrintAreasPreviewOpen}
         onClose={() => setIsPrintAreasPreviewOpen(false)}
       />
-    </div>
+    </PageStack>
   )
 }

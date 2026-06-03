@@ -15,13 +15,13 @@ type Props = {
   onClose: () => void
 }
 
-export function PrintAreasPreviewModal({ productId, isOpen, onClose }: Props) {
+export function PrintAreasPreviewModal({ productId, isOpen, onClose }: Readonly<Props>) {
   const src = buildConfiguratorUrl(`/pf/configurator/${encodeURIComponent(productId)}`)
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogContent
-        className="h-[80vh] max-h-[860px] max-w-6xl gap-0 overflow-hidden p-0"
+        className="h-[80vh] max-h-215 max-w-6xl gap-0 overflow-hidden p-0"
         showCloseButton={false}
       >
         <DialogHeader className="flex shrink-0 flex-row items-center justify-between border-b px-4 py-3">
