@@ -10,7 +10,9 @@ export function ContainerGroup({ container, selected, onChange }: Props) {
   if (container.isHidden || container.containerType === 'AUTO_APPLIED') return null
 
   function handleSingleChange(itemId: string) {
-    onChange(container.id, [itemId])
+    const isSelected = selected[0] === itemId
+
+    onChange(container.id, isSelected && !container.isRequired ? [] : [itemId])
   }
 
   function handleMultiChange(itemId: string, checked: boolean) {
@@ -36,7 +38,8 @@ export function ContainerGroup({ container, selected, onChange }: Props) {
                 name={container.id}
                 value={item.id}
                 checked={selected[0] === item.id}
-                onChange={() => handleSingleChange(item.id)}
+                onClick={() => handleSingleChange(item.id)}
+                onChange={() => {}}
               />
               {item.name}
             </label>
