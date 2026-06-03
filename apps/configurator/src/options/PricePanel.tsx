@@ -2,7 +2,6 @@ import type { PricingResult } from '../types.js'
 
 type Props = {
   price: PricingResult | null
-  isLoading: boolean
   error: string | null
   basePrice: number | null
   quantity: number
@@ -33,7 +32,7 @@ function formatPriceParts(value: number): { currency: string; amount: string } {
   return { currency, amount }
 }
 
-export function PricePanel({ price, isLoading, error, basePrice, quantity }: Props) {
+export function PricePanel({ price, error, basePrice, quantity }: Props) {
   const productTotal = basePrice !== null && Number.isFinite(quantity) && quantity > 0 ? basePrice * quantity : null
   const total = price ? price.total + (productTotal ?? 0) : null
   const displayTotal = total ?? productTotal ?? price?.total ?? null
@@ -47,9 +46,7 @@ export function PricePanel({ price, isLoading, error, basePrice, quantity }: Pro
           {error && <span className="price-error">{error}</span>}
         </span>
         <strong>
-          {isLoading ? (
-            'Calculating…'
-          ) : displayTotalParts ? (
+          {displayTotalParts ? (
             <>
               <span className="price-currency">{displayTotalParts.currency}</span>
               <span>{displayTotalParts.amount}</span>

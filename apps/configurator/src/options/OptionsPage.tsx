@@ -35,7 +35,6 @@ export function OptionsPage() {
   const [selectedByContainer, setSelectedByContainer] = useState<SelectedByContainer>({})
   const [dimensions, setDimensions] = useState<DimensionsState>(DEFAULT_DIMENSIONS_STATE)
   const [price, setPrice] = useState<PricingResult | null>(null)
-  const [isPriceLoading, setIsPriceLoading] = useState(false)
   const [priceError, setPriceError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -116,7 +115,6 @@ export function OptionsPage() {
 
     let isCancelled = false
 
-    setIsPriceLoading(true)
     setPriceError(null)
 
     calculatePrice(config.productId, getSelectedItemIds(selectedByContainer), {
@@ -132,9 +130,6 @@ export function OptionsPage() {
 
         setPrice(null)
         setPriceError(nextError instanceof Error ? nextError.message : 'Failed to calculate price.')
-      })
-      .finally(() => {
-        if (!isCancelled) setIsPriceLoading(false)
       })
 
     return () => {
@@ -187,7 +182,6 @@ export function OptionsPage() {
 
         <PricePanel
           price={price}
-          isLoading={isPriceLoading}
           error={priceError}
           basePrice={basePrice}
           quantity={Number(dimensions.quantity)}
