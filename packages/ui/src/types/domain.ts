@@ -113,10 +113,3 @@ export type PricingResult = {
   total: number
   breakdown: PriceLineItem[]
 }
-
-export type ValidationRule = {
-  id: string
-  name: string
-  summary: string
-  severity: string
-}

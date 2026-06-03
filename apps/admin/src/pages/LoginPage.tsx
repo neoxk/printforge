@@ -1,6 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAppAlerts } from '@printforge/ui'
+import { Button } from '@printforge/ui/components/ui/button'
+import { Card, CardContent } from '@printforge/ui/components/ui/card'
+import { Input } from '@printforge/ui/components/ui/input'
+import { Label } from '@printforge/ui/components/ui/label'
 import { useAuth } from '../app/Auth'
 
 export function LoginPage() {
@@ -14,7 +18,6 @@ export function LoginPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsSubmitting(true)
-
     try {
       await login(email, password)
       navigate('/')
@@ -26,44 +29,58 @@ export function LoginPage() {
   }
 
   return (
-    <div className="auth-layout">
-      <section className="auth-card">
-        <div className="auth-card-hero">
-          <h1 className="auth-brand">PrintForge</h1>
-          <h2>Sign In</h2>
-          <p className="muted-copy auth-description">
-            Enter your credentials to access your account.
+    <div
+      className="flex min-h-screen items-center justify-center px-4 py-12"
+      style={{
+        backgroundImage:
+          'linear-gradient(to right, #dbe4f0 1px, transparent 1px), linear-gradient(to bottom, #dbe4f0 1px, transparent 1px)',
+        backgroundSize: '40px 40px',
+      }}
+    >
+      <Card className="w-full max-w-[34rem] border-t-4 border-t-primary">
+        <CardContent className="grid gap-6 p-8">
+          <div className="space-y-1">
+            <h1 className="text-4xl font-extrabold tracking-tight">PrintForge</h1>
+            <h2 className="text-xl font-semibold">Sign In</h2>
+            <p className="text-sm text-muted-foreground">
+              Enter your credentials to access your account.
+            </p>
+          </div>
+
+          <form className="grid gap-4" onSubmit={handleSubmit}>
+            <div className="grid gap-1.5">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="mt-1 w-full" size="lg" disabled={isSubmitting}>
+              {isSubmitting ? 'Signing in…' : 'Login'}
+            </Button>
+          </form>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Need a workspace?{' '}
+            <Link to="/register" className="font-medium text-primary hover:underline">
+              Create a tenant account
+            </Link>
           </p>
-        </div>
-
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <label>
-            <span>Email Address</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-          </label>
-          <label>
-            <span>Password</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-          </label>
-          <button type="submit" className="primary-button" disabled={isSubmitting}>
-            {isSubmitting ? 'Signing in...' : 'Login'}
-          </button>
-        </form>
-
-        <p className="auth-meta">
-          Need a workspace? <Link to="/register">Create a tenant account</Link>
-        </p>
-      </section>
+        </CardContent>
+      </Card>
     </div>
   )
 }

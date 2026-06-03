@@ -1,8 +1,6 @@
 import {
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
   Filter,
   RefreshCw,
   Search,
@@ -12,12 +10,23 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader, SectionCard, StatusPill, useAppAlerts } from '@printforge/ui'
 import type { IntegrationStatus, ProductRecord } from '@printforge/ui'
+import { Button } from '@printforge/ui/components/ui/button'
+import { Input } from '@printforge/ui/components/ui/input'
+import { Label } from '@printforge/ui/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@printforge/ui/components/ui/popover'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@printforge/ui/components/ui/table'
 import {
   getIntegrationRequest,
   getProductsRequest,
@@ -53,24 +62,12 @@ export function ProductsPage() {
   const [search, setSearch] = useState('')
   const [selectedFilter, setSelectedFilter] = useState<FilterKey>('category')
   const [filterValue, setFilterValue] = useState('')
-  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [page, setPage] = useState(1)
   const [sourceLabel, setSourceLabel] = useState('Loading backend product catalog...')
   const deferredSearch = useDeferredValue(search)
   const deferredFilterValue = useDeferredValue(filterValue)
-  const filterMenuRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (!filterMenuRef.current?.contains(event.target as Node)) {
-        setIsFilterMenuOpen(false)
-      }
-    }
-
-    window.addEventListener('mousedown', handlePointerDown)
-    return () => window.removeEventListener('mousedown', handlePointerDown)
-  }, [])
 
   useEffect(() => {
     async function loadProducts() {
@@ -79,7 +76,6 @@ export function ProductsPage() {
           getIntegrationRequest(),
           getProductsRequest(),
         ])
-
         setIntegration(integrationResponse)
         setProducts(productsResponse)
         setSourceLabel(
@@ -96,27 +92,22 @@ export function ProductsPage() {
         )
       }
     }
-
     void loadProducts()
   }, [])
 
   async function syncProducts() {
     setIsSyncing(true)
-
     try {
       const result = await syncProductsRequest()
-
       startTransition(() => {
         setProducts(result.products)
         setSourceLabel(
           `${result.connectionName} via ${result.authMethod === 'public_store_api' ? 'public Store API' : 'WooCommerce REST API'}. Last synced ${result.syncedAt}.`,
         )
       })
-
       if (integration) {
         setIntegration({ ...integration, lastSync: result.syncedAt, apiStatus: 'Healthy' })
       }
-
       showInfo(
         `${result.products.length} products were synced from ${result.connectionName}.`,
         'Sync complete',
@@ -137,16 +128,13 @@ export function ProductsPage() {
   const visibleProducts = useMemo(() => {
     const normalizedSearch = deferredSearch.trim().toLowerCase()
     const normalizedFilterValue = deferredFilterValue.trim().toLowerCase()
-
     return products.filter((product) => {
       const matchesSearch =
         !normalizedSearch ||
         product.name.toLowerCase().includes(normalizedSearch) ||
         product.sku.toLowerCase().includes(normalizedSearch)
-
       const matchesContextualFilter =
         !normalizedFilterValue || matchesFilter(product, selectedFilter, normalizedFilterValue)
-
       return matchesSearch && matchesContextualFilter
     })
   }, [deferredFilterValue, deferredSearch, products, selectedFilter])
@@ -170,179 +158,153 @@ export function ProductsPage() {
       : Math.min(currentPage * PAGE_SIZE, visibleProducts.length)
 
   return (
-    <div className="page-stack">
+    <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow="Products"
         title="Product Management"
         description={`Products are loaded from backend sync storage until you run a manual sync for ${integration?.connectionName ?? 'the configured WooCommerce connection'}.`}
         actions={
-          <div className="button-row">
-            <button
-              className="primary-button"
-              type="button"
-              onClick={() => void syncProducts()}
-              disabled={isSyncing}
-            >
-              <RefreshCw
-                className={isSyncing ? 'button-icon is-spinning' : 'button-icon'}
-                aria-hidden="true"
-              />
-              {isSyncing ? 'Syncing...' : 'Sync Products'}
-            </button>
-          </div>
+          <Button onClick={() => void syncProducts()} disabled={isSyncing}>
+            <RefreshCw className={isSyncing ? 'animate-spin' : ''} />
+            {isSyncing ? 'Syncing…' : 'Sync Products'}
+          </Button>
         }
       />
 
-      <section className="toolbar-row">
-        <label className="input-shell">
-          <Search className="input-icon" aria-hidden="true" />
-          <input
+      {/* Toolbar */}
+      <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
             type="search"
-            placeholder="Search products..."
+            placeholder="Search products…"
+            className="pl-8"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
-        </label>
-
-        <div className="filter-menu-shell" ref={filterMenuRef}>
-          <button
-            type="button"
-            className="filter-trigger"
-            onClick={() => setIsFilterMenuOpen((v) => !v)}
-          >
-            <Filter className="button-icon" aria-hidden="true" />
-            Filter
-            {isFilterMenuOpen ? (
-              <ChevronUp className="button-icon" aria-hidden="true" />
-            ) : (
-              <ChevronDown className="button-icon" aria-hidden="true" />
-            )}
-          </button>
-
-          {isFilterMenuOpen ? (
-            <div className="filter-menu">
-              <div className="filter-menu-list">
-                {FILTER_OPTIONS.map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={
-                      selectedFilter === value
-                        ? 'filter-menu-item filter-menu-item-active'
-                        : 'filter-menu-item'
-                    }
-                    onClick={() => setSelectedFilter(value)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              <label className="filter-menu-input">
-                <span>{getFilterLabel(selectedFilter)}</span>
-                <input
-                  type="text"
-                  placeholder="Type a filter value"
-                  value={filterValue}
-                  onChange={(event) => setFilterValue(event.target.value)}
-                />
-              </label>
-            </div>
-          ) : null}
         </div>
-      </section>
+
+        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline">
+              <Filter />
+              Filter
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-3" align="end">
+            <div className="mb-3 flex gap-1">
+              {FILTER_OPTIONS.map(([value, label]) => (
+                <Button
+                  key={value}
+                  variant={selectedFilter === value ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSelectedFilter(value)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+            <div className="grid gap-1.5">
+              <Label>{getFilterLabel(selectedFilter)}</Label>
+              <Input
+                type="text"
+                placeholder="Type a filter value…"
+                value={filterValue}
+                onChange={(e) => setFilterValue(e.target.value)}
+              />
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
 
       <SectionCard
         title="Catalog"
         description={`This admin catalog reads from the backend sync layer for ${integration?.storeUrl ?? 'the configured WooCommerce store'}.`}
       >
-        <div className="panel-meta-row">
-          <p className="muted-copy">{sourceLabel}</p>
-        </div>
+        <p className="mb-3 text-sm text-muted-foreground">{sourceLabel}</p>
 
-        <div className="table-shell">
-          <table>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Category</th>
-                <th>Base Price</th>
-                <th>Status</th>
-                <th>Sync</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedProducts.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="empty-row">
-                    No products matched the current filters.
-                  </td>
-                </tr>
-              ) : (
-                paginatedProducts.map((product) => (
-                  <tr key={product.id}>
-                    <td>
-                      <strong>{product.name}</strong>
-                      <span>{product.sku}</span>
-                    </td>
-                    <td>{product.category}</td>
-                    <td>{product.basePrice}</td>
-                    <td>
-                      <StatusPill
-                        label={product.status}
-                        tone={product.syncStatus === 'Live from WooCommerce' ? 'info' : 'neutral'}
-                      />
-                    </td>
-                    <td>{product.syncStatus}</td>
-                    <td>
-                      <Link to={`/products/${product.id}`} className="table-link">
-                        Open editor
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Product</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Base Price</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Sync</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedProducts.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="py-8 text-center text-sm text-muted-foreground"
+                >
+                  No products matched the current filters.
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedProducts.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell>
+                    <p className="font-medium">{product.name}</p>
+                    <p className="text-xs text-muted-foreground">{product.sku}</p>
+                  </TableCell>
+                  <TableCell>{product.category}</TableCell>
+                  <TableCell>{product.basePrice}</TableCell>
+                  <TableCell>
+                    <StatusPill
+                      label={product.status}
+                      tone={product.syncStatus === 'Live from WooCommerce' ? 'info' : 'neutral'}
+                    />
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {product.syncStatus}
+                  </TableCell>
+                  <TableCell>
+                    <Button asChild variant="link" size="sm">
+                      <Link to={`/products/${product.id}`}>Open editor</Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
 
-        <div className="pagination-row">
-          <span className="muted-copy">
-            Showing {visibleRangeStart}–{visibleRangeEnd} of {visibleProducts.length} filtered
-            products
+        {/* Pagination */}
+        <div className="mt-3 flex items-center justify-between gap-4">
+          <span className="text-sm text-muted-foreground">
+            Showing {visibleRangeStart}–{visibleRangeEnd} of {visibleProducts.length} products
           </span>
-          <div className="pagination-controls">
-            <button
-              type="button"
-              className="pagination-button"
+          <div className="flex gap-1">
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => setPage((v) => Math.max(1, v - 1))}
               disabled={currentPage === 1}
             >
-              <ChevronLeft className="button-icon" aria-hidden="true" />
-            </button>
+              <ChevronLeft />
+            </Button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
-              <button
+              <Button
                 key={pageNumber}
-                type="button"
-                className={
-                  currentPage === pageNumber
-                    ? 'pagination-button pagination-button-active'
-                    : 'pagination-button'
-                }
+                variant={currentPage === pageNumber ? 'default' : 'outline'}
+                size="icon"
                 onClick={() => setPage(pageNumber)}
               >
                 {pageNumber}
-              </button>
+              </Button>
             ))}
-            <button
-              type="button"
-              className="pagination-button"
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => setPage((v) => Math.min(totalPages, v + 1))}
               disabled={currentPage === totalPages}
             >
-              <ChevronRight className="button-icon" aria-hidden="true" />
-            </button>
+              <ChevronRight />
+            </Button>
           </div>
         </div>
       </SectionCard>

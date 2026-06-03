@@ -3,11 +3,11 @@ import { CalcBasis } from '@printforge/ui'
 import type { OptionItem, OptionsGroup } from '@printforge/ui'
 import type { ItemPayload } from '../../lib/services/items'
 import { BASIS_OPTIONS, BASIS_UNIT, basisNeedsLength, basisNeedsWidth } from '../../lib/options-meta'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@printforge/ui/components/ui/sheet'
+import { Button } from '@printforge/ui/components/ui/button'
+import { Input } from '@printforge/ui/components/ui/input'
+import { Label } from '@printforge/ui/components/ui/label'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@printforge/ui/components/ui/select'
 
 export type ItemFormData = ItemPayload & { groupId: string | null }
 
@@ -106,7 +106,7 @@ export function ItemSlideOver({ isOpen, item, groups, onClose, onSave }: Props) 
 
   return (
     <Sheet open={isOpen} onOpenChange={(o) => { if (!o) onClose() }}>
-      <SheetContent side="right" className="w-[420px] sm:max-w-[420px] p-0 gap-0 flex flex-col">
+      <SheetContent side="right" className="w-105 sm:max-w-105 p-0 gap-0 flex flex-col">
         <SheetHeader className="border-b px-4 py-3 shrink-0">
           <SheetTitle>{item ? item.name : 'New item'}</SheetTitle>
         </SheetHeader>

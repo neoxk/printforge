@@ -27,5 +27,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src", "../../packages/ui/src/components/ui/alert.tsx", "../../packages/ui/src/components/ui/avatar.tsx", "../../packages/ui/src/components/ui/dropdown-menu.tsx", "../../packages/ui/src/components/ui/progress.tsx", "../../packages/ui/src/components/ui/scroll-area.tsx", "../../packages/ui/src/components/ui/skeleton.tsx", "../../packages/ui/src/components/ui/tabs.tsx", "../../packages/ui/src/components/ui/tooltip.tsx"]
 }

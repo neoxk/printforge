@@ -1,9 +1,58 @@
 import { z } from 'zod'
 
 const containerTypeValues = ['SINGLE_SELECT', 'MULTI_SELECT', 'AUTO_APPLIED'] as const
+const designerSourceModeValues = ['template', 'upload', 'blank'] as const
+const zoneKeyValues = [
+  'physicalSize',
+  'cutArea',
+  'bleedArea',
+  'safeZone',
+  'allowedPrintArea',
+] as const
 
 export const productIdParam = z.object({ id: z.string() })
 export const wooProductIdParam = z.object({ wooProductId: z.string().regex(/^\d+$/) })
+
+const zoneRectSchema = z.object({
+  x: z.number().finite(),
+  y: z.number().finite(),
+  width: z.number().finite().nonnegative(),
+  height: z.number().finite().nonnegative(),
+  rotation: z.number().finite().optional(),
+})
+
+function createZoneFieldSchema(key: (typeof zoneKeyValues)[number]) {
+  return z.object({
+    key: z.literal(key),
+    label: z.string().min(1).max(120),
+    enabled: z.boolean(),
+    optional: z.boolean(),
+    rect: zoneRectSchema,
+  })
+}
+
+const zoneFieldMapSchema = z.object({
+  physicalSize: createZoneFieldSchema('physicalSize'),
+  cutArea: createZoneFieldSchema('cutArea'),
+  bleedArea: createZoneFieldSchema('bleedArea'),
+  safeZone: createZoneFieldSchema('safeZone'),
+  allowedPrintArea: createZoneFieldSchema('allowedPrintArea'),
+})
+
+const designerViewSchema = z.object({
+  id: z.string().min(1).max(120),
+  name: z.string().min(1).max(160),
+  sourceMode: z.enum(designerSourceModeValues),
+  templateId: z.string().min(1).max(120).nullable(),
+  mockupName: z.string().min(1).max(255).nullable(),
+  mockupSrc: z.string().min(1).nullable(),
+  mockupRect: zoneRectSchema.nullable(),
+  fields: zoneFieldMapSchema,
+})
+
+export const savePrintAreasBody = z.object({
+  views: z.array(designerViewSchema),
+})
 
 // ─── Containers ───────────────────────────────────────────────────────────────
 

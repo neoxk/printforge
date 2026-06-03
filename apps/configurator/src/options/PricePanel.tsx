@@ -47,7 +47,9 @@ export function PricePanel({ price, isLoading, error, basePrice, quantity }: Pro
           {error && <span className="price-error">{error}</span>}
         </span>
         <strong>
-          {displayTotalParts ? (
+          {isLoading ? (
+            'Calculating…'
+          ) : displayTotalParts ? (
             <>
               <span className="price-currency">{displayTotalParts.currency}</span>
               <span>{displayTotalParts.amount}</span>

@@ -4,11 +4,14 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./designer": "./src/designer/index.ts",
+    "./components/ui/*": "./src/components/ui/*.tsx",
     "./tailwind": "./tailwind.config.ts"
   },
   "dependencies": {
     "react": "^19.0.0",
     "react-router-dom": "^7.0.0",
+    "sonner": "^2.0.7",
     "zustand": "^5.0.0"
   },
   "devDependencies": {

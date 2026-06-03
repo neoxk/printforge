@@ -9,7 +9,6 @@ import { ProductDetailPage } from '../pages/ProductDetailPage'
 import { ProductsPage } from '../pages/ProductsPage'
 import { RegisterPage } from '../pages/RegisterPage'
 import { SettingsPage } from '../pages/SettingsPage'
-import { ValidationPage } from '../pages/ValidationPage'
 
 const routerBasename = import.meta.env.BASE_URL.replace(/\/+$/g, '') || '/'
 
@@ -57,7 +56,6 @@ function AppRoutes() {
         <Route path="products" element={<ProductsPage />} />
         <Route path="products/:productId" element={<ProductDetailPage />} />
         <Route path="pricing" element={<PricingPage />} />
-        <Route path="validation" element={<ValidationPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

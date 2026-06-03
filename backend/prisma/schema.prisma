@@ -119,10 +119,23 @@ model Product {
 
   connection IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   containers  OptionsContainer[]
+  printAreaConfig ProductPrintAreaConfig?
 
   @@unique([connectionId, wooProductId], name: "uq_synced_product_connection_woo_id")
   @@index([connectionId])
   @@map("synced_products")
+}
+
+model ProductPrintAreaConfig {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId String   @unique @map("product_id") @db.Uuid
+  views     Json     @map("views_json")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_print_area_configs")
 }
 
 

@@ -4,16 +4,16 @@ import { DragDropProvider } from '@dnd-kit/react'
 import { useSortable, isSortable } from '@dnd-kit/react/sortable'
 import { PointerSensor, PointerActivationConstraints } from '@dnd-kit/dom'
 import type { ProductRecord } from '@printforge/ui'
-import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent } from '@printforge/ui/components/ui/card'
+import { Button } from '@printforge/ui/components/ui/button'
+import { Input } from '@printforge/ui/components/ui/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@printforge/ui/components/ui/select'
 import { showError } from '@/lib/toast'
 import {
   containersReducer,
@@ -174,7 +174,7 @@ export function PricingAndOptionsTab({ product }: Props) {
   const { containers, items, isLoading } = containersState
 
   return (
-    <div className="page-stack">
+    <div className="flex flex-col gap-4">
       <ProductSettingsCard productId={product.id} />
 
       <Card>

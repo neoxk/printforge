@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AdminDesignerPage } from './designer/admin/AdminDesignerPage'
+import { UserDesignerPage } from './designer/UserDesignerPage'
 import { OptionsPage } from './options/OptionsPage'
 
 type Route = 'configurator' | 'options' | 'not-found'
@@ -14,6 +14,10 @@ function getRoute(pathname: string): Route {
   const path = normalizePath(pathname)
 
   if (path === BASE_PATH || path === `${BASE_PATH}/configurator`) {
+    return 'configurator'
+  }
+
+  if (path.startsWith(`${BASE_PATH}/configurator/`)) {
     return 'configurator'
   }
 
@@ -55,7 +59,7 @@ export function Router() {
   const route = useMemo(() => getRoute(pathname), [pathname])
 
   if (route === 'configurator') {
-    return <AdminDesignerPage />
+    return <UserDesignerPage />
   }
 
   if (route === 'options') {

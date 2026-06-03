@@ -4,12 +4,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+} from '@printforge/ui/components/ui/dialog'
+import { Button } from '@printforge/ui/components/ui/button'
 import { XIcon } from 'lucide-react'
-
-// TODO: replace with env variable or derive from deployment config
-const CONFIGURATOR_URL = 'http://localhost:5175'
+import { buildConfiguratorUrl } from '../../../lib/configuratorUrl'
 
 type Props = {
   productId: string
@@ -18,7 +16,7 @@ type Props = {
 }
 
 export function PreviewModal({ productId, isOpen, onClose }: Props) {
-  const src = `${CONFIGURATOR_URL}/${productId}`
+  const src = buildConfiguratorUrl(`/pf/options/${encodeURIComponent(productId)}`)
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>

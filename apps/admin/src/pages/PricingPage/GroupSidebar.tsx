@@ -1,10 +1,10 @@
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import type { OptionItem, OptionsGroup } from '@printforge/ui'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
+import { Button } from '@printforge/ui/components/ui/button'
+import { Input } from '@printforge/ui/components/ui/input'
+import { Badge } from '@printforge/ui/components/ui/badge'
+import { Separator } from '@printforge/ui/components/ui/separator'
 import { cn } from '@/lib/utils'
 
 type Props = {

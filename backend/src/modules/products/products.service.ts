@@ -25,6 +25,11 @@ type ProductConfigContainer = {
   }>
 }
 
+type ProductPrintAreasPayload = {
+  productId: string
+  views: unknown
+}
+
 export async function listProducts() {
   return listSyncedProducts()
 }
@@ -184,6 +189,42 @@ export async function updateProduct(
   }
 }
 
+export async function getProductPrintAreas(productId: string): Promise<ProductPrintAreasPayload> {
+  await requireProduct(productId)
+
+  const config = await prisma.productPrintAreaConfig.findUnique({
+    where: { productId },
+    select: { views: true },
+  })
+
+  return {
+    productId,
+    views: config?.views ?? [],
+  }
+}
+
+export async function saveProductPrintAreas(
+  productId: string,
+  data: { views: unknown },
+): Promise<ProductPrintAreasPayload> {
+  await requireProduct(productId)
+
+  const config = await prisma.productPrintAreaConfig.upsert({
+    where: { productId },
+    update: { views: data.views as never },
+    create: {
+      productId,
+      views: data.views as never,
+    },
+    select: { views: true },
+  })
+
+  return {
+    productId,
+    views: config.views,
+  }
+}
+
 // ─── Product Config ───────────────────────────────────────────────────────────
 
 export async function getProductConfig(productId: string) {
@@ -237,6 +278,23 @@ export async function getProductConfigByWooId(wooProductId: string) {
   if (!product) throw new NotFoundError('Product not found.')
 
   return getProductConfig(product.id)
+}
+
+export async function getProductPrintAreasByWooId(wooProductId: string) {
+  const connection = await getCurrentConnectionRecord()
+  const product = await prisma.product.findUnique({
+    where: {
+      uq_synced_product_connection_woo_id: {
+        connectionId: connection.id,
+        wooProductId: BigInt(wooProductId),
+      },
+    },
+    select: { id: true },
+  })
+
+  if (!product) throw new NotFoundError('Product not found.')
+
+  return getProductPrintAreas(product.id)
 }
 
 export async function patchContainerItem(
