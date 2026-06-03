@@ -13,6 +13,7 @@ services:
     volumes:
       - ../data/wordpress:/var/www/html
       - ../../plugins/printforge:/var/www/html/wp-content/plugins/printforge
+      - ../../plugins/printforge-configurator:/var/www/html/wp-content/plugins/printforge-configurator
     networks:
       - printforge
 

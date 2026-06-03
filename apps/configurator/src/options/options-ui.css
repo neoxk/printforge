@@ -217,6 +217,28 @@ body.cf-options-route .price-line {
   font-size: 13px;
 }
 
+body.cf-options-route .design-button {
+  justify-self: start;
+  min-height: 46px;
+  padding: 10px 28px;
+  border: 1px solid #0a66c2;
+  border-radius: 4px;
+  background: #0a66c2;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+body.cf-options-route .design-button:hover,
+body.cf-options-route .design-button:focus {
+  border-color: #084f97;
+  background: #084f97;
+  color: #fff;
+}
+
 @media (max-width: 420px) {
   body.cf-options-route .option-list {
     grid-template-columns: 1fr;
