@@ -1,6 +1,6 @@
 import { CheckCircle2, Globe, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { PageHeader, SectionCard, useAppAlerts } from '@printforge/ui'
+import { FieldGroup, PageHeader, PageStack, SectionCard, SectionStack, useAppAlerts } from '@printforge/ui'
 import type { IntegrationStatus } from '@printforge/ui'
 import { Button } from '@printforge/ui/components/ui/button'
 import { Input } from '@printforge/ui/components/ui/input'
@@ -120,7 +120,7 @@ export function SettingsPage() {
   )
 
   return (
-    <div className="flex flex-col gap-6">
+    <PageStack>
       <PageHeader
         eyebrow="WooCommerce"
         title="Integration"
@@ -139,9 +139,8 @@ export function SettingsPage() {
           description="These are the core values needed to connect PrintForge to any WooCommerce store."
           actions={<Globe className="size-4 text-primary" aria-hidden="true" />}
         >
-          <div className="grid gap-4">
-            <div className="grid gap-1.5">
-              <Label htmlFor="conn-name">Connection name</Label>
+          <SectionStack>
+            <FieldGroup label={<Label htmlFor="conn-name">Connection name</Label>}>
               <Input
                 id="conn-name"
                 type="text"
@@ -149,9 +148,8 @@ export function SettingsPage() {
                 onChange={(e) => updateSettings('connectionName', e.target.value)}
                 disabled={isLoading}
               />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="store-url">Store URL</Label>
+            </FieldGroup>
+            <FieldGroup label={<Label htmlFor="store-url">Store URL</Label>}>
               <Input
                 id="store-url"
                 type="url"
@@ -160,9 +158,8 @@ export function SettingsPage() {
                 onChange={(e) => updateSettings('storeUrl', e.target.value)}
                 disabled={isLoading}
               />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="api-base">{endpointFieldLabel}</Label>
+            </FieldGroup>
+            <FieldGroup label={<Label htmlFor="api-base">{endpointFieldLabel}</Label>}>
               <Input
                 id="api-base"
                 type="text"
@@ -171,9 +168,8 @@ export function SettingsPage() {
                 onChange={(e) => updateSettings('restApiBase', e.target.value)}
                 disabled={isLoading}
               />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Authentication method</Label>
+            </FieldGroup>
+            <FieldGroup label={<Label>Authentication method</Label>}>
               <Select
                 value={settings.authMethod}
                 onValueChange={(v) =>
@@ -191,11 +187,10 @@ export function SettingsPage() {
                   </SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </FieldGroup>
             {usesConsumerKeys && (
               <>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="consumer-key">Consumer key</Label>
+                <FieldGroup label={<Label htmlFor="consumer-key">Consumer key</Label>}>
                   <Input
                     id="consumer-key"
                     type="password"
@@ -203,9 +198,8 @@ export function SettingsPage() {
                     onChange={(e) => updateSettings('consumerKey', e.target.value)}
                     disabled={isLoading}
                   />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="consumer-secret">Consumer secret</Label>
+                </FieldGroup>
+                <FieldGroup label={<Label htmlFor="consumer-secret">Consumer secret</Label>}>
                   <Input
                     id="consumer-secret"
                     type="password"
@@ -213,11 +207,10 @@ export function SettingsPage() {
                     onChange={(e) => updateSettings('consumerSecret', e.target.value)}
                     disabled={isLoading}
                   />
-                </div>
+                </FieldGroup>
               </>
             )}
-            <div className="grid gap-1.5">
-              <Label htmlFor="sync-mode">Sync mode</Label>
+            <FieldGroup label={<Label htmlFor="sync-mode">Sync mode</Label>}>
               <Input
                 id="sync-mode"
                 type="text"
@@ -225,8 +218,8 @@ export function SettingsPage() {
                 onChange={(e) => updateSettings('mode', e.target.value)}
                 disabled={isLoading}
               />
-            </div>
-          </div>
+            </FieldGroup>
+          </SectionStack>
         </SectionCard>
 
         <SectionCard
@@ -287,6 +280,6 @@ export function SettingsPage() {
           ))}
         </div>
       </SectionCard>
-    </div>
+    </PageStack>
   )
 }

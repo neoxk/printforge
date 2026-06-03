@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css",
     "./designer": "./src/designer/index.ts",
     "./components/ui/*": "./src/components/ui/*.tsx",
     "./tailwind": "./tailwind.config.ts"

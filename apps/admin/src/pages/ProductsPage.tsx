@@ -13,7 +13,7 @@ import {
   useState,
 } from 'react'
 import { Link } from 'react-router-dom'
-import { PageHeader, SectionCard, StatusPill, useAppAlerts } from '@printforge/ui'
+import { PageHeader, PageStack, SectionCard, StatusPill, Toolbar, useAppAlerts } from '@printforge/ui'
 import type { IntegrationStatus, ProductRecord } from '@printforge/ui'
 import { Button } from '@printforge/ui/components/ui/button'
 import { Input } from '@printforge/ui/components/ui/input'
@@ -158,7 +158,7 @@ export function ProductsPage() {
       : Math.min(currentPage * PAGE_SIZE, visibleProducts.length)
 
   return (
-    <div className="flex flex-col gap-6">
+    <PageStack>
       <PageHeader
         eyebrow="Products"
         title="Product Management"
@@ -171,8 +171,7 @@ export function ProductsPage() {
         }
       />
 
-      {/* Toolbar */}
-      <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+      <Toolbar className="sm:items-end">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -215,7 +214,7 @@ export function ProductsPage() {
             </div>
           </PopoverContent>
         </Popover>
-      </div>
+      </Toolbar>
 
       <SectionCard
         title="Catalog"
@@ -273,7 +272,6 @@ export function ProductsPage() {
           </TableBody>
         </Table>
 
-        {/* Pagination */}
         <div className="mt-3 flex items-center justify-between gap-4">
           <span className="text-sm text-muted-foreground">
             Showing {visibleRangeStart}–{visibleRangeEnd} of {visibleProducts.length} products
@@ -308,6 +306,6 @@ export function ProductsPage() {
           </div>
         </div>
       </SectionCard>
-    </div>
+    </PageStack>
   )
 }
