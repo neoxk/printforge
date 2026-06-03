@@ -1,4 +1,3 @@
-import type { Prisma } from '@prisma/client'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import * as productsService from './products.service.js'
 
@@ -59,7 +58,7 @@ export async function saveProductPrintAreasHandler(
   reply: FastifyReply,
 ) {
   const { id } = req.params as { id: string }
-  const body = req.body as { views: Prisma.JsonValue }
+  const body = req.body as { views: unknown }
   return reply.send(await productsService.saveProductPrintAreas(id, body))
 }
 

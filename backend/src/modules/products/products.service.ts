@@ -1,4 +1,3 @@
-import type { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { NotFoundError, ConflictError } from '../../lib/errors.js'
 import { getCurrentConnectionRecord, listSyncedProducts } from '../integration/integration.service.js'
@@ -28,7 +27,7 @@ type ProductConfigContainer = {
 
 type ProductPrintAreasPayload = {
   productId: string
-  views: Prisma.JsonValue
+  views: unknown
 }
 
 export async function listProducts() {
@@ -206,16 +205,16 @@ export async function getProductPrintAreas(productId: string): Promise<ProductPr
 
 export async function saveProductPrintAreas(
   productId: string,
-  data: { views: Prisma.JsonValue },
+  data: { views: unknown },
 ): Promise<ProductPrintAreasPayload> {
   await requireProduct(productId)
 
   const config = await prisma.productPrintAreaConfig.upsert({
     where: { productId },
-    update: { views: data.views as Prisma.InputJsonValue },
+    update: { views: data.views as never },
     create: {
       productId,
-      views: data.views as Prisma.InputJsonValue,
+      views: data.views as never,
     },
     select: { views: true },
   })
