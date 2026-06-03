@@ -13,12 +13,15 @@ import {
   getSelectedItemIds,
   isValidProductId,
 } from './optionsConfig.js'
+import { getParentTargetOrigin } from './parentMessaging.js'
 import { PricePanel } from './PricePanel.js'
 import type { DimensionsState, SelectedByContainer } from './types.js'
 import { useIframeResize } from './useIframeResize.js'
 import { useParentConfigurationSync } from './useParentConfigurationSync.js'
 import { useParentQuantitySync } from './useParentQuantitySync.js'
 import './options-ui.css'
+
+const CONFIGURATOR_OPEN_MESSAGE_TYPE = 'printforge:configurator:open'
 
 function getOptionHeading(name: string): string {
   const normalizedName = name.trim()
@@ -144,6 +147,26 @@ export function OptionsPage() {
     }))
   }
 
+  function handleCustomizeDesign() {
+    if (!productId) return
+
+    if (window.parent === window) {
+      window.location.href = `/pf/configurator/${encodeURIComponent(productId)}`
+      return
+    }
+
+    const targetOrigin = getParentTargetOrigin()
+    if (!targetOrigin) return
+
+    window.parent.postMessage(
+      {
+        type: CONFIGURATOR_OPEN_MESSAGE_TYPE,
+        productId,
+      },
+      targetOrigin,
+    )
+  }
+
   if (isLoading) {
     return <main className="cf-loading">Loading product options...</main>
   }
@@ -186,6 +209,10 @@ export function OptionsPage() {
           basePrice={basePrice}
           quantity={Number(dimensions.quantity)}
         />
+
+        <button className="design-button" type="button" onClick={handleCustomizeDesign}>
+          Customize design
+        </button>
       </form>
     </main>
   )
