@@ -22,7 +22,7 @@ function ProtectedLayout() {
   return <AppShell />
 }
 
-function PublicOnlyRoute({ children }: { children: ReactElement }) {
+function PublicOnlyRoute({ children }: Readonly<{ children: ReactElement }>) {
   const { isAuthenticated } = useAuth()
 
   if (isAuthenticated) {

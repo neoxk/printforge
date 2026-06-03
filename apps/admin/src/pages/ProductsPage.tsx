@@ -35,24 +35,21 @@ import {
 
 const PAGE_SIZE = 8
 
-type FilterKey = 'category' | 'status' | 'sync'
+type FilterKey = 'category' | 'status'
 
 const FILTER_OPTIONS: Array<[FilterKey, string]> = [
   ['category', 'Category'],
   ['status', 'Status'],
-  ['sync', 'Sync status'],
 ]
 
 function getFilterLabel(key: FilterKey) {
-  if (key === 'category') return 'Category filter'
-  if (key === 'status') return 'Status filter'
-  return 'Sync status filter'
+  if (key === 'category') return 'Filter by category'
+  return 'Filter by status'
 }
 
 function matchesFilter(product: ProductRecord, key: FilterKey, value: string) {
-  if (key === 'category') return product.category.toLowerCase().includes(value)
-  if (key === 'status') return product.status.toLowerCase().includes(value)
-  return product.syncStatus.toLowerCase().includes(value)
+  if (key === 'category') return (product.category ?? '').toLowerCase().includes(value)
+  return (product.status ?? '').toLowerCase().includes(value)
 }
 
 export function ProductsPage() {
@@ -65,7 +62,7 @@ export function ProductsPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [page, setPage] = useState(1)
-  const [sourceLabel, setSourceLabel] = useState('Loading backend product catalog...')
+  const [isLoading, setIsLoading] = useState(true)
   const deferredSearch = useDeferredValue(search)
   const deferredFilterValue = useDeferredValue(filterValue)
 
@@ -78,18 +75,14 @@ export function ProductsPage() {
         ])
         setIntegration(integrationResponse)
         setProducts(productsResponse)
-        setSourceLabel(
-          productsResponse.length > 0
-            ? `${integrationResponse.connectionName} via backend sync storage. Last sync ${integrationResponse.lastSync}.`
-            : `No synced products found yet for ${integrationResponse.connectionName}.`,
-        )
       } catch (error) {
         setProducts([])
-        setSourceLabel('Backend products unavailable.')
         showError(
           error instanceof Error ? error.message : 'Unable to load products.',
           'Load failed',
         )
+      } finally {
+        setIsLoading(false)
       }
     }
     void loadProducts()
@@ -101,23 +94,17 @@ export function ProductsPage() {
       const result = await syncProductsRequest()
       startTransition(() => {
         setProducts(result.products)
-        setSourceLabel(
-          `${result.connectionName} via ${result.authMethod === 'public_store_api' ? 'public Store API' : 'WooCommerce REST API'}. Last synced ${result.syncedAt}.`,
-        )
       })
       if (integration) {
         setIntegration({ ...integration, lastSync: result.syncedAt, apiStatus: 'Healthy' })
       }
       showInfo(
-        `${result.products.length} products were synced from ${result.connectionName}.`,
+        `${result.products.length} products synced from ${result.connectionName}.`,
         'Sync complete',
       )
     } catch (error) {
-      setSourceLabel(
-        `Connection unavailable for ${integration?.connectionName ?? 'the configured store'}. Showing current cached data.`,
-      )
       showError(
-        error instanceof Error ? error.message : 'Unable to load WooCommerce products.',
+        error instanceof Error ? error.message : 'Unable to sync products.',
         'Sync failed',
       )
     } finally {
@@ -131,8 +118,8 @@ export function ProductsPage() {
     return products.filter((product) => {
       const matchesSearch =
         !normalizedSearch ||
-        product.name.toLowerCase().includes(normalizedSearch) ||
-        product.sku.toLowerCase().includes(normalizedSearch)
+        (product.name ?? '').toLowerCase().includes(normalizedSearch) ||
+        (product.sku ?? '').toLowerCase().includes(normalizedSearch)
       const matchesContextualFilter =
         !normalizedFilterValue || matchesFilter(product, selectedFilter, normalizedFilterValue)
       return matchesSearch && matchesContextualFilter
@@ -157,27 +144,31 @@ export function ProductsPage() {
       ? 0
       : Math.min(currentPage * PAGE_SIZE, visibleProducts.length)
 
+  const syncLabel = integration?.lastSync && integration.lastSync !== 'Not synced yet'
+    ? `Last synced ${integration.lastSync}`
+    : 'Not synced yet'
+
   return (
     <PageStack>
       <PageHeader
         eyebrow="Products"
-        title="Product Management"
-        description={`Products are loaded from backend sync storage until you run a manual sync for ${integration?.connectionName ?? 'the configured WooCommerce connection'}.`}
+        title="Products"
+        description={`Manage and configure your WooCommerce products. ${syncLabel}.`}
         actions={
           <Button onClick={() => void syncProducts()} disabled={isSyncing}>
             <RefreshCw className={isSyncing ? 'animate-spin' : ''} />
-            {isSyncing ? 'Syncing…' : 'Sync Products'}
+            {isSyncing ? 'Syncing…' : 'Sync products'}
           </Button>
         }
       />
 
-      <Toolbar className="sm:items-end">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Toolbar className="sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <Input
             type="search"
-            placeholder="Search products…"
-            className="pl-8"
+            placeholder="Search by name or SKU…"
+            className="w-full pl-8"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -188,16 +179,22 @@ export function ProductsPage() {
             <Button variant="outline">
               <Filter />
               Filter
+              {filterValue && (
+                <span className="ml-1 size-2 rounded-full bg-primary" />
+              )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-72 p-3" align="end">
+          <PopoverContent className="w-72" align="end">
             <div className="mb-3 flex gap-1">
               {FILTER_OPTIONS.map(([value, label]) => (
                 <Button
                   key={value}
                   variant={selectedFilter === value ? 'default' : 'ghost'}
                   size="sm"
-                  onClick={() => setSelectedFilter(value)}
+                  onClick={() => {
+                    setSelectedFilter(value)
+                    setFilterValue('')
+                  }}
                 >
                   {label}
                 </Button>
@@ -207,63 +204,68 @@ export function ProductsPage() {
               <Label>{getFilterLabel(selectedFilter)}</Label>
               <Input
                 type="text"
-                placeholder="Type a filter value…"
+                placeholder="Type to filter…"
                 value={filterValue}
                 onChange={(e) => setFilterValue(e.target.value)}
               />
             </div>
+            {filterValue && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2 w-full"
+                onClick={() => setFilterValue('')}
+              >
+                Clear filter
+              </Button>
+            )}
           </PopoverContent>
         </Popover>
       </Toolbar>
 
-      <SectionCard
-        title="Catalog"
-        description={`This admin catalog reads from the backend sync layer for ${integration?.storeUrl ?? 'the configured WooCommerce store'}.`}
-      >
-        <p className="mb-3 text-sm text-muted-foreground">{sourceLabel}</p>
-
+      <SectionCard title="Product catalog">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Product</TableHead>
+              <TableHead>Code</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead>Base Price</TableHead>
+              <TableHead>Base price</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Sync</TableHead>
-              <TableHead />
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedProducts.length === 0 ? (
+            {isLoading ? (
               <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="py-8 text-center text-sm text-muted-foreground"
-                >
-                  No products matched the current filters.
+                <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                  Loading products…
+                </TableCell>
+              </TableRow>
+            ) : paginatedProducts.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                  {products.length === 0
+                    ? 'No products synced yet. Use the Sync button to pull from WooCommerce.'
+                    : 'No products matched your search or filter.'}
                 </TableCell>
               </TableRow>
             ) : (
               paginatedProducts.map((product) => (
                 <TableRow key={product.id}>
-                  <TableCell>
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">{product.sku}</p>
-                  </TableCell>
-                  <TableCell>{product.category}</TableCell>
-                  <TableCell>{product.basePrice}</TableCell>
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">{product.sku}</TableCell>
+                  <TableCell>{product.category ?? '—'}</TableCell>
+                  <TableCell className="tabular-nums">{product.basePrice}</TableCell>
                   <TableCell>
                     <StatusPill
-                      label={product.status}
-                      tone={product.syncStatus === 'Live from WooCommerce' ? 'info' : 'neutral'}
+                      label={product.status ?? 'Unknown'}
+                      tone={product.status === 'publish' ? 'success' : 'neutral'}
                     />
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {product.syncStatus}
-                  </TableCell>
-                  <TableCell>
-                    <Button asChild variant="link" size="sm">
-                      <Link to={`/products/${product.id}`}>Open editor</Link>
+                  <TableCell className="text-right">
+                    <Button asChild variant="outline" size="sm">
+                      <Link to={`/products/${product.id}`}>Configure</Link>
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -272,9 +274,11 @@ export function ProductsPage() {
           </TableBody>
         </Table>
 
-        <div className="mt-3 flex items-center justify-between gap-4">
+        <div className="mt-3 flex items-center justify-between gap-4 border-t border-border/60 pt-3">
           <span className="text-sm text-muted-foreground">
-            Showing {visibleRangeStart}–{visibleRangeEnd} of {visibleProducts.length} products
+            {visibleProducts.length === 0
+              ? 'No results'
+              : `${visibleRangeStart}–${visibleRangeEnd} of ${visibleProducts.length} products`}
           </span>
           <div className="flex gap-1">
             <Button

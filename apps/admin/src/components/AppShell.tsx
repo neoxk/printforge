@@ -1,13 +1,19 @@
-import {
-  Gauge,
-  LogOut,
-  Package2,
-  Settings,
-  Sparkles,
-} from 'lucide-react'
+import { Gauge, LogOut, Package2, Settings, Sparkles } from 'lucide-react'
 import { useMemo } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../app/Auth'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@printforge/ui/components/ui/sidebar'
 
 const navigation = [
   { to: '/', label: 'Dashboard', icon: Gauge },
@@ -29,77 +35,73 @@ export function AppShell() {
   )
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col justify-between bg-[#1a1f2c]">
-        <div className="flex flex-col pt-7">
-          {/* Brand */}
-          <div className="flex items-center gap-3 px-5 mb-7">
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-[11px] font-bold tracking-widest text-white">
+    <SidebarProvider>
+      <Sidebar>
+        {/* Brand */}
+        <SidebarHeader className="px-5 pt-7 pb-6">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-[11px] font-bold tracking-widest text-sidebar-primary-foreground">
               PF
             </span>
             <div>
-              <p className="text-[15px] font-bold leading-tight tracking-tight text-white">
+              <p className="text-[15px] font-bold leading-tight tracking-tight text-sidebar-foreground">
                 PrintForge
               </p>
-              <p className="text-xs text-white/40 mt-0.5">Admin Suite</p>
+              <p className="text-xs text-sidebar-foreground/40 mt-0.5">Admin Suite</p>
             </div>
           </div>
+        </SidebarHeader>
 
-          {/* Nav */}
-          <nav className="flex flex-col gap-0.5 px-3" aria-label="Primary">
+        {/* Nav */}
+        <SidebarContent className="px-3">
+          <SidebarMenu>
             {navigation.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                className={({ isActive }) =>
-                  [
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150',
-                    isActive
-                      ? 'bg-primary text-white'
-                      : 'nav-inactive',
-                  ].join(' ')
-                }
-              >
-                {() => (
-                  <>
-                    <item.icon
-                      className="size-[1.05rem] shrink-0 transition-colors duration-150"
-                      aria-hidden="true"
-                    />
-                    <span>{item.label}</span>
-                  </>
-                )}
-              </NavLink>
+              <SidebarMenuItem key={item.to}>
+                <NavLink to={item.to} end={item.to === '/'}>
+                  {({ isActive }) => (
+                    <SidebarMenuButton isActive={isActive}>
+                      <item.icon className="size-[1.05rem] shrink-0" aria-hidden="true" />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  )}
+                </NavLink>
+              </SidebarMenuItem>
             ))}
-          </nav>
-        </div>
+          </SidebarMenu>
+        </SidebarContent>
 
-        {/* Footer */}
-        <div className="border-t border-white/[0.08] px-5 py-4">
+        {/* User footer */}
+        <SidebarFooter className="border-t border-sidebar-border px-5 py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">{user?.name}</p>
-              <p className="mt-0.5 truncate text-xs text-white/40">{user?.tenantName}</p>
+              <p className="truncate text-sm font-semibold text-sidebar-foreground">
+                {user?.name}
+              </p>
+              <p className="mt-0.5 truncate text-xs text-sidebar-foreground/40">
+                {user?.tenantName}
+              </p>
             </div>
             <button
               type="button"
               onClick={logout}
-              className="flex shrink-0 items-center gap-1.5 rounded-md p-1.5 text-xs text-white/40 transition-colors duration-150 hover:bg-white/[0.07] hover:text-white"
+              className="flex shrink-0 items-center gap-1.5 rounded-md p-1.5 text-sidebar-foreground/40 transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
               <LogOut className="size-4" aria-hidden="true" />
+              <span className="sr-only">Log out</span>
             </button>
           </div>
-        </div>
-      </aside>
+        </SidebarFooter>
+      </Sidebar>
 
       {/* Main workspace */}
-      <div className="ml-64 flex min-w-0 flex-1 flex-col bg-background">
-        <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-card/95 px-7 py-3.5 backdrop-blur">
-          <h2 className="text-sm font-semibold tracking-tight text-foreground">
-            Operations workspace
-          </h2>
+      <SidebarInset>
+        <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-card/95 px-6 py-3.5 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger className="md:hidden" />
+            <h2 className="text-sm font-semibold tracking-tight text-foreground">
+              Operations workspace
+            </h2>
+          </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span>{topbarDate}</span>
             <span className="h-3.5 w-px bg-border" aria-hidden="true" />
@@ -107,10 +109,10 @@ export function AppShell() {
           </div>
         </header>
 
-        <main className="flex-1 p-8 bg-background">
+        <main className="flex-1 p-8">
           <Outlet />
         </main>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

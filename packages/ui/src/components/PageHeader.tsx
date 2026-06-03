@@ -9,7 +9,7 @@ type PageHeaderProps = {
   className?: string
 }
 
-export function PageHeader({ eyebrow, title, description, actions, className }: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, description, actions, className }: Readonly<PageHeaderProps>) {
   return (
     <section className={cn('flex items-start justify-between gap-6 border-b border-border pb-5', className)}>
       <div className="space-y-1.5">

@@ -36,7 +36,7 @@ export function ViewInspectorCard({
   onFieldRectChange,
   onActivateDraw,
   onSave,
-}: ViewInspectorCardProps) {
+}: Readonly<ViewInspectorCardProps>) {
   return (
     <section className="rounded-2xl border border-border bg-card p-5">
       <header className="mb-4 flex items-start justify-between gap-4">

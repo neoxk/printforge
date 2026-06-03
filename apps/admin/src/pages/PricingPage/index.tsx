@@ -13,7 +13,7 @@ import { ItemSlideOver } from './ItemSlideOver'
 import type { ItemFormData } from './ItemSlideOver'
 
 export function PricingPage() {
-  const { showError } = useAppAlerts()
+  const { showError, showInfo } = useAppAlerts()
   const [state, dispatch] = useReducer(pricingReducer, initialPricingState)
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
   const [slideOver, setSlideOver] = useState<{ open: boolean; item: OptionItem | null }>({
@@ -37,8 +37,9 @@ export function PricingPage() {
     try {
       const group = await Groups.create(name)
       dispatch(PricingActions.GROUP_CREATED(group))
+      showInfo(`Group "${name}" created.`, 'Group created')
     } catch (err) {
-      showError(err instanceof Error ? err.message : 'Failed to create group.', 'Error')
+      showError(err instanceof Error ? err.message : 'Failed to create group.', 'Create failed')
     }
   }
 
@@ -46,8 +47,9 @@ export function PricingPage() {
     try {
       await Groups.rename(id, name)
       dispatch(PricingActions.GROUP_RENAMED(id, name))
+      showInfo(`Group renamed to "${name}".`, 'Group renamed')
     } catch (err) {
-      showError(err instanceof Error ? err.message : 'Failed to rename group.', 'Error')
+      showError(err instanceof Error ? err.message : 'Failed to rename group.', 'Rename failed')
     }
   }
 
@@ -56,8 +58,9 @@ export function PricingPage() {
       await Groups.delete(id)
       dispatch(PricingActions.GROUP_DELETED(id))
       if (selectedGroupId === id) setSelectedGroupId(null)
+      showInfo('Group deleted.', 'Group deleted')
     } catch (err) {
-      showError(err instanceof Error ? err.message : 'Failed to delete group.', 'Error')
+      showError(err instanceof Error ? err.message : 'Failed to delete group.', 'Delete failed')
     }
   }
 
@@ -88,6 +91,7 @@ export function PricingPage() {
         }
 
         dispatch(PricingActions.ITEM_UPDATED({ ...updated, groupId }))
+        showInfo(`"${data.name}" updated.`, 'Item saved')
       } else {
         const created = await Items.create(payload)
         dispatch(PricingActions.ITEM_CREATED(created))
@@ -96,10 +100,12 @@ export function PricingPage() {
           await Groups.addItem(groupId, created.id)
           dispatch(PricingActions.ITEM_MOVED(created.id, groupId))
         }
+
+        showInfo(`"${data.name}" added to the library.`, 'Item created')
       }
       closeSlideOver()
     } catch (err) {
-      showError(err instanceof Error ? err.message : 'Failed to save item.', 'Error')
+      showError(err instanceof Error ? err.message : 'Failed to save item.', 'Save failed')
       throw err
     }
   }
@@ -108,19 +114,21 @@ export function PricingPage() {
     try {
       await Items.delete(id)
       dispatch(PricingActions.ITEM_DELETED(id))
+      showInfo('Item removed from the library.', 'Item deleted')
     } catch (err) {
-      showError(err instanceof Error ? err.message : 'Failed to delete item.', 'Error')
+      showError(err instanceof Error ? err.message : 'Failed to delete item.', 'Delete failed')
     }
   }
 
   // ─── Derived state ────────────────────────────────────────────────────────
 
-  const visibleItems =
-    selectedGroupId === 'ungrouped'
-      ? state.items.filter((i) => i.groupId === null)
-      : selectedGroupId
-        ? state.items.filter((i) => i.groupId === selectedGroupId)
-        : state.items
+  let visibleItems = state.items
+
+  if (selectedGroupId === 'ungrouped') {
+    visibleItems = state.items.filter((i) => i.groupId === null)
+  } else if (selectedGroupId) {
+    visibleItems = state.items.filter((i) => i.groupId === selectedGroupId)
+  }
 
   return (
     <PageStack>

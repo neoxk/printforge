@@ -42,6 +42,31 @@ export function AdminDesignerPage() {
   const selectedView = views.find((view) => view.id === selectedViewId) ?? null
   const validation = selectedView ? validateDesignerView(selectedView) : null
 
+  function getSourceModeLabel(mode: string | undefined) {
+    switch (mode) {
+      case 'template':
+        return 'Template-based view'
+      case 'upload':
+        return 'Mockup-guided view'
+      default:
+        return 'Blank canvas view'
+    }
+  }
+
+  function getSourceModeIcon(mode: string | undefined) {
+    switch (mode) {
+      case 'template':
+        return <SquarePen className="size-4" aria-hidden="true" />
+      case 'upload':
+        return <ImagePlus className="size-4" aria-hidden="true" />
+      default:
+        return <Plus className="size-4" aria-hidden="true" />
+    }
+  }
+
+    const selectedViewSourceModeLabel = selectedView ? getSourceModeLabel(selectedView.sourceMode) : ''
+    const selectedViewSourceIcon = selectedView ? getSourceModeIcon(selectedView.sourceMode) : null
+
   const legendEntries = useMemo(
     () =>
       fieldOrder
@@ -245,22 +270,12 @@ export function AdminDesignerPage() {
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">{selectedView.name}</h2>
                   <p className="text-sm text-muted-foreground">
-                    {selectedView.sourceMode === 'template'
-                      ? 'Template-based view'
-                      : selectedView.sourceMode === 'upload'
-                        ? 'Mockup-guided view'
-                        : 'Blank canvas view'}
+                    {selectedViewSourceModeLabel}
                   </p>
                 </div>
                 <div className="flex gap-2.5">
                   <span className="inline-flex h-8 items-center gap-2 rounded-full border border-border bg-muted px-3 text-xs font-semibold text-muted-foreground">
-                    {selectedView.sourceMode === 'template' ? (
-                      <SquarePen className="size-4" aria-hidden="true" />
-                    ) : selectedView.sourceMode === 'upload' ? (
-                      <ImagePlus className="size-4" aria-hidden="true" />
-                    ) : (
-                      <Plus className="size-4" aria-hidden="true" />
-                    )}
+                    {selectedViewSourceIcon}
                     {selectedView.sourceMode}
                   </span>
                   <span className="inline-flex h-8 items-center rounded-full border border-border bg-muted px-3 text-xs font-semibold text-muted-foreground">
@@ -281,7 +296,7 @@ export function AdminDesignerPage() {
               />
             </>
           ) : (
-            <div className="flex min-h-[520px] flex-col justify-center">
+            <div className="flex min-h-130 flex-col justify-center">
               <h2 className="text-lg font-semibold text-foreground">
                 Choose how the next canvas starts
               </h2>

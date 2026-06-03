@@ -46,13 +46,13 @@ function fromItem(item: OptionItem) {
     slugTouched: true,
     calculationBasis: item.calculationBasis,
     priceUnit: String(item.priceUnit),
-    lengthMm: item.lengthMm !== null ? String(item.lengthMm) : '',
-    widthMm: item.widthMm !== null ? String(item.widthMm) : '',
+    lengthMm: item.lengthMm === null ? '' : String(item.lengthMm),
+    widthMm: item.widthMm === null ? '' : String(item.widthMm),
     groupId: item.groupId,
   }
 }
 
-export function ItemSlideOver({ isOpen, item, groups, onClose, onSave }: Props) {
+export function ItemSlideOver({ isOpen, item, groups, onClose, onSave }: Readonly<Props>) {
   const [form, setForm] = useState(blank)
   const [saving, setSaving] = useState(false)
 
@@ -75,10 +75,10 @@ export function ItemSlideOver({ isOpen, item, groups, onClose, onSave }: Props) 
     }))
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const priceUnitNum = parseFloat(form.priceUnit)
-    if (isNaN(priceUnitNum) || priceUnitNum < 0) return
+    const priceUnitNum = Number.parseFloat(form.priceUnit)
+    if (Number.isNaN(priceUnitNum) || priceUnitNum < 0) return
 
     const needsLength = basisNeedsLength(form.calculationBasis)
     const needsWidth = basisNeedsWidth(form.calculationBasis)
@@ -88,8 +88,8 @@ export function ItemSlideOver({ isOpen, item, groups, onClose, onSave }: Props) 
       slug: form.slug.trim(),
       priceUnit: priceUnitNum,
       calculationBasis: form.calculationBasis,
-      lengthMm: needsLength && form.lengthMm !== '' ? parseInt(form.lengthMm, 10) : null,
-      widthMm: needsWidth && form.widthMm !== '' ? parseInt(form.widthMm, 10) : null,
+      lengthMm: needsLength && form.lengthMm !== '' ? Number.parseInt(form.lengthMm, 10) : null,
+      widthMm: needsWidth && form.widthMm !== '' ? Number.parseInt(form.widthMm, 10) : null,
       groupId: form.groupId,
     }
 
@@ -103,6 +103,10 @@ export function ItemSlideOver({ isOpen, item, groups, onClose, onSave }: Props) 
 
   const needsLength = basisNeedsLength(form.calculationBasis)
   const needsWidth = basisNeedsWidth(form.calculationBasis)
+
+  let submitLabel = 'Create item'
+  if (saving) submitLabel = 'Saving…'
+  else if (item) submitLabel = 'Save changes'
 
   return (
     <Sheet open={isOpen} onOpenChange={(o) => { if (!o) onClose() }}>
@@ -143,7 +147,7 @@ export function ItemSlideOver({ isOpen, item, groups, onClose, onSave }: Props) 
                 value={form.calculationBasis}
                 onValueChange={(v) => set('calculationBasis', v as CalcBasis)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -214,7 +218,7 @@ export function ItemSlideOver({ isOpen, item, groups, onClose, onSave }: Props) 
                 value={form.groupId ?? '__none__'}
                 onValueChange={(v) => set('groupId', v === '__none__' ? null : v)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -232,7 +236,7 @@ export function ItemSlideOver({ isOpen, item, groups, onClose, onSave }: Props) 
               Cancel
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? 'Saving…' : item ? 'Save changes' : 'Create item'}
+              {submitLabel}
             </Button>
           </SheetFooter>
         </form>

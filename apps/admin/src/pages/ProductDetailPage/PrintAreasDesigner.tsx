@@ -698,7 +698,7 @@ function FabricPrintAreaCanvas({
         originX: pan.x,
         originY: pan.y,
       }
-      wrapper.setPointerCapture(event.pointerId)
+      wrapper!.setPointerCapture(event.pointerId)
     }
 
     function handlePointerMove(event: PointerEvent) {
@@ -712,7 +712,7 @@ function FabricPrintAreaCanvas({
     function handlePointerUp(event: PointerEvent) {
       if (!panStateRef.current) return
       panStateRef.current = null
-      wrapper.releasePointerCapture(event.pointerId)
+      wrapper!.releasePointerCapture(event.pointerId)
     }
 
     function handleWheel(event: WheelEvent) {
@@ -743,12 +743,18 @@ function FabricPrintAreaCanvas({
     }
   }, [activeTool, onPanChange, onZoomChange, pan.x, pan.y, zoom])
 
+  const statusMessage = activeTool === 'draw'
+    ? `Drawing ${activeDrawTarget ? view.fields[activeDrawTarget].label : 'zone'} directly on the canvas.`
+    : activeTool === 'pan'
+      ? 'Hand tool active. Drag to pan. Use Ctrl + wheel to zoom.'
+      : 'Select a guide once to move, resize, or rotate it. Use Ctrl + wheel to zoom.'
+
   return (
     <div className="flex flex-1 flex-col gap-3">
       <div
         ref={wrapperRef}
         className={cn(
-          'relative min-h-[640px] overflow-hidden rounded-2xl border border-border',
+          'relative min-h-160 overflow-hidden rounded-2xl border border-border',
           activeTool === 'pan' && 'cursor-grab',
         )}
         style={VIEWPORT_BG}
@@ -768,7 +774,7 @@ function FabricPrintAreaCanvas({
                 onClick={() => onSelectedZoneKeyChange(key)}
               >
                 <span
-                  className="h-4 w-4 rounded-[4px]"
+                  className="h-4 w-4 rounded-lg"
                   style={ZONE_SWATCH_STYLE[key] ?? {}}
                 />
                 <span>{fieldLabel(key)}</span>
@@ -778,17 +784,11 @@ function FabricPrintAreaCanvas({
       </div>
 
       <p className="text-[13px] text-muted-foreground">
-        {activeTool === 'draw'
-          ? `Drawing ${activeDrawTarget ? view.fields[activeDrawTarget].label : 'zone'} directly on the canvas.`
-          : activeTool === 'pan'
-            ? 'Hand tool active. Drag to pan. Use Ctrl + wheel to zoom.'
-            : 'Select a guide once to move, resize, or rotate it. Use Ctrl + wheel to zoom.'}
+        {statusMessage}
       </p>
     </div>
   )
 }
-
-// ─── Shared chip/pill styles ──────────────────────────────────────────────────
 
 const CHIP_BASE =
   'inline-flex cursor-pointer items-center gap-2 rounded-[10px] border px-3.5 py-2 text-sm transition-colors'
@@ -802,9 +802,7 @@ const TILE_BASE = 'grid cursor-pointer gap-2 rounded-xl border p-3.5 text-left t
 const TILE_INACTIVE = 'border-border bg-white text-foreground hover:border-primary'
 const TILE_ACTIVE = 'border-primary bg-[#eef4ff] text-[#001849]'
 
-// ─── Main designer component ──────────────────────────────────────────────────
-
-export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview }: Props) {
+export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview }: Readonly<Props>) {
   const {
     views,
     selectedViewId,
@@ -1347,7 +1345,7 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
               }}
             />
           ) : (
-            <div className="flex min-h-[520px] flex-col justify-center">
+            <div className="flex min-h-130 flex-col justify-center">
               <div className="mt-7 grid grid-cols-3 gap-4">
                 <article className="rounded-xl border border-border bg-white p-4">
                   <h3 className="mb-2 text-sm font-semibold text-foreground">

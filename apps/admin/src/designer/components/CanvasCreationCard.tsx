@@ -14,20 +14,24 @@ import {
 } from '@printforge/ui/components/ui/select'
 
 type CanvasCreationCardProps = {
-  draft: CreateViewDraft
-  templates: TemplatePreset[]
-  views: DesignerView[]
-  selectedViewId: string | null
-  onDraftChange: Dispatch<SetStateAction<CreateViewDraft>>
-  onSelectView: (viewId: string) => void
-  onCreateView: () => void
+  readonly draft: CreateViewDraft
+  readonly templates: TemplatePreset[]
+  readonly views: DesignerView[]
+  readonly selectedViewId: string | null
+  readonly onDraftChange: Dispatch<SetStateAction<CreateViewDraft>>
+  readonly onSelectView: (viewId: string) => void
+  readonly onCreateView: () => void
 }
 
 async function readMockupFile(file: File) {
   return await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result ?? ''))
-    reader.onerror = () => reject(reader.error)
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result === 'string') resolve(result)
+      else resolve('')
+    }
+    reader.onerror = () => reject(new Error(reader.error?.message ?? 'Failed to read file'))
     reader.readAsDataURL(file)
   })
 }

@@ -5,7 +5,7 @@ function resolveConfiguratorOrigin() {
     return configuredOrigin.replace(/\/+$/g, '')
   }
 
-  const currentUrl = new URL(window.location.href)
+  const currentUrl = new URL(globalThis.location.href)
 
   if (currentUrl.port === '5173') {
     currentUrl.port = '5174'

@@ -28,16 +28,12 @@ export type AuthSession = {
 
 export type ProductRecord = {
   id: string
+  wooProductId: string
   name: string
   category: string
   status: string
-  syncStatus: string
   sku: string
-  material: string
-  printArea: string
-  template: string
   basePrice: string
-  updatedAt: string
 }
 
 export type SyncProductsResponse = {

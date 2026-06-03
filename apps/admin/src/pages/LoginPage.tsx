@@ -15,31 +15,38 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  function validate(): string | null {
+    if (!email.trim()) return 'Please enter your email address.'
+    if (!password) return 'Please enter your password.'
+    return null
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const error = validate()
+    if (error) {
+      showError(error, 'Missing field')
+      return
+    }
     setIsSubmitting(true)
     try {
       await login(email, password)
       navigate('/')
     } catch (error) {
-      showError(error instanceof Error ? error.message : 'Unable to sign in.', 'Sign-in failed')
+      showError(
+        error instanceof Error ? error.message : 'Invalid email or password.',
+        'Sign-in failed',
+      )
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div
-      className="flex min-h-screen items-center justify-center px-4 py-12"
-      style={{
-        backgroundImage:
-          'linear-gradient(to right, #dbe4f0 1px, transparent 1px), linear-gradient(to bottom, #dbe4f0 1px, transparent 1px)',
-        backgroundSize: '40px 40px',
-      }}
-    >
+    <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <Card className="w-full max-w-[34rem] border-t-4 border-t-primary">
         <CardContent className="grid gap-6 p-8">
-          <div className="space-y-1">
+          <div className="space-y-1 text-center">
             <h1 className="text-4xl font-extrabold tracking-tight">PrintForge</h1>
             <h2 className="text-xl font-semibold">Sign In</h2>
             <p className="text-sm text-muted-foreground">
@@ -47,7 +54,7 @@ export function LoginPage() {
             </p>
           </div>
 
-          <form className="grid gap-4" onSubmit={handleSubmit}>
+          <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
             <div className="grid gap-1.5">
               <Label htmlFor="email">Email Address</Label>
               <Input
@@ -55,6 +62,7 @@ export function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 required
               />
             </div>
@@ -65,17 +73,18 @@ export function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 required
               />
             </div>
             <Button type="submit" className="mt-1 w-full" size="lg" disabled={isSubmitting}>
-              {isSubmitting ? 'Signing in…' : 'Login'}
+              {isSubmitting ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
             Need a workspace?{' '}
-            <Link to="/register" className="font-medium text-primary hover:underline">
+            <Link to="/register" className="font-semibold text-primary hover:underline">
               Create a tenant account
             </Link>
           </p>

@@ -7,7 +7,7 @@ const toneClass: Record<InlineAlert['tone'], string> = {
   info: 'text-primary',
 }
 
-function InlineAlertIcon({ tone }: { tone: InlineAlert['tone'] }) {
+function InlineAlertIcon({ tone }: Readonly<{ tone: InlineAlert['tone'] }>) {
   if (tone === 'error') {
     return (
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="size-4 shrink-0">
@@ -47,7 +47,7 @@ function InlineAlertIcon({ tone }: { tone: InlineAlert['tone'] }) {
   )
 }
 
-export function InlineZoneAlerts({ alerts }: { alerts: InlineAlert[] }) {
+export function InlineZoneAlerts({ alerts }: Readonly<{ alerts: InlineAlert[] }>) {
   if (alerts.length === 0) {
     return null
   }

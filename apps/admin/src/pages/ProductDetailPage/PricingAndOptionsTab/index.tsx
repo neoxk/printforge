@@ -4,7 +4,7 @@ import { DragDropProvider } from '@dnd-kit/react'
 import { useSortable, isSortable } from '@dnd-kit/react/sortable'
 import { PointerSensor, PointerActivationConstraints } from '@dnd-kit/dom'
 import type { ProductRecord } from '@printforge/ui'
-import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent } from '@printforge/ui/components/ui/card'
+import { SectionCard } from '@printforge/ui'
 import { Button } from '@printforge/ui/components/ui/button'
 import { Input } from '@printforge/ui/components/ui/input'
 import {
@@ -174,16 +174,14 @@ export function PricingAndOptionsTab({ product }: Props) {
   const { containers, items, isLoading } = containersState
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <ProductSettingsCard productId={product.id} />
 
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>Options & Pricing</CardTitle>
-            <CardDescription>Build the options and pricing structure for this product</CardDescription>
-          </div>
-          <CardAction className="flex items-center gap-2">
+      <SectionCard
+        title="Options & Pricing"
+        description="Build the options and pricing structure for this product"
+        actions={
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
@@ -202,10 +200,10 @@ export function PricingAndOptionsTab({ product }: Props) {
               <Plus className="size-4" aria-hidden="true" />
               Add container
             </Button>
-          </CardAction>
-        </CardHeader>
-
-        <CardContent className="flex flex-col gap-3">
+          </div>
+        }
+        contentClassName="flex flex-col gap-3"
+      >
           {isAddingContainer && (
             <div className="flex gap-2 items-center">
               <Input
@@ -291,8 +289,7 @@ export function PricingAndOptionsTab({ product }: Props) {
               </div>
             </DragDropProvider>
           )}
-        </CardContent>
-      </Card>
+      </SectionCard>
 
       <PreviewModal
         productId={product.id}

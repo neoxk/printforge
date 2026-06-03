@@ -25,7 +25,7 @@ export function GroupSidebar({
   onCreate,
   onRename,
   onDelete,
-}: Props) {
+}: Readonly<Props>) {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [isAdding, setIsAdding] = useState(false)
@@ -83,7 +83,7 @@ export function GroupSidebar({
             <span className="flex-1 truncate text-left">All items</span>
             <Badge
               variant="secondary"
-              className={cn('ml-auto text-xs min-w-[1.5rem] justify-center rounded-full font-normal', selectedGroupId === null && 'bg-primary/20 text-primary')}
+              className={cn('ml-auto text-xs min-w-6 justify-center rounded-full font-normal', selectedGroupId === null && 'bg-primary/20 text-primary')}
             >
               {items.length}
             </Badge>
@@ -123,7 +123,7 @@ export function GroupSidebar({
                   <span className="flex-1 truncate">{group.name}</span>
                   <Badge
                     variant="secondary"
-                    className={cn('text-xs min-w-[1.5rem] justify-center rounded-full font-normal', selectedGroupId === group.id && 'bg-primary/20 text-primary')}
+                    className={cn('text-xs min-w-6 justify-center rounded-full font-normal', selectedGroupId === group.id && 'bg-primary/20 text-primary')}
                   >
                     {items.filter((i) => i.groupId === group.id).length}
                   </Badge>
@@ -188,7 +188,7 @@ export function GroupSidebar({
             <span className="flex-1 truncate text-left">Ungrouped</span>
             <Badge
               variant="secondary"
-              className={cn('ml-auto text-xs min-w-[1.5rem] justify-center rounded-full font-normal', selectedGroupId === 'ungrouped' && 'bg-primary/20 text-primary')}
+              className={cn('ml-auto text-xs min-w-6 justify-center rounded-full font-normal', selectedGroupId === 'ungrouped' && 'bg-primary/20 text-primary')}
             >
               {ungroupedCount}
             </Badge>

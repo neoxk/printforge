@@ -26,8 +26,22 @@ export function RegisterPage() {
     setFormState((current) => ({ ...current, [field]: value }))
   }
 
+  function validate(): string | null {
+    if (!formState.name.trim()) return 'Please enter your name.'
+    if (!formState.email.trim()) return 'Please enter your email address.'
+    if (formState.password.length < 8)
+      return 'Password must be at least 8 characters.'
+    if (!formState.companyName.trim()) return 'Please enter your company name.'
+    return null
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const error = validate()
+    if (error) {
+      showError(error, 'Missing or invalid field')
+      return
+    }
     setIsSubmitting(true)
     try {
       await register(formState)
@@ -43,17 +57,10 @@ export function RegisterPage() {
   }
 
   return (
-    <div
-      className="flex min-h-screen items-center justify-center px-4 py-12"
-      style={{
-        backgroundImage:
-          'linear-gradient(to right, #dbe4f0 1px, transparent 1px), linear-gradient(to bottom, #dbe4f0 1px, transparent 1px)',
-        backgroundSize: '40px 40px',
-      }}
-    >
+    <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <Card className="w-full max-w-[34rem] border-t-4 border-t-primary">
         <CardContent className="grid gap-6 p-8">
-          <div className="space-y-1">
+          <div className="space-y-1 text-center">
             <h1 className="text-4xl font-extrabold tracking-tight">PrintForge</h1>
             <h2 className="text-xl font-semibold">Create Workspace</h2>
             <p className="text-sm text-muted-foreground">
@@ -61,14 +68,15 @@ export function RegisterPage() {
             </p>
           </div>
 
-          <form className="grid gap-4" onSubmit={handleSubmit}>
+          <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
             <div className="grid gap-1.5">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Full name</Label>
               <Input
                 id="name"
                 type="text"
                 value={formState.name}
                 onChange={(e) => handleChange('name', e.target.value)}
+                autoComplete="name"
                 required
               />
             </div>
@@ -79,6 +87,7 @@ export function RegisterPage() {
                 type="email"
                 value={formState.email}
                 onChange={(e) => handleChange('email', e.target.value)}
+                autoComplete="email"
                 required
               />
             </div>
@@ -89,8 +98,11 @@ export function RegisterPage() {
                 type="password"
                 value={formState.password}
                 onChange={(e) => handleChange('password', e.target.value)}
+                autoComplete="new-password"
+                minLength={8}
                 required
               />
+              <p className="text-xs text-muted-foreground">Must be at least 8 characters.</p>
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="company">Printing company</Label>
@@ -109,7 +121,7 @@ export function RegisterPage() {
 
           <p className="text-center text-sm text-muted-foreground">
             Already have access?{' '}
-            <Link to="/login" className="font-medium text-primary hover:underline">
+            <Link to="/login" className="font-semibold text-primary hover:underline">
               Return to sign in
             </Link>
           </p>

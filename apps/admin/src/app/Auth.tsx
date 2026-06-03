@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type PropsWithChildren,
 } from 'react'
@@ -26,26 +27,29 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-export function AuthProvider({ children }: PropsWithChildren) {
+export function AuthProvider({ children }: Readonly<PropsWithChildren>) {
   const [session, setSession] = useState<AuthSession | null>(() => readStoredSession())
 
   useEffect(() => {
     writeStoredSession(session)
   }, [session])
 
-  const value: AuthContextValue = {
-    isAuthenticated: Boolean(session?.accessToken),
-    user: session?.user ?? null,
-    login: async (email, password) => {
-      const nextSession = await loginRequest(email, password)
-      setSession(nextSession)
-    },
-    register: async (payload) => {
-      const nextSession = await registerRequest(payload)
-      setSession(nextSession)
-    },
-    logout: () => setSession(null),
-  }
+  const value: AuthContextValue = useMemo(
+    () => ({
+      isAuthenticated: Boolean(session?.accessToken),
+      user: session?.user ?? null,
+      login: async (email, password) => {
+        const nextSession = await loginRequest(email, password)
+        setSession(nextSession)
+      },
+      register: async (payload) => {
+        const nextSession = await registerRequest(payload)
+        setSession(nextSession)
+      },
+      logout: () => setSession(null),
+    }),
+    [session]
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

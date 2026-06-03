@@ -114,9 +114,8 @@ export function DashboardPage() {
     <PageStack>
       <PageHeader
         eyebrow="Overview"
-        title="Dashboard Overview"
-        description="Synced product setup, pricing library overview, and WooCommerce readiness."
-        className="mt-2 mb-1"
+        title="Dashboard"
+        description="Synced products, pricing library, and WooCommerce connection at a glance."
       />
 
       <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -159,28 +158,23 @@ export function DashboardPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
-                  <TableHead>SKU</TableHead>
+                  <TableHead>Code</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Base price</TableHead>
-                  <TableHead>Sync status</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.slice(0, 4).map((product) => (
+                {products.slice(0, 5).map((product) => (
                   <TableRow key={product.id}>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <span className="font-medium text-foreground">{product.name}</span>
-                        <span className="text-xs text-muted-foreground">Backend catalog record</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium text-foreground/80">{product.sku}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell className="font-medium">{product.basePrice}</TableCell>
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">{product.sku}</TableCell>
+                    <TableCell>{product.category ?? '—'}</TableCell>
+                    <TableCell className="tabular-nums">{product.basePrice}</TableCell>
                     <TableCell>
                       <StatusPill
-                        label={product.syncStatus}
-                        tone={product.syncStatus === 'Live from WooCommerce' ? 'info' : 'neutral'}
+                        label={product.status ?? 'Unknown'}
+                        tone={product.status === 'publish' ? 'success' : 'neutral'}
                       />
                     </TableCell>
                   </TableRow>
@@ -227,11 +221,11 @@ export function DashboardPage() {
                   {integration?.connectionName ?? 'Not configured yet'}
                 </strong>
               </div>
-              <div className="pt-4">
+              <div className="flex justify-end pt-4">
                 <Button asChild variant="link" size="sm" className="gap-1.5">
                   <Link to="/settings">
-                    <History className="size-4" />
                     Review integration
+                    <History className="size-4" />
                   </Link>
                 </Button>
               </div>
@@ -261,30 +255,6 @@ export function DashboardPage() {
         </SectionStack>
       </section>
 
-      <SectionCard
-        title="Sync overview"
-        description="Backend persistence now feeds the admin overview instead of browser-only local storage."
-        contentClassName="pt-4"
-      >
-        <div className="grid gap-x-8 gap-y-1 md:grid-cols-2 xl:grid-cols-4">
-          {[
-            { label: 'Storage mode', value: 'PostgreSQL via Fastify API' },
-            { label: 'Current store', value: integration?.storeUrl ?? 'Not configured yet' },
-            { label: 'Cached products', value: String(products.length) },
-            {
-              label: 'Source',
-              value: integration ? 'Backend sync store' : 'Backend data unavailable',
-            },
-          ].map(({ label, value }) => (
-            <div key={label} className="grid gap-1 border-b border-border/70 py-3 xl:border-b-0 xl:border-l xl:border-border/70 xl:pl-6 first:xl:border-l-0 first:xl:pl-0">
-              <span className="text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                {label}
-              </span>
-              <strong className="text-sm font-medium">{value}</strong>
-            </div>
-          ))}
-        </div>
-      </SectionCard>
     </PageStack>
   )
 }

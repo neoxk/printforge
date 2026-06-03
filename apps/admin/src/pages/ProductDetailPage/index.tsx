@@ -50,13 +50,13 @@ export function ProductDetailPage() {
           setSelectedPrintAreaViewId(nextViews[0]?.id ?? null)
           setPrintAreaStatusMessage(
             nextViews.length > 0
-              ? 'Loaded print area configuration from the backend.'
+              ? 'Print areas loaded.'
               : 'Create a view to start defining print zones.',
           )
         } catch (error) {
           setPrintAreaViews([])
           setSelectedPrintAreaViewId(null)
-          setPrintAreaStatusMessage('Unable to load saved print areas from the backend.')
+          setPrintAreaStatusMessage('Unable to load print areas.')
           showError(
             error instanceof Error ? error.message : 'Failed to load print area configuration.',
             'Print areas load failed',
@@ -86,8 +86,8 @@ export function ProductDetailPage() {
       setSelectedPrintAreaViewId((current) =>
         nextViews.some((view) => view.id === current) ? current : (nextViews[0]?.id ?? null),
       )
-      setPrintAreaStatusMessage('Print area configuration saved to the backend.')
-      showInfo('The print area configuration is now stored in the backend.', 'Print areas saved')
+      setPrintAreaStatusMessage('Print areas saved.')
+      showInfo('Print area configuration saved.', 'Print areas saved')
     } catch (error) {
       setPrintAreaStatusMessage('Unable to save print area configuration.')
       showError(
@@ -114,10 +114,10 @@ export function ProductDetailPage() {
       setSelectedPrintAreaViewId((current) =>
         nextViews.some((view) => view.id === current) ? current : (nextViews[0]?.id ?? null),
       )
-      setPrintAreaStatusMessage('Opening the end-user preview using the saved backend configuration.')
+      setPrintAreaStatusMessage('Opening preview…')
       setIsPrintAreasPreviewOpen(true)
     } catch (error) {
-      setPrintAreaStatusMessage('Unable to open the preview because saving failed.')
+      setPrintAreaStatusMessage('Preview failed — print areas could not be saved.')
       showError(
         error instanceof Error ? error.message : 'Failed to save print area configuration.',
         'Preview failed',
@@ -136,7 +136,7 @@ export function ProductDetailPage() {
         <PageHeader
           eyebrow="Product Editor"
           title="Loading product"
-          description="Fetching the product configuration from the backend."
+          description="Fetching product details…"
         />
       </PageStack>
     )

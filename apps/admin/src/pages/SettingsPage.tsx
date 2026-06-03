@@ -1,4 +1,4 @@
-import { CheckCircle2, Globe, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react'
+import { Globe, RefreshCw, ShieldCheck } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { FieldGroup, PageHeader, PageStack, SectionCard, SectionStack, useAppAlerts } from '@printforge/ui'
 import type { IntegrationStatus } from '@printforge/ui'
@@ -30,29 +30,6 @@ const emptyIntegration: IntegrationStatus = {
   importVariations: true,
 }
 
-const connectionChecklist = [
-  {
-    label: 'Store base URL',
-    value: 'The public store root, for example https://example.com',
-  },
-  {
-    label: 'WooCommerce REST credentials',
-    value: 'A consumer key and consumer secret generated in WooCommerce with read permissions.',
-  },
-  {
-    label: 'REST API endpoint',
-    value: 'PrintForge should call /wp-json/wc/v3 through the backend, not directly from the browser.',
-  },
-  {
-    label: 'Sync scope',
-    value: 'Choose whether to import products, attributes, and variations from the connected store.',
-  },
-  {
-    label: 'Connection test',
-    value: 'The backend should validate API access, permissions, SSL, and endpoint reachability before first sync.',
-  },
-]
-
 export function SettingsPage() {
   const { showError, showInfo } = useAppAlerts()
   const [settings, setSettings] = useState<IntegrationStatus>(emptyIntegration)
@@ -75,7 +52,7 @@ export function SettingsPage() {
       } catch (error) {
         showError(
           error instanceof Error ? error.message : 'Unable to load integration.',
-          'Integration load failed',
+          'Load failed',
         )
       } finally {
         setIsLoading(false)
@@ -94,7 +71,7 @@ export function SettingsPage() {
       const nextSettings = await saveIntegrationRequest(settings)
       setSettings(nextSettings)
       setSavedAtLabel(nextSettings.lastSync)
-      showInfo('WooCommerce connection settings were saved.', 'Connection saved')
+      showInfo('Connection settings saved.', 'Saved')
     } catch (error) {
       showError(
         error instanceof Error ? error.message : 'Unable to save connection.',
@@ -107,14 +84,14 @@ export function SettingsPage() {
 
   const statusRows = useMemo(
     () => [
-      { label: 'Saved connection', value: settings.connectionName || 'Not configured yet' },
+      { label: 'Connection name', value: settings.connectionName || 'Not configured' },
       {
         label: 'Authentication',
-        value: usesConsumerKeys ? 'WooCommerce consumer key / secret' : 'Public Store API',
+        value: usesConsumerKeys ? 'Consumer key / secret' : 'Public Store API',
       },
       { label: 'API status', value: settings.apiStatus },
-      { label: 'Last saved', value: savedAtLabel },
-      { label: 'Current endpoint', value: settings.restApiBase || 'No endpoint configured yet' },
+      { label: 'Last synced', value: savedAtLabel },
+      { label: 'Endpoint', value: settings.restApiBase || 'Not configured' },
     ],
     [settings, savedAtLabel, usesConsumerKeys],
   )
@@ -124,7 +101,7 @@ export function SettingsPage() {
       <PageHeader
         eyebrow="WooCommerce"
         title="Integration"
-        description="Configure the WooCommerce connection once, then let backend-owned sync and mapping keep your PrintForge catalog current."
+        description="Connect PrintForge to your WooCommerce store to sync products and pricing."
         actions={
           <Button onClick={saveConnection} disabled={isSaving || isLoading}>
             <RefreshCw className={isSaving ? 'animate-spin' : ''} />
@@ -133,10 +110,10 @@ export function SettingsPage() {
         }
       />
 
-      <section className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[2fr_1fr]">
+      <section className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[2fr_1fr]">
         <SectionCard
           title="Connection setup"
-          description="These are the core values needed to connect PrintForge to any WooCommerce store."
+          description="Configure your WooCommerce store connection."
           actions={<Globe className="size-4 text-primary" aria-hidden="true" />}
         >
           <SectionStack>
@@ -144,6 +121,7 @@ export function SettingsPage() {
               <Input
                 id="conn-name"
                 type="text"
+                placeholder="e.g. My Print Shop"
                 value={settings.connectionName}
                 onChange={(e) => updateSettings('connectionName', e.target.value)}
                 disabled={isLoading}
@@ -159,6 +137,23 @@ export function SettingsPage() {
                 disabled={isLoading}
               />
             </FieldGroup>
+            <FieldGroup label={<Label>Authentication method</Label>}>
+              <Select
+                value={settings.authMethod}
+                onValueChange={(v) =>
+                  updateSettings('authMethod', v as IntegrationStatus['authMethod'])
+                }
+                disabled={isLoading}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public_store_api">Public Store API</SelectItem>
+                  <SelectItem value="consumer_keys">Consumer key / secret</SelectItem>
+                </SelectContent>
+              </Select>
+            </FieldGroup>
             <FieldGroup label={<Label htmlFor="api-base">{endpointFieldLabel}</Label>}>
               <Input
                 id="api-base"
@@ -168,25 +163,6 @@ export function SettingsPage() {
                 onChange={(e) => updateSettings('restApiBase', e.target.value)}
                 disabled={isLoading}
               />
-            </FieldGroup>
-            <FieldGroup label={<Label>Authentication method</Label>}>
-              <Select
-                value={settings.authMethod}
-                onValueChange={(v) =>
-                  updateSettings('authMethod', v as IntegrationStatus['authMethod'])
-                }
-                disabled={isLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public_store_api">Public Store API</SelectItem>
-                  <SelectItem value="consumer_keys">
-                    WooCommerce consumer key / secret
-                  </SelectItem>
-                </SelectContent>
-              </Select>
             </FieldGroup>
             {usesConsumerKeys && (
               <>
@@ -210,21 +186,12 @@ export function SettingsPage() {
                 </FieldGroup>
               </>
             )}
-            <FieldGroup label={<Label htmlFor="sync-mode">Sync mode</Label>}>
-              <Input
-                id="sync-mode"
-                type="text"
-                value={settings.mode}
-                onChange={(e) => updateSettings('mode', e.target.value)}
-                disabled={isLoading}
-              />
-            </FieldGroup>
           </SectionStack>
         </SectionCard>
 
         <SectionCard
           title="Connection status"
-          description="Backend-visible state for the currently saved WooCommerce connection."
+          description="Current state of the saved connection."
           actions={<ShieldCheck className="size-4 text-primary" aria-hidden="true" />}
         >
           <div className="divide-y divide-border">
@@ -240,8 +207,7 @@ export function SettingsPage() {
 
       <SectionCard
         title="Import scope"
-        description="These options define what should be brought in from WooCommerce when the backend sync runs."
-        actions={<CheckCircle2 className="size-4 text-primary" aria-hidden="true" />}
+        description="Choose what gets pulled from WooCommerce when a sync runs."
       >
         <div className="grid gap-4">
           {(
@@ -261,21 +227,6 @@ export function SettingsPage() {
                 onCheckedChange={(checked) => updateSettings(key, checked)}
                 disabled={isLoading}
               />
-            </div>
-          ))}
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        title="What a real connection needs"
-        description="For a live WooCommerce store, these are the pieces that matter in practice."
-        actions={<KeyRound className="size-4 text-primary" aria-hidden="true" />}
-      >
-        <div className="divide-y divide-border">
-          {connectionChecklist.map((item) => (
-            <div key={item.label} className="grid gap-0.5 py-3">
-              <span className="text-xs text-muted-foreground">{item.label}</span>
-              <strong className="text-sm font-medium">{item.value}</strong>
             </div>
           ))}
         </div>
