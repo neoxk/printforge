@@ -13,7 +13,7 @@ function formatValidationMessage(message: string) {
   return message
     .split(', ')
     .map((segment) => {
-      const match = segment.match(/^(body|params|querystring|headers)\/([^ ]+)\s+(.+)$/i)
+      const match = new RegExp(/^(body|params|querystring|headers)\/([^ ]+)\s+(.+)$/i).exec(segment)
 
       if (!match) {
         return segment

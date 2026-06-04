@@ -13,19 +13,21 @@ type Props = {
   onClose: () => void
 }
 
-export function ItemPicker({ libraryItems, excludedIds, groups, onSelect, onClose }: Props) {
+export function ItemPicker({ libraryItems, excludedIds, groups, onSelect, onClose }: Readonly<Props>) {
   const [query, setQuery] = useState('')
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
 
   const availableItems = libraryItems.filter((item) => !excludedIds.has(item.id))
 
   const filteredItems = availableItems.filter((item) => {
-    const matchesGroup =
-      selectedGroupId === null
-        ? true
-        : selectedGroupId === 'ungrouped'
-          ? item.groupId === null
-          : item.groupId === selectedGroupId
+    let matchesGroup = true
+
+    if (selectedGroupId === 'ungrouped') {
+      matchesGroup = item.groupId === null
+    } else if (selectedGroupId !== null) {
+      matchesGroup = item.groupId === selectedGroupId
+    }
+
     if (!matchesGroup) return false
     if (!query) return true
     const q = query.toLowerCase()
@@ -40,7 +42,7 @@ export function ItemPicker({ libraryItems, excludedIds, groups, onSelect, onClos
   const ungroupedCount = availableItems.filter((i) => i.groupId === null).length
 
   return (
-    <div className="flex h-[360px] overflow-hidden">
+    <div className="flex h-90 overflow-hidden">
       <div className="w-44 shrink-0 border-r border-border flex flex-col overflow-hidden">
         <div className="py-1 flex-1 overflow-y-auto">
           <div className="px-1">
@@ -55,7 +57,7 @@ export function ItemPicker({ libraryItems, excludedIds, groups, onSelect, onClos
               <span className="flex-1 truncate text-left">All items</span>
               <Badge
                 variant="secondary"
-                className={cn('ml-auto text-xs min-w-[1.5rem] justify-center rounded-full font-normal', selectedGroupId === null && 'bg-primary/20 text-primary')}
+                className={cn('ml-auto text-xs min-w-6 justify-center rounded-full font-normal', selectedGroupId === null && 'bg-primary/20 text-primary')}
               >
                 {availableItems.length}
               </Badge>
@@ -75,7 +77,7 @@ export function ItemPicker({ libraryItems, excludedIds, groups, onSelect, onClos
                 <span className="flex-1 truncate text-left">{group.name}</span>
                 <Badge
                   variant="secondary"
-                  className={cn('ml-auto text-xs min-w-[1.5rem] justify-center rounded-full font-normal', selectedGroupId === group.id && 'bg-primary/20 text-primary')}
+                  className={cn('ml-auto text-xs min-w-6 justify-center rounded-full font-normal', selectedGroupId === group.id && 'bg-primary/20 text-primary')}
                 >
                   {availableItems.filter((i) => i.groupId === group.id).length}
                 </Badge>
@@ -96,7 +98,7 @@ export function ItemPicker({ libraryItems, excludedIds, groups, onSelect, onClos
                 <span className="flex-1 truncate text-left">Ungrouped</span>
                 <Badge
                   variant="secondary"
-                  className={cn('ml-auto text-xs min-w-[1.5rem] justify-center rounded-full font-normal', selectedGroupId === 'ungrouped' && 'bg-primary/20 text-primary')}
+                  className={cn('ml-auto text-xs min-w-6 justify-center rounded-full font-normal', selectedGroupId === 'ungrouped' && 'bg-primary/20 text-primary')}
                 >
                   {ungroupedCount}
                 </Badge>

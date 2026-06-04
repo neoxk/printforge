@@ -267,7 +267,7 @@ async function getPricingItems(productId: string, selectedItemIds: string[]) {
       priceUnit: (slot.priceUnit ?? slot.item.priceUnit).toNumber(),
       lengthMm: slot.item.lengthMm,
       widthMm: slot.item.widthMm,
-      calculationBasis: (slot.item.calculationBasis as string) as OptionItemShape['calculationBasis'],
+      calculationBasis: (slot.item.calculationBasis) as OptionItemShape['calculationBasis'],
     }))
 
   return items

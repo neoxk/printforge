@@ -1,15 +1,15 @@
 (function () {
-    var RESIZE_MESSAGE_TYPE = 'printforge:options:resize';
-    var CONFIGURATION_MESSAGE_TYPE = 'printforge:options:change';
-    var DESIGNER_CONFIGURATION_MESSAGE_TYPE = 'printforge:designer:change';
-    var QUANTITY_MESSAGE_TYPE = 'printforge:quantity:change';
-    var QUANTITY_SET_MESSAGE_TYPE = 'printforge:quantity:set';
-    var CONFIGURATION_FIELD_NAME = 'printforge_configuration';
-    var DESIGNER_CONFIGURATION_FIELD_NAME = 'printforge_designer_configuration';
-    var MIN_HEIGHT = 240;
+    let RESIZE_MESSAGE_TYPE = 'printforge:options:resize';
+    let CONFIGURATION_MESSAGE_TYPE = 'printforge:options:change';
+    let DESIGNER_CONFIGURATION_MESSAGE_TYPE = 'printforge:designer:change';
+    let QUANTITY_MESSAGE_TYPE = 'printforge:quantity:change';
+    let QUANTITY_SET_MESSAGE_TYPE = 'printforge:quantity:set';
+    let CONFIGURATION_FIELD_NAME = 'printforge_configuration';
+    let DESIGNER_CONFIGURATION_FIELD_NAME = 'printforge_designer_configuration';
+    let MIN_HEIGHT = 240;
 
     function findIframe(sourceWindow) {
-        var found = null;
+        let found = null;
 
         document.querySelectorAll('.printforge-options__iframe').forEach(function (iframe) {
             if (iframe.contentWindow === sourceWindow) {
@@ -20,24 +20,47 @@
         return found;
     }
 
+    function getIframeOrigin(iframe) {
+        if (!iframe) {
+            return null;
+        }
+
+        let source = iframe.getAttribute('src');
+
+        if (!source) {
+            return null;
+        }
+
+        try {
+            return new URL(source, globalThis.location.href).origin;
+        } catch (error) {
+            // Log parsing errors to aid debugging while preserving original behavior
+            if (typeof console !== 'undefined' && typeof console.error === 'function') {
+                console.error('printforge: failed to parse iframe src URL', error);
+            }
+            return null;
+        }
+    }
+
     function findCartForm(iframe) {
-        var product = iframe.closest('.product');
-        var form = product ? product.querySelector('form.cart') : null;
+        let product = iframe.closest('.product');
+        let form = product ? product.querySelector('form.cart') : null;
 
         return form || document.querySelector('form.cart');
     }
 
     function getFormQuantity(form) {
-        var quantityInput = form ? form.querySelector('input.qty[name="quantity"], input[name="quantity"]') : null;
-        var quantity = quantityInput ? parseInt(quantityInput.value, 10) : 1;
+        let quantityInput = form ? form.querySelector('input.qty[name="quantity"], input[name="quantity"]') : null;
+        let quantity = quantityInput ? Number.parseInt(quantityInput.value, 10) : 1;
 
-        return isFinite(quantity) && quantity > 0 ? quantity : 1;
+        return Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
     }
 
     function syncQuantityToIframe(iframe) {
-        var form = findCartForm(iframe);
+        let form = findCartForm(iframe);
+        let targetOrigin = getIframeOrigin(iframe);
 
-        if (!iframe || !iframe.contentWindow || !form) {
+        if (!iframe?.contentWindow || !form || !targetOrigin) {
             return;
         }
 
@@ -46,7 +69,7 @@
                 type: QUANTITY_MESSAGE_TYPE,
                 quantity: getFormQuantity(form),
             },
-            '*'
+            targetOrigin
         );
     }
 
@@ -59,12 +82,12 @@
     }
 
     function setFormQuantity(sourceWindow, quantity) {
-        var iframe = findIframe(sourceWindow);
-        var form = iframe ? findCartForm(iframe) : null;
-        var quantityInput = form ? form.querySelector('input.qty[name="quantity"], input[name="quantity"]') : null;
-        var nextQuantity = parseInt(quantity, 10);
+        let iframe = findIframe(sourceWindow);
+        let form = iframe ? findCartForm(iframe) : null;
+        let quantityInput = form ? form.querySelector('input.qty[name="quantity"], input[name="quantity"]') : null;
+        let nextQuantity = Number.parseInt(quantity, 10);
 
-        if (!quantityInput || !isFinite(nextQuantity) || nextQuantity <= 0) {
+        if (!quantityInput || !Number.isFinite(nextQuantity) || nextQuantity <= 0) {
             return;
         }
 
@@ -74,14 +97,14 @@
     }
 
     function setJsonField(sourceWindow, fieldName, payload) {
-        var iframe = findIframe(sourceWindow);
-        var form = iframe ? findCartForm(iframe) : null;
+        let iframe = findIframe(sourceWindow);
+        let form = iframe ? findCartForm(iframe) : null;
 
         if (!form) {
             return;
         }
 
-        var field = form.querySelector('input[name="' + fieldName + '"]');
+        let field = form.querySelector('input[name="' + fieldName + '"]');
 
         if (!field) {
             field = document.createElement('input');
@@ -106,10 +129,10 @@
     }
 
     function resizeIframe(sourceWindow, height) {
-        var nextHeight = parseInt(height, 10);
-        var iframe = findIframe(sourceWindow);
+        let nextHeight = Number.parseInt(height, 10);
+        let iframe = findIframe(sourceWindow);
 
-        if (!iframe || !isFinite(nextHeight) || nextHeight <= 0) {
+        if (!iframe || !Number.isFinite(nextHeight) || nextHeight <= 0) {
             return;
         }
 
@@ -118,6 +141,13 @@
 
     window.addEventListener('message', function (event) {
         if (!event.data) {
+            return;
+        }
+
+        let sourceIframe = findIframe(event.source);
+        let sourceOrigin = getIframeOrigin(sourceIframe);
+
+        if (!sourceIframe || !sourceOrigin || event.origin !== sourceOrigin) {
             return;
         }
 
@@ -142,47 +172,47 @@
     });
 
     document.addEventListener('change', function (event) {
-        if (!event.target || !event.target.matches('input.qty[name="quantity"], input[name="quantity"]')) {
+        if (!event.target?.matches('input.qty[name="quantity"], input[name="quantity"]')) {
             return;
         }
 
-        var form = event.target.closest('form.cart');
+        let form = event.target.closest('form.cart');
         if (form) {
             syncQuantityForForm(form);
         }
     });
 
     document.addEventListener('input', function (event) {
-        if (!event.target || !event.target.matches('input.qty[name="quantity"], input[name="quantity"]')) {
+        if (!event.target?.matches('input.qty[name="quantity"], input[name="quantity"]')) {
             return;
         }
 
-        var form = event.target.closest('form.cart');
+        let form = event.target.closest('form.cart');
         if (form) {
             syncQuantityForForm(form);
         }
     });
 
     document.addEventListener('click', function (event) {
-        var target = event.target;
+        let target = event.target;
 
-        if (!target || !target.closest) {
+        if (!target?.closest) {
             return;
         }
 
-        var form = target.closest('form.cart');
+        let form = target.closest('form.cart');
         if (!form) {
             return;
         }
 
-        window.setTimeout(function () {
+        globalThis.setTimeout(function () {
             syncQuantityForForm(form);
         }, 0);
     });
 
     document.querySelectorAll('.printforge-options__iframe').forEach(function (iframe) {
         iframe.addEventListener('load', function () {
-            window.setTimeout(function () {
+            globalThis.setTimeout(function () {
                 syncQuantityToIframe(iframe);
             }, 100);
         });

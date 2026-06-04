@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type ComponentProps } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAppAlerts } from '@printforge/ui'
 import { Button } from '@printforge/ui/components/ui/button'
@@ -21,7 +21,9 @@ export function LoginPage() {
     return null
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: Parameters<NonNullable<ComponentProps<'form'>['onSubmit']>>[0],
+  ) {
     event.preventDefault()
     const error = validate()
     if (error) {
@@ -44,7 +46,7 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
-      <Card className="w-full max-w-[34rem] border-t-4 border-t-primary">
+      <Card className="w-full max-w-136 border-t-4 border-t-primary">
         <CardContent className="grid gap-6 p-8">
           <div className="space-y-1 text-center">
             <h1 className="text-4xl font-extrabold tracking-tight">PrintForge</h1>

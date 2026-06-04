@@ -33,8 +33,8 @@ function getOptionHeading(name: string): string {
 
 export function OptionsPage() {
   const pageRef = useRef<HTMLElement | null>(null)
-  const productId = useMemo(() => getProductIdFromPath(window.location.pathname), [])
-  const basePrice = useMemo(() => getBasePriceFromSearch(window.location.search), [])
+  const productId = useMemo(() => getProductIdFromPath(globalThis.location.pathname), [])
+  const basePrice = useMemo(() => getBasePriceFromSearch(globalThis.location.search), [])
   const [config, setConfig] = useState<ProductConfig | null>(null)
   const [selectedByContainer, setSelectedByContainer] = useState<SelectedByContainer>({})
   const [dimensions, setDimensions] = useState<DimensionsState>(DEFAULT_DIMENSIONS_STATE)
@@ -195,15 +195,15 @@ export function OptionsPage() {
   function handleCustomizeDesign() {
     if (!productId) return
 
-    if (window.parent === window) {
-      window.location.href = `/pf/configurator/${encodeURIComponent(productId)}`
+    if (globalThis.parent === globalThis.window) {
+      globalThis.location.href = `/pf/configurator/${encodeURIComponent(productId)}`
       return
     }
 
     const targetOrigin = getParentTargetOrigin()
     if (!targetOrigin) return
 
-    window.parent.postMessage(
+    globalThis.parent.postMessage(
       {
         type: CONFIGURATOR_OPEN_MESSAGE_TYPE,
         productId,

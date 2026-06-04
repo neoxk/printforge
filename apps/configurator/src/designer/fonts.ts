@@ -15,7 +15,7 @@ export const WEIGHT_LABELS: Record<FontWeight, string> = {
 export type FontOption = {
   name: string
   category: 'sans-serif' | 'serif' | 'monospace' | 'display' | 'handwriting'
-  googleFamily?: string  // Google Fonts family name (undefined = system font)
+  googleFamily?: string
   weights: FontWeight[]
   hasItalic: boolean
 }
@@ -48,14 +48,24 @@ export const FONT_OPTIONS: FontOption[] = [
 
 const injectedFonts = new Set<string>()
 
+function buildGoogleFontWeights(weights: FontWeight[]) {
+  return weights.join(';')
+}
+
+function buildGoogleFontItalicWeights(weights: FontWeight[]) {
+  const variants = weights.flatMap((weight) => ['0,' + weight, '1,' + weight])
+  return variants.join(';')
+}
+
 export function injectGoogleFont(option: FontOption) {
   if (!option.googleFamily || injectedFonts.has(option.name)) return
   injectedFonts.add(option.name)
 
-  const family = option.googleFamily.replace(/ /g, '+')
-  const url = option.hasItalic
-    ? `https://fonts.googleapis.com/css2?family=${family}:ital,wght@${option.weights.flatMap((w) => [`0,${w}`, `1,${w}`]).join(';')}&display=swap`
-    : `https://fonts.googleapis.com/css2?family=${family}:wght@${option.weights.join(';')}&display=swap`
+  const family = option.googleFamily.replaceAll(' ', '+')
+  const fontPath = option.hasItalic
+    ? `${family}:ital,wght@${buildGoogleFontItalicWeights(option.weights)}`
+    : `${family}:wght@${buildGoogleFontWeights(option.weights)}`
+  const url = `https://fonts.googleapis.com/css2?family=${fontPath}&display=swap`
 
   const link = document.createElement('link')
   link.rel = 'stylesheet'

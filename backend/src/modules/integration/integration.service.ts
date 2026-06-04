@@ -200,11 +200,9 @@ export async function getCurrentIntegration() {
     orderBy: { createdAt: 'asc' },
   })
 
-  if (!connection) {
-    connection = await prisma.integrationConnection.create({
+  connection ??= await prisma.integrationConnection.create({
       data: getDefaultConnection(),
-    })
-  }
+    });
 
   return serializeIntegration(connection)
 }
@@ -246,11 +244,9 @@ export async function getCurrentConnectionRecord() {
     orderBy: { createdAt: 'asc' },
   })
 
-  if (!connection) {
-    connection = await prisma.integrationConnection.create({
+  connection ??= await prisma.integrationConnection.create({
       data: getDefaultConnection(),
-    })
-  }
+    });
 
   return connection
 }

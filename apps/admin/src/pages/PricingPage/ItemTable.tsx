@@ -17,21 +17,19 @@ type Props = {
 function formatDimensions(item: OptionItem): string {
   const needsWidth = basisNeedsWidth(item.calculationBasis)
   const needsLength = basisNeedsLength(item.calculationBasis)
-
-  if (!needsWidth && !needsLength) return '—'
-
-  const w = item.widthMm != null ? `${item.widthMm} mm` : null
-  const l = item.lengthMm != null ? `${item.lengthMm} mm` : null
+  const w = item.widthMm == null ? null : `${item.widthMm} mm`
+  const l = item.lengthMm == null ? null : `${item.lengthMm} mm`
 
   if (needsWidth && needsLength) {
     if (w && l) return `${item.widthMm} × ${item.lengthMm} mm`
     return w ?? l ?? '—'
   }
   if (needsWidth) return w ?? '—'
-  return l ?? '—'
+  if (needsLength) return l ?? '—'
+  return '—'
 }
 
-export function ItemTable({ items, groups, isLoading, selectedGroupId, onEdit, onDelete }: Props) {
+export function ItemTable({ items, groups, isLoading, selectedGroupId, onEdit, onDelete }: Readonly<Props>) {
   function getGroupName(groupId: string | null) {
     if (!groupId) return null
     return groups.find((g) => g.id === groupId)?.name ?? null
@@ -54,13 +52,13 @@ export function ItemTable({ items, groups, isLoading, selectedGroupId, onEdit, o
           <TableHeader>
             <TableRow className="hover:bg-transparent bg-muted/40">
               <TableHead className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Name</TableHead>
-              <TableHead className="w-[110px] text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Basis</TableHead>
-              <TableHead className="w-[130px] text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Price</TableHead>
-              <TableHead className="w-[130px] text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Dimensions</TableHead>
+              <TableHead className="w-27.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Basis</TableHead>
+              <TableHead className="w-32.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Price</TableHead>
+              <TableHead className="w-32.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Dimensions</TableHead>
               {showGroupColumn && (
-                <TableHead className="w-[120px] text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Group</TableHead>
+                <TableHead className="w-30 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Group</TableHead>
               )}
-              <TableHead className="w-[60px]" />
+              <TableHead className="w-15" />
             </TableRow>
           </TableHeader>
 

@@ -19,7 +19,7 @@ function getPackPrice(row: QuantityPriceRow, basePrice: number | null): number {
   return row.optionsTotal + (basePrice ?? 0) * row.quantity
 }
 
-export function QuantityPriceTable({ rows, basePrice, selectedQuantity, error, onSelect }: Props) {
+export function QuantityPriceTable({ rows, basePrice, selectedQuantity, error, onSelect }: Readonly<Props>) {
   const visibleRows = rows.slice(0, 7)
 
   return (

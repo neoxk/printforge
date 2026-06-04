@@ -3,7 +3,7 @@ type Props = {
   onChange: (quantity: string) => void
 }
 
-export function QuantityField({ quantity, onChange }: Props) {
+export function QuantityField({ quantity, onChange }: Readonly<Props>) {
   return (
     <div className="container-group">
       <div className="container-label">Quantity</div>

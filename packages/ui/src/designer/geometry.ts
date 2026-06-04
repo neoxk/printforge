@@ -104,12 +104,14 @@ export function clampMetric(value: number) {
 }
 
 export function normalizeRect(rect: ZoneRect): ZoneRect {
+  const rotation = rect.rotation ?? 0
+
   return {
     x: Number.isFinite(rect.x) ? roundMetric(rect.x) : 0,
     y: Number.isFinite(rect.y) ? roundMetric(rect.y) : 0,
     width: clampMetric(rect.width),
     height: clampMetric(rect.height),
-    rotation: Number.isFinite(rect.rotation) ? roundMetric(rect.rotation!) : 0,
+    rotation: Number.isFinite(rotation) ? roundMetric(rotation) : 0,
   }
 }
 

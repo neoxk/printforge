@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type PluginOption } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,7 +10,7 @@ const hmrClientPort = process.env.VITE_HMR_CLIENT_PORT;
 const hmrPath = process.env.VITE_HMR_PATH;
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react() as PluginOption],
   base: process.env.VITE_BASE_PATH ?? '/',
 
   server: {

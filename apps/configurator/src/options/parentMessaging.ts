@@ -1,7 +1,7 @@
 const QUANTITY_SET_MESSAGE_TYPE = 'printforge:quantity:set'
 
 export function getParentTargetOrigin(): string | null {
-  const ancestorOrigin = window.location.ancestorOrigins?.[0]
+  const ancestorOrigin = globalThis.location.ancestorOrigins?.[0]
   if (ancestorOrigin) return ancestorOrigin
 
   if (!document.referrer) return null
@@ -14,12 +14,12 @@ export function getParentTargetOrigin(): string | null {
 }
 
 export function setParentQuantity(quantity: number): void {
-  if (window.parent === window) return
+  if (globalThis.parent === globalThis.window) return
 
   const targetOrigin = getParentTargetOrigin()
   if (!targetOrigin) return
 
-  window.parent.postMessage(
+  globalThis.parent.postMessage(
     {
       type: QUANTITY_SET_MESSAGE_TYPE,
       quantity,

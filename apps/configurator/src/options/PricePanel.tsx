@@ -32,11 +32,11 @@ function formatPriceParts(value: number): { currency: string; amount: string } {
   return { currency, amount }
 }
 
-export function PricePanel({ price, error, basePrice, quantity }: Props) {
+export function PricePanel({ price, error, basePrice, quantity }: Readonly<Props>) {
   const productTotal = basePrice !== null && Number.isFinite(quantity) && quantity > 0 ? basePrice * quantity : null
   const total = price ? price.total + (productTotal ?? 0) : null
   const displayTotal = total ?? productTotal ?? price?.total ?? null
-  const displayTotalParts = displayTotal !== null ? formatPriceParts(displayTotal) : null
+  const displayTotalParts = displayTotal === null ? null : formatPriceParts(displayTotal)
 
   return (
     <div className="price-panel">
