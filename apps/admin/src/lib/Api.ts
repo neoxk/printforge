@@ -79,6 +79,13 @@ async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Promise<T
   return (await response.json()) as T
 }
 
+export async function firstTimeRequest(): Promise<boolean> {
+  const { firstTime } = await apiRequest<{ firstTime: boolean }>('/api/auth/firstTime', {
+    skipAuth: true,
+  })
+  return firstTime
+}
+
 export function loginRequest(email: string, password: string) {
   return apiRequest<AuthSession>('/api/auth/login', {
     method: 'POST',

@@ -24,6 +24,11 @@ export async function validateCredentials(email: string, password: string) {
   } satisfies AuthSessionUser
 }
 
+export async function isFirstTime(): Promise<boolean> {
+  const count = await prisma.user.count()
+  return count === 0
+}
+
 export async function registerUser(input: {
   name: string
   tenantName: string

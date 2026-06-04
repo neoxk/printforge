@@ -1,5 +1,14 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import * as authService from './auth.service.js'
+import { ForbiddenError } from '../../lib/errors.js'
+
+export async function firstTimeHandler(
+  _request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const firstTime = await authService.isFirstTime()
+  return reply.send({ firstTime })
+}
 
 export async function loginHandler(
   request: FastifyRequest,
@@ -18,6 +27,10 @@ export async function registerHandler(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
+  if (!(await authService.isFirstTime())) {
+    throw new ForbiddenError('Registration is not available.')
+  }
+
   const body = request.body as {
     name: string
     tenantName: string

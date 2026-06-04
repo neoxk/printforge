@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAppAlerts } from '@printforge/ui'
 import { Button } from '@printforge/ui/components/ui/button'
@@ -6,6 +6,7 @@ import { Card, CardContent } from '@printforge/ui/components/ui/card'
 import { Input } from '@printforge/ui/components/ui/input'
 import { Label } from '@printforge/ui/components/ui/label'
 import { useAuth } from '../app/Auth'
+import { firstTimeRequest } from '../lib/Api'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -14,6 +15,11 @@ export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isFirstTime, setIsFirstTime] = useState(false)
+
+  useEffect(() => {
+    firstTimeRequest().then(setIsFirstTime).catch(() => {})
+  }, [])
 
   function validate(): string | null {
     if (!email.trim()) return 'Please enter your email address.'
@@ -82,12 +88,14 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Need a workspace?{' '}
-            <Link to="/register" className="font-semibold text-primary hover:underline">
-              Create a tenant account
-            </Link>
-          </p>
+          {isFirstTime && (
+            <p className="text-center text-sm text-muted-foreground">
+              Need a workspace?{' '}
+              <Link to="/register" className="font-semibold text-primary hover:underline">
+                Create a tenant account
+              </Link>
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
