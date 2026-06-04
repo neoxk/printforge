@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Canvas, FabricImage, IText } from 'fabric'
+import { IText } from 'fabric'
 import { Hand, MousePointer2 } from 'lucide-react'
-import {
-  fieldOrder,
-  mmToStage,
-  roundMetric,
-  stageToMm,
-  zoneVisual,
-} from '@printforge/ui/designer'
-import type { DesignerView, ZoneKey } from '@printforge/ui/designer'
+import { fieldOrder, mmToStage, roundMetric, stageToMm, zoneVisual } from '@printforge/ui/designer'
+import type { DesignerView } from '@printforge/ui/designer'
 import {
   fetchDesignerConfig,
   getDesignerProductIdFromPath,
@@ -16,253 +10,61 @@ import {
   isValidDesignerProductId,
 } from './designerConfig.js'
 import { postDesignerConfiguration } from './parentMessaging.js'
-import type {
-  UserDesignElement,
-  UserDesignState,
-  UserDesignViewState,
-  UserDesignerTool,
-} from './types.js'
+import type { UserDesignElement, UserDesignState, UserDesignerTool } from './types.js'
 import { ensureFontReady } from './fonts.js'
 import { TextPropertiesPanel } from './TextPropertiesPanel.js'
 import type { TextProps } from './TextPropertiesPanel.js'
 import { useIframeResize } from '../options/useIframeResize.js'
+import {
+  addElementToDesign,
+  createElementId,
+  elementFromObject,
+  getViewDesign,
+  loadSession,
+  patchElementInDesign,
+  readImageFile,
+  removeElementFromDesign,
+  resolveConstraintRect,
+  saveSession,
+  updateViewDesign,
+  validateDesignForView,
+  validateFromCanvas,
+  VIEWPORT_PADDING,
+  type FabricObjectWithMeta,
+} from './designerUtils.js'
+import { useFabricCanvas } from './useFabricCanvas.js'
+import { useViewportInteraction } from './useViewportInteraction.js'
 import './designer-ui.css'
-
-type FabricObjectWithMeta = (IText | FabricImage) & {
-  __kind?: 'user-text' | 'user-image'
-  __elementId?: string
-}
-
-const VIEWPORT_PADDING = 40
-const DESIGNER_SESSION_STORAGE_PREFIX = 'printforge:designer:session:'
-
-function createElementId() {
-  return `element-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
-
-function readImageFile(file: File) {
-  return new Promise<{ src: string; width: number; height: number }>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const src = String(reader.result ?? '')
-      const img = new Image()
-      img.onload = () => resolve({ src, width: img.width, height: img.height })
-      img.onerror = () => reject(new Error('Unable to read the image.'))
-      img.src = src
-    }
-    reader.onerror = () => reject(reader.error ?? new Error('Unable to read the image.'))
-    reader.readAsDataURL(file)
-  })
-}
-
-function resolveConstraintRect(view: DesignerView) {
-  if (view.fields.allowedPrintArea.enabled) return view.fields.allowedPrintArea.rect
-  if (view.fields.safeZone.enabled) return view.fields.safeZone.rect
-  if (view.fields.cutArea.enabled) return view.fields.cutArea.rect
-  return view.fields.physicalSize.rect
-}
-
-function containsRect(
-  outer: { x: number; y: number; width: number; height: number },
-  inner: { x: number; y: number; width: number; height: number },
-) {
-  return (
-    inner.x >= outer.x &&
-    inner.y >= outer.y &&
-    inner.x + inner.width <= outer.x + outer.width &&
-    inner.y + inner.height <= outer.y + outer.height
-  )
-}
-
-function getViewDesign(design: UserDesignState, viewId: string): UserDesignViewState {
-  return design.views.find((v) => v.viewId === viewId) ?? { viewId, elements: [] }
-}
-
-function updateViewDesign(
-  design: UserDesignState,
-  viewId: string,
-  updater: (current: UserDesignViewState) => UserDesignViewState,
-): UserDesignState {
-  const current = getViewDesign(design, viewId)
-  const next = updater(current)
-  const nextViews = design.views.some((v) => v.viewId === viewId)
-    ? design.views.map((v) => (v.viewId === viewId ? next : v))
-    : [...design.views, next]
-  return { ...design, views: nextViews }
-}
-
-// All coordinates in stage units (mm × MM_TO_STAGE_UNITS). No viewport size involved.
-// Text objects use originX/Y 'left'/'top'; image objects use 'center'.
-function elementFromObject(object: FabricObjectWithMeta): UserDesignElement | null {
-  const elementId = object.__elementId
-  const kind = object.__kind
-  if (!elementId || (kind !== 'user-text' && kind !== 'user-image')) return null
-
-  const sw = object.getScaledWidth()
-  const sh = object.getScaledHeight()
-  const isText = object instanceof IText
-
-  // Text: originX/Y = 'left'/'top' → object.left/top is already the top-left corner
-  // Image: originX/Y = 'center' → subtract half-size to get top-left
-  const x = isText ? (object.left ?? 0) : (object.left ?? 0) - sw / 2
-  const y = isText ? (object.top ?? 0) : (object.top ?? 0) - sh / 2
-
-  return {
-    id: elementId,
-    kind: kind === 'user-text' ? 'text' : 'image',
-    text: isText ? (object.text ?? 'Your text') : null,
-    src: object instanceof FabricImage ? ((object.getSrc?.() as string | undefined) ?? null) : null,
-    x: roundMetric(stageToMm(x)),
-    y: roundMetric(stageToMm(y)),
-    width: roundMetric(stageToMm(sw)),
-    height: roundMetric(stageToMm(sh)),
-    rotation: roundMetric(object.angle ?? 0),
-    fontSize:    isText ? roundMetric(stageToMm(object.fontSize ?? 32)) : null,
-    fill:        isText ? String(object.fill ?? '#0f172a') : null,
-    fontFamily:  isText ? String(object.fontFamily ?? 'Inter') : null,
-    fontWeight:  isText ? String(object.fontWeight ?? '400') : null,
-    fontStyle:   isText ? (object.fontStyle === 'italic' ? 'italic' : 'normal') : null,
-    textAlign:   isText ? ((object.textAlign as 'left' | 'center' | 'right') ?? 'left') : null,
-    charSpacing: isText ? (object.charSpacing ?? 0) : null,
-    lineHeight:  isText ? (object.lineHeight ?? 1.16) : null,
-    underline:   isText ? Boolean(object.underline) : null,
-    linethrough: isText ? Boolean(object.linethrough) : null,
-  }
-}
-
-function isUserDesignState(v: unknown): v is UserDesignState {
-  return (
-    typeof v === 'object' &&
-    v !== null &&
-    'version' in v &&
-    (v as { version?: unknown }).version === 1 &&
-    'views' in v &&
-    Array.isArray((v as { views?: unknown }).views)
-  )
-}
-
-function loadSession(sessionId: string): UserDesignState | null {
-  try {
-    const raw = window.localStorage.getItem(`${DESIGNER_SESSION_STORAGE_PREFIX}${sessionId}`)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as unknown
-    return isUserDesignState(parsed) ? parsed : null
-  } catch {
-    return null
-  }
-}
-
-function saveSession(sessionId: string, design: UserDesignState) {
-  window.localStorage.setItem(`${DESIGNER_SESSION_STORAGE_PREFIX}${sessionId}`, JSON.stringify(design))
-}
-
-function validateDesignForView(view: DesignerView, design: UserDesignViewState) {
-  const primaryZone = view.fields.allowedPrintArea.enabled
-    ? view.fields.allowedPrintArea
-    : view.fields.safeZone.enabled
-      ? view.fields.safeZone
-      : view.fields.cutArea.enabled
-        ? view.fields.cutArea
-        : view.fields.physicalSize
-
-  const zones =
-    primaryZone.key === 'physicalSize'
-      ? [view.fields.physicalSize]
-      : [primaryZone, view.fields.physicalSize]
-
-  const violations = design.elements.flatMap((el) => {
-    const r = { x: el.x, y: el.y, width: el.width, height: el.height }
-    return zones
-      .filter((z) => !containsRect(z.rect, r))
-      .map((z) => `${el.kind === 'text' ? 'Text' : 'Image'} layer is outside ${z.label}.`)
-  })
-
-  return { isValid: violations.length === 0, violations }
-}
-
-// Validate directly from canvas objects (all in stage units — no viewport math needed)
-function validateFromCanvas(canvas: Canvas, view: DesignerView) {
-  const primaryZone = view.fields.allowedPrintArea.enabled
-    ? view.fields.allowedPrintArea
-    : view.fields.safeZone.enabled
-      ? view.fields.safeZone
-      : view.fields.cutArea.enabled
-        ? view.fields.cutArea
-        : view.fields.physicalSize
-
-  const zones =
-    primaryZone.key === 'physicalSize'
-      ? [{ label: view.fields.physicalSize.label, rect: view.fields.physicalSize.rect }]
-      : [
-          { label: primaryZone.label, rect: primaryZone.rect },
-          { label: view.fields.physicalSize.label, rect: view.fields.physicalSize.rect },
-        ]
-
-  const violations = canvas
-    .getObjects()
-    .map((o) => o as FabricObjectWithMeta)
-    .filter((o) => o.__kind === 'user-text' || o.__kind === 'user-image')
-    .flatMap((o) => {
-      // getBoundingRect returns stage-unit coords since canvas is sized in stage units
-      const b = o.getBoundingRect()
-      const elRect = { x: stageToMm(b.left), y: stageToMm(b.top), width: stageToMm(b.width), height: stageToMm(b.height) }
-      return zones
-        .filter((z) => !containsRect(z.rect, elRect))
-        .map((z) => `${o.__kind === 'user-text' ? 'Text' : 'Image'} layer is outside ${z.label}.`)
-    })
-
-  return { isValid: violations.length === 0, violations }
-}
 
 export function UserDesignerPage() {
   const pageRef = useRef<HTMLElement | null>(null)
-  const canvasHostMapRef = useRef<Map<string, HTMLDivElement>>(new Map())
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const fabricCanvasRef = useRef<Canvas | null>(null)
-  const fabricCanvasMapRef = useRef<Map<string, Canvas>>(new Map())
-  // Tracks the last UserDesignViewState rendered into each view's canvas (by reference equality)
-  const lastRenderedDesignRef = useRef<Map<string, UserDesignViewState>>(new Map())
-  const liveViewRef = useRef<DesignerView | null>(null)
+
+  // Stable refs for event handler closures — updated each render
   const liveActiveToolRef = useRef<UserDesignerTool>('select')
   const liveProductIdRef = useRef<string | null>(null)
-  const selectedElementIdRef = useRef<string | null>(null)
-  // Skip canvas re-render when design update originated from canvas interaction
-  const skipNextRenderRef = useRef(false)
-  // Stable callback ref for selection changes (avoids re-registering canvas listeners)
-  const onSelectionChangeRef = useRef<(obj: FabricObjectWithMeta | null) => void>(() => {})
-
-  // Zoom/pan refs for use in event handlers (avoid stale closures)
   const zoomRef = useRef(1)
   const panRef = useRef({ x: 0, y: 0 })
 
-  // Pinch-to-zoom tracking
-  const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map())
-  const pinchStartRef = useRef<{ dist: number; zoom: number } | null>(null)
-
-  // Pan drag tracking
-  const panDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
-
-  const [routeProductId] = useState(() => getDesignerProductIdFromPath(window.location.pathname))
-  const [sessionId] = useState(() => getSessionIdFromSearch(window.location.search))
+  const [routeProductId] = useState(() => getDesignerProductIdFromPath(globalThis.location.pathname))
+  const [sessionId] = useState(() => getSessionIdFromSearch(globalThis.location.search))
   const [productId, setProductId] = useState<string | null>(null)
   const [views, setViews] = useState<DesignerView[]>([])
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null)
   const [activeTool, setActiveTool] = useState<UserDesignerTool>('select')
   const [design, setDesign] = useState<UserDesignState>({ version: 1, views: [] })
-  const [viewportSize, setViewportSize] = useState({ width: 320, height: 360 })
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [statusMessage, setStatusMessage] = useState('Loading print area configuration...')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  // Selected text element
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null)
   const [selectedTextProps, setSelectedTextProps] = useState<TextProps | null>(null)
 
   useIframeResize(pageRef)
 
-  // Keep refs in sync for use in event handler closures
+  // Keep stable refs in sync with current state
   useEffect(() => { zoomRef.current = zoom }, [zoom])
   useEffect(() => { panRef.current = pan }, [pan])
   useEffect(() => { liveActiveToolRef.current = activeTool }, [activeTool])
@@ -272,42 +74,60 @@ export function UserDesignerPage() {
     () => views.find((v) => v.id === selectedViewId) ?? null,
     [selectedViewId, views],
   )
+
   const selectedDesign = useMemo(
     () => (selectedView ? getViewDesign(design, selectedView.id) : null),
     [design, selectedView],
   )
+
   const selectedDesignValidation = useMemo(
-    () =>
-      selectedView && selectedDesign ? validateDesignForView(selectedView, selectedDesign) : null,
+    () => selectedView && selectedDesign ? validateDesignForView(selectedView, selectedDesign) : null,
     [selectedDesign, selectedView],
   )
 
-  // Keep the selection callback ref up-to-date each render (stable ref, fresh closure)
-  useEffect(() => {
-    onSelectionChangeRef.current = (obj: FabricObjectWithMeta | null) => {
-      if (!obj || obj.__kind !== 'user-text' || !(obj instanceof IText)) {
-        setSelectedTextId(null)
-        setSelectedTextProps(null)
-        return
-      }
-      setSelectedTextId(obj.__elementId ?? null)
-      setSelectedTextProps({
-        text: obj.text ?? '',
-        fontFamily: String(obj.fontFamily ?? 'Inter'),
-        fontWeight: String(obj.fontWeight ?? '400'),
-        fontStyle: obj.fontStyle === 'italic' ? 'italic' : 'normal',
-        fontSize: roundMetric(stageToMm(obj.fontSize ?? 30)),
-        fill: String(obj.fill ?? '#0f172a'),
-        textAlign: (obj.textAlign as 'left' | 'center' | 'right') ?? 'left',
-        charSpacing: obj.charSpacing ?? 0,
-        lineHeight: obj.lineHeight ?? 1.16,
-        underline: Boolean(obj.underline),
-        linethrough: Boolean(obj.linethrough),
-      })
-    }
-  })
+  // ── Hooks ─────────────────────────────────────────────────────────────────
 
-  // Base scale: fits the physical product in the viewport at zoom = 1
+  const onSelectionChange = useCallback((obj: FabricObjectWithMeta | null) => {
+    if (obj?.__kind !== 'user-text' || !(obj instanceof IText)) {
+      setSelectedTextId(null)
+      setSelectedTextProps(null)
+      return
+    }
+    setSelectedTextId(obj.__elementId ?? null)
+    setSelectedTextProps({
+      text: obj.text ?? '',
+      fontFamily: String(obj.fontFamily ?? 'Inter'),
+      fontWeight: String(obj.fontWeight ?? '400'),
+      fontStyle: obj.fontStyle === 'italic' ? 'italic' : 'normal',
+      fontSize: roundMetric(stageToMm(obj.fontSize ?? 30)),
+      fill: typeof obj.fill === 'string' ? obj.fill : '#0f172a',
+      textAlign: (obj.textAlign as 'left' | 'center' | 'right') ?? 'left',
+      charSpacing: obj.charSpacing ?? 0,
+      lineHeight: obj.lineHeight ?? 1.16,
+      underline: Boolean(obj.underline),
+      linethrough: Boolean(obj.linethrough),
+    })
+  }, [])
+
+  const {
+    canvasHostMapRef,
+    fabricCanvasRef,
+    fabricCanvasMapRef,
+    liveViewRef,
+    selectedElementIdRef,
+    skipNextRenderRef,
+  } = useFabricCanvas(selectedView, design, setDesign, activeTool, onSelectionChange)
+
+  const { viewportSize } = useViewportInteraction(
+    viewportRef,
+    selectedView,
+    liveActiveToolRef,
+    zoomRef,
+    panRef,
+    setZoom,
+    setPan,
+  )
+
   const baseScale = useMemo(() => {
     if (!selectedView) return 1
     const { width, height } = selectedView.fields.physicalSize.rect
@@ -326,7 +146,7 @@ export function UserDesignerPage() {
     }
   }, [selectedView])
 
-  // ── Data loading ────────────────────────────────────────────────────────────
+  // ── Data loading ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!routeProductId) { setIsLoading(false); setError('Missing product id.'); return }
@@ -370,15 +190,15 @@ export function UserDesignerPage() {
     setStatusMessage('Loaded a saved design draft from this device.')
   }, [sessionId, views.length])
 
-  // ── Preview export (postMessage request/response) ────────────────────────────
+  // ── Preview export ────────────────────────────────────────────────────────
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       if (event.source !== window.parent) return
-      if (!event.data || event.data.type !== 'printforge:designer:preview-request') return
+      if (event.data?.type !== 'printforge:designer:preview-request') return
+      if (!event.origin || event.origin === 'null') return
 
       const requestId = event.data.requestId as string
-
       const previews = views.map((view) => {
         const canvas = fabricCanvasMapRef.current.get(view.id)
         return {
@@ -388,21 +208,7 @@ export function UserDesignerPage() {
         }
       })
 
-      console.log(
-        '[PrintForge designer] preview-request received; returning',
-        previews.filter((p) => p.dataUrl).length,
-        'of',
-        previews.length,
-        'views',
-      )
-
-      // Reply to whoever asked. Using event.origin (with a '*' fallback for
-      // sandboxed parents that report a "null" origin) avoids the browser
-      // silently dropping the response when a resolved ancestor origin doesn't
-      // byte-for-byte match the embedding page — the same pitfall the options
-      // page documents for the open message.
       const targetOrigin = event.origin && event.origin !== 'null' ? event.origin : '*'
-
       window.parent.postMessage(
         { type: 'printforge:designer:preview-response', requestId, previews },
         targetOrigin,
@@ -411,376 +217,29 @@ export function UserDesignerPage() {
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [views])
+  }, [views, fabricCanvasMapRef])
 
-  // ── Viewport size tracking ───────────────────────────────────────────────────
-
-  useEffect(() => {
-    const viewport = viewportRef.current
-    if (!viewport) return
-    const update = () =>
-      setViewportSize({ width: Math.max(320, viewport.clientWidth), height: Math.max(360, viewport.clientHeight) })
-    update()
-    const observer = new ResizeObserver(update)
-    observer.observe(viewport)
-    return () => observer.disconnect()
-  }, [])
-
-  // ── Wheel zoom ───────────────────────────────────────────────────────────────
-  // Deps include selectedView so this re-runs after the loading screen unmounts
-  // and the viewport div is actually in the DOM.
-
-  useEffect(() => {
-    const viewport = viewportRef.current
-    if (!viewport) return
-
-    function handleWheel(event: WheelEvent) {
-      if (!event.ctrlKey && !event.metaKey) return
-      event.preventDefault()
-      setZoom((z) => Number(Math.max(0.25, Math.min(4, z - event.deltaY * 0.005)).toFixed(2)))
-    }
-
-    viewport.addEventListener('wheel', handleWheel, { passive: false, capture: true })
-    return () => viewport.removeEventListener('wheel', handleWheel, { capture: true } as EventListenerOptions)
-  }, [selectedView])
-
-  // ── Pan (mouse drag on the full viewport, including grey area) ────────────────
-  // Uses mousedown+document mousemove so:
-  //   - Works over canvas AND grey background
-  //   - Not affected by Fabric intercepting pointer events
-
-  useEffect(() => {
-    const viewport = viewportRef.current
-    if (!viewport) return
-
-    function onMouseDown(e: MouseEvent) {
-      if (liveActiveToolRef.current !== 'pan') return
-      panDragRef.current = { startX: e.clientX, startY: e.clientY, ox: panRef.current.x, oy: panRef.current.y }
-      e.preventDefault()
-    }
-
-    function onMouseMove(e: MouseEvent) {
-      if (!panDragRef.current) return
-      setPan({
-        x: panDragRef.current.ox + (e.clientX - panDragRef.current.startX),
-        y: panDragRef.current.oy + (e.clientY - panDragRef.current.startY),
-      })
-    }
-
-    function onMouseUp() {
-      panDragRef.current = null
-    }
-
-    // mousedown on viewport, move/up on document so dragging outside viewport still works
-    viewport.addEventListener('mousedown', onMouseDown)
-    document.addEventListener('mousemove', onMouseMove)
-    document.addEventListener('mouseup', onMouseUp)
-
-    return () => {
-      viewport.removeEventListener('mousedown', onMouseDown)
-      document.removeEventListener('mousemove', onMouseMove)
-      document.removeEventListener('mouseup', onMouseUp)
-    }
-  }, [selectedView])
-
-  // ── Pinch-to-zoom (touch) ─────────────────────────────────────────────────────
-
-  useEffect(() => {
-    const viewport = viewportRef.current
-    if (!viewport) return
-
-    function onPointerDown(e: PointerEvent) {
-      activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      if (activePointersRef.current.size === 2) {
-        const pts = Array.from(activePointersRef.current.values())
-        pinchStartRef.current = {
-          dist: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y),
-          zoom: zoomRef.current,
-        }
-      }
-    }
-
-    function onPointerMove(e: PointerEvent) {
-      activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      if (activePointersRef.current.size >= 2 && pinchStartRef.current) {
-        const pts = Array.from(activePointersRef.current.values())
-        const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)
-        setZoom(Number(Math.max(0.25, Math.min(4, pinchStartRef.current.zoom * (dist / pinchStartRef.current.dist))).toFixed(2)))
-      }
-    }
-
-    function onPointerUp(e: PointerEvent) {
-      activePointersRef.current.delete(e.pointerId)
-      if (activePointersRef.current.size < 2) pinchStartRef.current = null
-    }
-
-    viewport.addEventListener('pointerdown', onPointerDown)
-    viewport.addEventListener('pointermove', onPointerMove, { passive: true })
-    viewport.addEventListener('pointerup', onPointerUp)
-    viewport.addEventListener('pointercancel', onPointerUp)
-
-    return () => {
-      viewport.removeEventListener('pointerdown', onPointerDown)
-      viewport.removeEventListener('pointermove', onPointerMove)
-      viewport.removeEventListener('pointerup', onPointerUp)
-      viewport.removeEventListener('pointercancel', onPointerUp)
-    }
-  }, [selectedView])
-
-  // ── Canvas init (once per selected view) ────────────────────────────────────
-
-  useEffect(() => {
-    if (!selectedView) return
-    const viewId = selectedView.id
-
-    // Reuse the existing canvas if this view was already initialised
-    if (fabricCanvasMapRef.current.has(viewId)) {
-      fabricCanvasRef.current = fabricCanvasMapRef.current.get(viewId)!
-      liveViewRef.current = selectedView
-      return
-    }
-
-    const host = canvasHostMapRef.current.get(viewId)
-    if (!host) return
-
-    const canvasEl = document.createElement('canvas')
-    host.replaceChildren(canvasEl)
-
-    const canvas = new Canvas(canvasEl, { preserveObjectStacking: true, selection: true })
-    canvas.wrapperEl.style.background = 'transparent'
-    canvas.lowerCanvasEl.style.backgroundColor = 'transparent'
-    canvas.upperCanvasEl.style.backgroundColor = 'transparent'
-    canvas.lowerCanvasEl.style.touchAction = 'none'
-    canvas.upperCanvasEl.style.touchAction = 'none'
-
-    // Capture viewId in closure so this handler always updates the right view
-    // regardless of which view is currently selected.
-    const syncObject = (target?: FabricObjectWithMeta) => {
-      if (!target) return
-      const nextEl = elementFromObject(target)
-      if (!nextEl) return
-
-      skipNextRenderRef.current = true
-      setDesign((cur) =>
-        updateViewDesign(cur, viewId, (entry) => ({
-          ...entry,
-          elements: entry.elements.map((el) => (el.id === nextEl.id ? nextEl : el)),
-        })),
-      )
-    }
-
-    function notifySelection(obj: FabricObjectWithMeta | undefined) {
-      const id = obj?.__elementId ?? null
-      selectedElementIdRef.current = id
-      onSelectionChangeRef.current(obj ?? null)
-    }
-
-    canvas.on('selection:created', ((e: { selected?: FabricObjectWithMeta[] }) => notifySelection(e.selected?.[0])) as never)
-    canvas.on('selection:updated', ((e: { selected?: FabricObjectWithMeta[] }) => notifySelection(e.selected?.[0])) as never)
-    canvas.on('selection:cleared', () => notifySelection(undefined))
-    canvas.on('object:modified', ((e: { target?: FabricObjectWithMeta }) => {
-      syncObject(e.target)
-      // Re-read position after drag/resize so the panel stays in sync
-      if (e.target) onSelectionChangeRef.current(e.target)
-    }) as never)
-
-    fabricCanvasMapRef.current.set(viewId, canvas)
-    fabricCanvasRef.current = canvas
-    liveViewRef.current = selectedView
-
-    // Canvas instances are kept alive for the component lifetime — no per-view cleanup.
-  }, [selectedView])
-
-  // Dispose all canvases when the component unmounts
-  useEffect(() => {
-    return () => {
-      for (const canvas of fabricCanvasMapRef.current.values()) canvas.dispose()
-      fabricCanvasMapRef.current.clear()
-    }
-  }, [])
-
-  // ── Canvas render (only when design or view changes, NOT on zoom/pan) ────────
-
-  useEffect(() => {
-    const canvas = fabricCanvasRef.current
-    const view = selectedView
-    if (!canvas || !view) return
-
-    // If design changed because of a canvas interaction (syncObject), the canvas
-    // already reflects the new state — skip clearing and rebuilding.
-    if (skipNextRenderRef.current) {
-      skipNextRenderRef.current = false
-      // Still mark this as the last rendered state so a subsequent view switch
-      // doesn't trigger a redundant re-render.
-      lastRenderedDesignRef.current.set(view.id, getViewDesign(design, view.id))
-      return
-    }
-
-    // Skip re-render when switching back to a view whose design hasn't changed.
-    const currentViewDesign = getViewDesign(design, view.id)
-    if (lastRenderedDesignRef.current.get(view.id) === currentViewDesign) return
-    lastRenderedDesignRef.current.set(view.id, currentViewDesign)
-
-    liveViewRef.current = view
-    let disposed = false
-
-    async function render() {
-      const physical = view.fields.physicalSize.rect
-      const w = Math.max(1, mmToStage(physical.width))
-      const h = Math.max(1, mmToStage(physical.height))
-
-      canvas.clear()
-      canvas.setDimensions({ width: w, height: h })
-      canvas.backgroundColor = 'rgba(0,0,0,0)'
-
-      const activeDesign = getViewDesign(design, view.id)
-
-      for (const el of activeDesign.elements) {
-        const left = mmToStage(el.x)
-        const top = mmToStage(el.y)
-        const width = mmToStage(el.width)
-        const height = mmToStage(el.height)
-
-        if (el.kind === 'text') {
-          // Wait for the font before measuring — avoids bounding-box/render mismatch
-          await ensureFontReady(el.fontFamily ?? 'Inter', el.fontWeight ?? '400', el.fontStyle === 'italic')
-          if (disposed) return
-
-          const obj = new IText(el.text ?? 'Your text', {
-            originX: 'left',
-            originY: 'top',
-            fontSize: mmToStage(el.fontSize ?? 10),
-            fill: el.fill ?? '#0f172a',
-            fontFamily: el.fontFamily ?? 'Inter',
-            fontWeight: el.fontWeight ?? '400',
-            fontStyle: el.fontStyle ?? 'normal',
-            textAlign: el.textAlign ?? 'left',
-            charSpacing: el.charSpacing ?? 0,
-            lineHeight: el.lineHeight ?? 1.16,
-            underline: el.underline ?? false,
-            linethrough: el.linethrough ?? false,
-            editable: true,
-            cornerStyle: 'circle',
-            cornerSize: 16,
-            touchCornerSize: 30,
-            transparentCorners: false,
-            cornerColor: '#0050cc',
-            cornerStrokeColor: '#ffffff',
-            borderColor: '#0050cc',
-            borderScaleFactor: 2,
-            lockScalingFlip: true,
-            centeredRotation: true,
-            objectCaching: false,
-          }) as FabricObjectWithMeta
-          obj.__kind = 'user-text'
-          obj.__elementId = el.id
-
-          // Scale uniformly to match stored height. Width follows proportionally — no stretching.
-          const naturalH = Math.max(1, obj.height ?? 1)
-          const uniformScale = height / naturalH
-          obj.set({ left, top, angle: el.rotation, scaleX: uniformScale, scaleY: uniformScale })
-          canvas.add(obj)
-          continue
-        }
-
-        if (el.kind === 'image' && el.src) {
-          const obj = (await FabricImage.fromURL(el.src)) as FabricObjectWithMeta
-          if (disposed) return
-          obj.__kind = 'user-image'
-          obj.__elementId = el.id
-          obj.set({
-            left: left + width / 2,
-            top: top + height / 2,
-            originX: 'center',
-            originY: 'center',
-            scaleX: width / Math.max(1, obj.width ?? 1),
-            scaleY: height / Math.max(1, obj.height ?? 1),
-            angle: el.rotation,
-            cornerStyle: 'circle',
-            cornerSize: 16,
-            touchCornerSize: 30,
-            transparentCorners: false,
-            cornerColor: '#0050cc',
-            cornerStrokeColor: '#ffffff',
-            borderColor: '#0050cc',
-            borderScaleFactor: 2,
-            lockScalingFlip: true,
-            centeredRotation: true,
-            objectCaching: false,
-          })
-          canvas.add(obj)
-        }
-      }
-
-      canvas.renderAll()
-    }
-
-    void render()
-    return () => { disposed = true }
-  }, [design, selectedView])
-
-  // ── Tool cursor / selectability ─────────────────────────────────────────────
-
-  useEffect(() => {
-    const canvas = fabricCanvasRef.current
-    if (!canvas) return
-
-    const isPan = activeTool === 'pan'
-
-    for (const obj of canvas.getObjects()) {
-      obj.set({ selectable: !isPan, evented: !isPan })
-    }
-    canvas.selection = !isPan
-    canvas.defaultCursor = isPan ? 'grab' : 'default'
-    canvas.hoverCursor = isPan ? 'grab' : 'move'
-
-    // In pan mode, let pointer/mouse events fall through to the viewport so our
-    // pan handler (on the viewport) can receive them unimpeded by Fabric.
-    canvas.upperCanvasEl.style.pointerEvents = isPan ? 'none' : ''
-    canvas.lowerCanvasEl.style.pointerEvents = isPan ? 'none' : ''
-
-    if (isPan) canvas.discardActiveObject()
-    canvas.requestRenderAll()
-  }, [activeTool])
-
-  // ── Actions ──────────────────────────────────────────────────────────────────
+  // ── Actions ───────────────────────────────────────────────────────────────
 
   async function handleAddText() {
     if (!selectedView) return
     const bounds = resolveConstraintRect(selectedView)
-    const fontSize = Math.min(10, roundMetric(bounds.height * 0.18))  // mm
-    // height = fontSize × default lineHeight so the uniform scale starts at 1
+    const fontSize = Math.min(10, roundMetric(bounds.height * 0.18))
     const lineH = roundMetric(fontSize * 1.16)
-    // Rough initial width: 9 chars × ~0.6× fontSize average char width
     const estimatedW = roundMetric(Math.min(fontSize * 9 * 0.6, bounds.width * 0.8))
     const nextEl: UserDesignElement = {
-      id: createElementId(),
-      kind: 'text',
-      text: 'Your text',
-      src: null,
+      id: createElementId(), kind: 'text', text: 'Your text', src: null,
       x: roundMetric(bounds.x + (bounds.width - estimatedW) / 2),
       y: roundMetric(bounds.y + (bounds.height - lineH) / 2),
-      width: estimatedW,
-      height: lineH,
-      rotation: 0,
-      fontSize,
-      fill: '#0f172a',
-      fontFamily: 'Inter',
-      fontWeight: '400',
-      fontStyle: 'normal',
-      textAlign: 'left',
-      charSpacing: 0,
-      lineHeight: 1.16,
-      underline: false,
-      linethrough: false,
+      width: estimatedW, height: lineH, rotation: 0,
+      fontSize, fill: '#0f172a', fontFamily: 'Inter', fontWeight: '400',
+      fontStyle: 'normal', textAlign: 'left', charSpacing: 0,
+      lineHeight: 1.16, underline: false, linethrough: false,
     }
-    setDesign((cur) =>
-      updateViewDesign(cur, selectedView.id, (entry) => ({ ...entry, elements: [...entry.elements, nextEl] })),
-    )
+    setDesign((cur) => addElementToDesign(cur, selectedView.id, nextEl))
     setStatusMessage('Added a text layer. Drag or resize it inside the allowed print area.')
   }
 
-  // Apply a text property change directly to the live canvas object without clearing
   const applyTextChange = useCallback(
     async <K extends keyof TextProps>(key: K, value: TextProps[K]) => {
       const canvas = fabricCanvasRef.current
@@ -790,57 +249,39 @@ export function UserDesignerPage() {
       const obj = canvas.getObjects().find(
         (o) => (o as FabricObjectWithMeta).__elementId === selectedTextId,
       ) as (FabricObjectWithMeta & IText) | undefined
+      if (obj?.__kind !== 'user-text' || !(obj instanceof IText)) return
 
-      if (!obj || obj.__kind !== 'user-text' || !(obj instanceof IText)) return
-
-      // Update panel state immediately for responsive feel
       setSelectedTextProps((prev) => (prev ? { ...prev, [key]: value } : null))
 
-      // Apply to Fabric object
-      if (key === 'text') {
-        obj.set('text', value as string)
-      } else if (key === 'fontFamily') {
-        const family = value as string
-        await ensureFontReady(family, String(obj.fontWeight ?? '400'), obj.fontStyle === 'italic')
-        obj.set('fontFamily', family)
+      if (key === 'text') { obj.set('text', value) }
+      else if (key === 'fontFamily') {
+        const v = value as string
+        await ensureFontReady(v, String(obj.fontWeight ?? '400'), obj.fontStyle === 'italic')
+        obj.set('fontFamily', v)
       } else if (key === 'fontWeight') {
-        const weight = value as string
-        await ensureFontReady(String(obj.fontFamily ?? 'Inter'), weight, obj.fontStyle === 'italic')
-        obj.set('fontWeight', weight)
+        const v = value as string
+        await ensureFontReady(String(obj.fontFamily ?? 'Inter'), v, obj.fontStyle === 'italic')
+        obj.set('fontWeight', v)
       } else if (key === 'fontStyle') {
-        const style = value as string
-        await ensureFontReady(String(obj.fontFamily ?? 'Inter'), String(obj.fontWeight ?? '400'), style === 'italic')
-        obj.set('fontStyle', style)
-      } else if (key === 'fontSize') {
-        obj.set('fontSize', mmToStage(value as number))
-      } else if (key === 'fill') {
-        obj.set('fill', value as string)
-      } else if (key === 'textAlign') {
-        obj.set('textAlign', value as string)
-      } else if (key === 'charSpacing') {
-        obj.set('charSpacing', value as number)
-      } else if (key === 'lineHeight') {
-        obj.set('lineHeight', value as number)
-      } else if (key === 'underline') {
-        obj.set('underline', value as boolean)
-      } else if (key === 'linethrough') {
-        obj.set('linethrough', value as boolean)
-      }
+        const v = value as string
+        await ensureFontReady(String(obj.fontFamily ?? 'Inter'), String(obj.fontWeight ?? '400'), v === 'italic')
+        obj.set('fontStyle', v)
+      } else if (key === 'fontSize') { obj.set('fontSize', mmToStage(value as number)) }
+      else if (key === 'fill') { obj.set('fill', value) }
+      else if (key === 'textAlign') { obj.set('textAlign', value) }
+      else if (key === 'charSpacing') { obj.set('charSpacing', value) }
+      else if (key === 'lineHeight') { obj.set('lineHeight', value) }
+      else if (key === 'underline') { obj.set('underline', value) }
+      else if (key === 'linethrough') { obj.set('linethrough', value) }
 
       canvas.requestRenderAll()
 
-      // Sync updated element back to design state (skip canvas re-render)
       const nextEl = elementFromObject(obj)
       if (!nextEl) return
       skipNextRenderRef.current = true
-      setDesign((cur) =>
-        updateViewDesign(cur, view.id, (entry) => ({
-          ...entry,
-          elements: entry.elements.map((el) => (el.id === nextEl.id ? nextEl : el)),
-        })),
-      )
+      setDesign((cur) => patchElementInDesign(cur, view.id, nextEl))
     },
-    [selectedTextId],
+    [selectedTextId, fabricCanvasRef, liveViewRef, skipNextRenderRef],
   )
 
   async function handleImageSelection(file: File | null) {
@@ -850,33 +291,29 @@ export function UserDesignerPage() {
     const wMm = Math.min(bounds.width * 0.6, Math.max(24, img.width / 10))
     const hMm = roundMetric((wMm * img.height) / Math.max(1, img.width))
     const nextEl: UserDesignElement = {
-      id: createElementId(),
-      kind: 'image',
-      text: null,
-      src: img.src,
+      id: createElementId(), kind: 'image', text: null, src: img.src,
       x: roundMetric(bounds.x + (bounds.width - wMm) / 2),
       y: roundMetric(bounds.y + (bounds.height - hMm) / 2),
       width: roundMetric(wMm),
       height: roundMetric(Math.min(hMm, bounds.height * 0.7)),
-      rotation: 0,
-      fontSize: null,
-      fill: null,
+      rotation: 0, fontSize: null, fill: null,
+      fontFamily: null,
+      fontWeight: null,
+      fontStyle: null,
+      textAlign: null,
+      charSpacing: null,
+      lineHeight: null,
+      underline: null,
+      linethrough: null
     }
-    setDesign((cur) =>
-      updateViewDesign(cur, selectedView.id, (entry) => ({ ...entry, elements: [...entry.elements, nextEl] })),
-    )
+    setDesign((cur) => addElementToDesign(cur, selectedView.id, nextEl))
     setStatusMessage('Added an image layer. Resize or move it inside the allowed print area.')
   }
 
   function handleDeleteSelection() {
     if (!selectedView || !selectedElementIdRef.current) return
     const id = selectedElementIdRef.current
-    setDesign((cur) =>
-      updateViewDesign(cur, selectedView.id, (entry) => ({
-        ...entry,
-        elements: entry.elements.filter((el) => el.id !== id),
-      })),
-    )
+    setDesign((cur) => removeElementFromDesign(cur, selectedView.id, id))
     selectedElementIdRef.current = null
     setSelectedTextId(null)
     setSelectedTextProps(null)
@@ -885,11 +322,9 @@ export function UserDesignerPage() {
 
   function handleSaveDesign() {
     if (!productId || !selectedView) return
-
     const canvas = fabricCanvasRef.current
     const view = selectedView
 
-    // Snapshot current canvas state into design
     let nextDesign = design
     if (canvas) {
       const elements = canvas
@@ -899,7 +334,6 @@ export function UserDesignerPage() {
       nextDesign = updateViewDesign(design, view.id, () => ({ viewId: view.id, elements }))
     }
 
-    // Validate using canvas objects directly (stage units)
     const validation = canvas
       ? validateFromCanvas(canvas, view)
       : (selectedDesignValidation ?? { isValid: true, violations: [] })
@@ -916,7 +350,7 @@ export function UserDesignerPage() {
     setStatusMessage('Design saved on this device and synced to the embedding page.')
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
 
   if (isLoading) return <main className="cf-loading">Loading user designer...</main>
   if (error) return <main className="cf-error">{error}</main>
@@ -924,7 +358,6 @@ export function UserDesignerPage() {
 
   const effectiveScale = baseScale * zoom
   const allowedZone = resolveConstraintRect(selectedView)
-  const physical = selectedView.fields.physicalSize.rect
 
   return (
     <main ref={pageRef} className="designer-page">
@@ -976,37 +409,14 @@ export function UserDesignerPage() {
                 <Hand size={16} />
                 Hand tool
               </button>
-              <button type="button" className="designer-tool-button" onClick={() => void handleAddText()}>
-                Add text
-              </button>
-              <button type="button" className="designer-tool-button" onClick={() => fileInputRef.current?.click()}>
-                Upload image
-              </button>
-              <button type="button" className="designer-tool-button" onClick={handleDeleteSelection}>
-                Delete selected
-              </button>
-              <button type="button" className="designer-tool-button" onClick={() => setZoom((z) => Math.max(0.25, Number((z - 0.1).toFixed(2))))}>
-                Zoom out
-              </button>
-              <button type="button" className="designer-tool-button" onClick={() => setZoom((z) => Math.min(4, Number((z + 0.1).toFixed(2))))}>
-                Zoom in
-              </button>
-              <button
-                type="button"
-                className="designer-tool-button"
-                onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); setStatusMessage('Canvas view reset.') }}
-              >
-                Reset view
-              </button>
-              <button
-                type="button"
-                className="designer-tool-button designer-tool-button--primary"
-                onClick={handleSaveDesign}
-              >
-                Save design
-              </button>
+              <button type="button" className="designer-tool-button" onClick={() => void handleAddText()}>Add text</button>
+              <button type="button" className="designer-tool-button" onClick={() => fileInputRef.current?.click()}>Upload image</button>
+              <button type="button" className="designer-tool-button" onClick={handleDeleteSelection}>Delete selected</button>
+              <button type="button" className="designer-tool-button" onClick={() => setZoom((z) => Math.max(0.25, Number((z - 0.1).toFixed(2))))}>Zoom out</button>
+              <button type="button" className="designer-tool-button" onClick={() => setZoom((z) => Math.min(4, Number((z + 0.1).toFixed(2))))}>Zoom in</button>
+              <button type="button" className="designer-tool-button" onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); setStatusMessage('Canvas view reset.') }}>Reset view</button>
+              <button type="button" className="designer-tool-button designer-tool-button--primary" onClick={handleSaveDesign}>Save design</button>
             </div>
-
             <input
               ref={fileInputRef}
               type="file"
@@ -1016,7 +426,6 @@ export function UserDesignerPage() {
             />
           </div>
 
-          {/* Text properties panel — shown when a text layer is selected */}
           {selectedTextProps ? (
             <TextPropertiesPanel value={selectedTextProps} onChange={applyTextChange} />
           ) : null}
@@ -1049,11 +458,7 @@ export function UserDesignerPage() {
               <h2 className="designer-stage-title">{selectedView.name}</h2>
             </div>
             <div className="designer-stage-actions">
-              <button
-                type="button"
-                className="designer-tool-button designer-tool-button--primary designer-stage-save"
-                onClick={handleSaveDesign}
-              >
+              <button type="button" className="designer-tool-button designer-tool-button--primary designer-stage-save" onClick={handleSaveDesign}>
                 Save design
               </button>
               <p className="designer-status">{statusMessage}</p>
@@ -1065,7 +470,6 @@ export function UserDesignerPage() {
             className="designer-stage-viewport"
             style={{ cursor: activeTool === 'pan' ? 'grab' : undefined }}
           >
-            {/* Single CSS-transformed container: canvas + zone overlays share the same coordinate space */}
             <div
               className="designer-stage-transform"
               style={{
@@ -1074,10 +478,8 @@ export function UserDesignerPage() {
                 transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${effectiveScale})`,
               }}
             >
-              {/* White artboard background */}
               <div className="designer-stage-artboard" />
 
-              {/* Optional mockup image */}
               {selectedView.mockupSrc && selectedView.mockupRect ? (
                 <img
                   src={selectedView.mockupSrc}
@@ -1097,7 +499,6 @@ export function UserDesignerPage() {
                 />
               ) : null}
 
-              {/* Zone overlays — same coordinate space as canvas (stage units) */}
               {fieldOrder
                 .filter((key) => key !== 'physicalSize' && selectedView.fields[key].enabled)
                 .map((key) => {
@@ -1124,7 +525,6 @@ export function UserDesignerPage() {
                   )
                 })}
 
-              {/* One canvas host per view — hidden via CSS so each canvas persists across view switches */}
               {views.map((view) => (
                 <div
                   key={view.id}
@@ -1138,12 +538,11 @@ export function UserDesignerPage() {
               ))}
             </div>
 
-            {/* Legend — fixed in viewport, not transformed */}
             <div className="designer-legend">
               {fieldOrder
                 .filter((key) => key !== 'physicalSize' && selectedView.fields[key].enabled)
                 .map((key) => {
-                  const visual = zoneVisual(key as ZoneKey)
+                  const visual = zoneVisual(key)
                   return (
                     <div key={key} className="designer-legend-item">
                       <span

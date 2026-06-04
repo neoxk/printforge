@@ -54,6 +54,14 @@ export type TemplatePreset = {
   fields: Partial<Record<Exclude<ZoneKey, 'physicalSize'>, Partial<ZoneRect> & { enabled?: boolean }>>
 }
 
+export type StageMetrics = {
+  effectiveScale: number
+  originX: number
+  originY: number
+  workspaceMinX: number
+  workspaceMinY: number
+}
+
 export type InlineAlertTone = 'error' | 'warning' | 'info'
 
 export type InlineAlert = {

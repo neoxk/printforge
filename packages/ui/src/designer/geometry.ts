@@ -1,6 +1,7 @@
 import type {
   CreateViewDraft,
   DesignerView,
+  StageMetrics,
   TemplatePreset,
   ZoneFieldDefinition,
   ZoneFieldMap,
@@ -218,6 +219,54 @@ export function createViewFromDraft(draft: CreateViewDraft): DesignerView {
   }
 
   return nextView
+}
+
+/**
+ * Computes the scale and origin needed to render the workspace on a viewport.
+ * Fits the physical artboard at zoom=1 so zone guides are always fully visible.
+ */
+export function viewportStageMetrics(
+  viewportWidth: number,
+  viewportHeight: number,
+  workspaceRect: ZoneRect,
+  physicalRect: ZoneRect,
+  zoom: number,
+  pan: { x: number; y: number },
+): StageMetrics {
+  const stagePhysicalW = Math.max(1, mmToStage(physicalRect.width))
+  const stagePhysicalH = Math.max(1, mmToStage(physicalRect.height))
+  const inset = 56
+  const availableWidth = Math.max(160, viewportWidth - inset * 2)
+  const availableHeight = Math.max(160, viewportHeight - inset * 2)
+  const fitScale = Math.min(availableWidth / stagePhysicalW, availableHeight / stagePhysicalH)
+  const effectiveScale = fitScale * zoom
+  const physicalCenterStageX = mmToStage(physicalRect.x - workspaceRect.x) + stagePhysicalW / 2
+  const physicalCenterStageY = mmToStage(physicalRect.y - workspaceRect.y) + stagePhysicalH / 2
+
+  return {
+    effectiveScale,
+    originX: viewportWidth / 2 - physicalCenterStageX * effectiveScale + pan.x,
+    originY: viewportHeight / 2 - physicalCenterStageY * effectiveScale + pan.y,
+    workspaceMinX: workspaceRect.x,
+    workspaceMinY: workspaceRect.y,
+  }
+}
+
+/**
+ * Returns the workspace bounding rect anchored to the physical size with padding.
+ * Zone positions are excluded so the viewport stays stable while guides are dragged.
+ */
+export function resolveWorkspaceRect(view: DesignerView): ZoneRect {
+  const physical = view.fields.physicalSize.rect
+  const padX = Math.max(physical.width * 1.5, 200)
+  const padY = Math.max(physical.height * 1.5, 200)
+  return {
+    x: physical.x - padX,
+    y: physical.y - padY,
+    width: physical.width + padX * 2,
+    height: physical.height + padY * 2,
+    rotation: 0,
+  }
 }
 
 export function createEmptyDraft() {

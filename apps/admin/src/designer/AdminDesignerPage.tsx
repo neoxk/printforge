@@ -9,6 +9,7 @@ import {
   fieldLabel,
   fieldOrder,
   templatePresets,
+  updateViewCollection,
   validateDesignerView,
 } from '@printforge/ui/designer'
 import type {
@@ -21,13 +22,6 @@ import type {
 import { cn } from '@/lib/utils'
 import { Button } from '@printforge/ui/components/ui/button'
 
-function updateViewCollection(
-  views: DesignerView[],
-  selectedViewId: string | null,
-  updater: (view: DesignerView) => DesignerView,
-) {
-  return views.map((view) => (view.id === selectedViewId ? updater(view) : view))
-}
 
 function getSourceModeLabel(mode: string | undefined) {
   switch (mode) {
