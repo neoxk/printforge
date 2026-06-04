@@ -37,6 +37,7 @@ import type {
   ZoneRect,
 } from '@printforge/ui/designer'
 import { cn } from '@/lib/utils'
+import { showInfo } from '@/lib/toast'
 import { Button } from '@printforge/ui/components/ui/button'
 import { Input } from '@printforge/ui/components/ui/input'
 import { Label } from '@printforge/ui/components/ui/label'
@@ -47,6 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@printforge/ui/components/ui/select'
+import { Switch } from '@printforge/ui/components/ui/switch'
 
 type PrintAreasDesignerState = {
   views: DesignerView[]
@@ -283,7 +285,8 @@ function rectToMetricsWithinStage(rect: Rect, stage: StageMetrics): ZoneRect {
 // ─── Swatch styles for canvas legend ─────────────────────────────────────────
 
 const ZONE_SWATCH_STYLE: Record<string, CSSProperties> = {
-  cutArea: { background: '#ffffff', border: '2px solid #050809' },
+  physicalSize: { background: 'rgba(49,65,95,0.12)', border: '2px solid #31415f' },
+  cutArea: { background: '#ffffff', border: '2px dashed #050809' },
   bleedArea: { background: 'rgba(255,90,90,0.28)', border: '2px dashed #ba1a1a' },
   safeZone: { background: 'rgba(67,160,71,0.22)', border: '2px dashed #2e7d32' },
   allowedPrintArea: { background: 'rgba(2,102,255,0.18)', border: '2px solid #0050cc' },
@@ -844,7 +847,8 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
     setActiveTool('select')
     setActiveDrawTarget(null)
     resetViewport()
-    setStatusMessage(`View "${nextView.name}" was created locally. Backend sync will be added later.`)
+    setStatusMessage(`View "${nextView.name}" created. Use the tools to define print zones, then save.`)
+    showInfo(`View "${nextView.name}" created. Remember to save when done.`, 'View created')
   }
 
   function handleSelectView(viewId: string) {
@@ -934,7 +938,7 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
   }
 
   return (
-    <div className="grid grid-cols-[360px_minmax(0,1fr)] items-start gap-4">
+    <div className="mt-5 grid grid-cols-1 items-start gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
       <aside className="flex flex-col gap-4">
         <SectionCard title="Canvas setup" description="Add and switch between product print views.">
           <div className="my-4 flex flex-wrap gap-2">
@@ -1027,7 +1031,7 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
                     setDraft((currentDraft) => ({ ...currentDraft, templateId: value }))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1072,57 +1076,7 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
           <SectionCard
             title={selectedView.name}
             description="Configure optional print-area guides for the selected view."
-            actions={
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={validation?.hasErrors || isSaving}
-                  onClick={() => void onPreview()}
-                >
-                  <Eye className="size-4" aria-hidden="true" />
-                  Preview
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={validation?.hasErrors || isSaving}
-                  onClick={() => void onSave()}
-                >
-                  <Save className="size-4" aria-hidden="true" />
-                  {isSaving ? 'Saving…' : 'Save'}
-                </Button>
-              </div>
-            }
           >
-            <div className="mb-4 mt-2 flex flex-wrap gap-2.5">
-              <button
-                type="button"
-                className={cn(CHIP_BASE, activeTool === 'select' ? CHIP_ACTIVE : CHIP_INACTIVE)}
-                onClick={() => {
-                  setActiveTool('select')
-                  setActiveDrawTarget(null)
-                  setStatusMessage('Select mode active. Tap a guide once to move, resize, or rotate it.')
-                }}
-              >
-                <MousePointer2 className="size-4" aria-hidden="true" />
-                Select
-              </button>
-              <button
-                type="button"
-                className={cn(CHIP_BASE, activeTool === 'pan' ? CHIP_ACTIVE : CHIP_INACTIVE)}
-                onClick={() => {
-                  setActiveTool('pan')
-                  setActiveDrawTarget(null)
-                  setStatusMessage('Hand tool active. Drag anywhere on the stage to pan around the view.')
-                }}
-              >
-                <Hand className="size-4" aria-hidden="true" />
-                Hand
-              </button>
-            </div>
-
             <div className="flex flex-col gap-3.5">
               {fieldOrder.map((key) => {
                 const field = selectedView.fields[key]
@@ -1138,11 +1092,11 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
                   >
                     <header className="mb-3 flex items-center justify-between gap-2.5">
                       <label className="inline-flex cursor-pointer items-center gap-2.5 font-semibold text-foreground">
-                        <input
-                          type="checkbox"
+                        <Switch
+                          size="sm"
                           checked={field.enabled}
                           disabled={!field.optional}
-                          onChange={(event) => handleFieldToggle(field.key, event.target.checked)}
+                          onCheckedChange={(checked) => handleFieldToggle(field.key, checked)}
                         />
                         <span>{field.label}</span>
                       </label>
@@ -1265,7 +1219,7 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
         )}
       </aside>
 
-      <section className="flex min-w-0 self-start flex-col gap-4 lg:sticky lg:top-6">
+      <section className="flex min-w-0 flex-col gap-4 self-start xl:sticky xl:top-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="mb-1.5 text-[11px] uppercase tracking-widest text-muted-foreground">
@@ -1275,41 +1229,29 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
               {selectedView ? selectedView.name : 'View setup workspace'}
             </h2>
           </div>
-          <div className="flex flex-wrap gap-2.5">
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => setZoom((current) => clampZoom(current - 0.1))}
-            >
-              <ZoomOut className="size-4" aria-hidden="true" />
-              Zoom out
-            </Button>
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => setZoom((current) => clampZoom(current + 0.1))}
-            >
-              <ZoomIn className="size-4" aria-hidden="true" />
-              Zoom in
-            </Button>
-            <Button
-              variant="outline"
-              type="button"
-              className={cn(
-                activeTool === 'pan' && 'border-primary bg-[#eef4ff] text-[#001849]',
-              )}
-              onClick={() => {
-                setActiveTool('pan')
-                setActiveDrawTarget(null)
-                setStatusMessage(
-                  'Hand tool active. Drag anywhere on the stage to pan around the view.',
-                )
-              }}
-            >
-              <Hand className="size-4" aria-hidden="true" />
-              Hand tool
-            </Button>
-          </div>
+          {selectedView && (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={validation?.hasErrors || isSaving}
+                onClick={() => void onPreview()}
+              >
+                <Eye className="size-4" aria-hidden="true" />
+                Preview
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={validation?.hasErrors || isSaving}
+                onClick={() => void onSave()}
+              >
+                <Save className="size-4" aria-hidden="true" />
+                {isSaving ? 'Saving…' : 'Save'}
+              </Button>
+            </div>
+          )}
         </div>
 
         <SectionCard
@@ -1323,6 +1265,55 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
                   : 'Blank canvas view'
               : 'Create a view from a template, uploaded mockup, or blank canvas to begin.'
           }
+          actions={selectedView ? (
+            <div className="flex items-center gap-1">
+              <Button
+                variant={activeTool === 'select' ? 'default' : 'outline'}
+                size="icon-sm"
+                type="button"
+                title="Select tool"
+                onClick={() => {
+                  setActiveTool('select')
+                  setActiveDrawTarget(null)
+                  setStatusMessage('Select mode active. Tap a guide to move, resize, or rotate it.')
+                }}
+              >
+                <MousePointer2 className="size-4" aria-hidden="true" />
+              </Button>
+              <Button
+                variant={activeTool === 'pan' ? 'default' : 'outline'}
+                size="icon-sm"
+                type="button"
+                title="Hand tool — drag to pan"
+                onClick={() => {
+                  setActiveTool('pan')
+                  setActiveDrawTarget(null)
+                  setStatusMessage('Hand tool active. Drag to pan. Ctrl + scroll to zoom.')
+                }}
+              >
+                <Hand className="size-4" aria-hidden="true" />
+              </Button>
+              <div className="mx-1 h-4 w-px bg-border" />
+              <Button
+                variant="outline"
+                size="icon-sm"
+                type="button"
+                title="Zoom out"
+                onClick={() => setZoom((current) => clampZoom(current - 0.1))}
+              >
+                <ZoomOut className="size-4" aria-hidden="true" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                type="button"
+                title="Zoom in"
+                onClick={() => setZoom((current) => clampZoom(current + 0.1))}
+              >
+                <ZoomIn className="size-4" aria-hidden="true" />
+              </Button>
+            </div>
+          ) : undefined}
         >
           {selectedView ? (
             <FabricPrintAreaCanvas
@@ -1346,7 +1337,7 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
             />
           ) : (
             <div className="flex min-h-130 flex-col justify-center">
-              <div className="mt-7 grid grid-cols-3 gap-4">
+              <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <article className="rounded-xl border border-border bg-white p-4">
                   <h3 className="mb-2 text-sm font-semibold text-foreground">
                     Predefined product template
