@@ -1,4 +1,4 @@
-import type { ProductConfig, ProductPrintAreaConfig, PricingResult } from '../types.js'
+import type { ProductConfig, ProductPrintAreaConfig, PricingResult, QuantityPriceTable } from '../types.js'
 
 export async function fetchProductConfig(productId: string): Promise<ProductConfig> {
   const res = await fetch(`/api/products/${productId}/config`)
@@ -38,4 +38,19 @@ export async function calculatePrice(
   })
   if (!res.ok) throw new Error(`Price calculation failed (${res.status})`)
   return res.json() as Promise<PricingResult>
+}
+
+export async function calculateQuantityTable(
+  productId: string,
+  selectedItemIds: string[],
+  context: { widthMm: number; heightMm: number; quantity: number },
+  quantities: number[],
+): Promise<QuantityPriceTable> {
+  const res = await fetch('/api/pricing/quantity-table', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ productId, selectedItemIds, context, quantities }),
+  })
+  if (!res.ok) throw new Error(`Quantity pricing failed (${res.status})`)
+  return res.json() as Promise<QuantityPriceTable>
 }

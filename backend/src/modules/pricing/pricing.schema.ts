@@ -33,3 +33,7 @@ export const calculateBody = z.object({
     quantity: z.number().int().positive(),
   }),
 })
+
+export const quantityTableBody = calculateBody.extend({
+  quantities: z.array(z.number().int().positive()).min(1).max(20),
+})

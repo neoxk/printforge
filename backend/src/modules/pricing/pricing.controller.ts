@@ -121,3 +121,23 @@ export async function calculateHandler(
     ),
   );
 }
+
+export async function quantityTableHandler(
+  req: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const body = req.body as {
+    productId: string;
+    selectedItemIds: string[];
+    context: unknown;
+    quantities: number[];
+  };
+  return reply.send(
+    await pricingService.calculateQuantityTable(
+      body.productId,
+      body.selectedItemIds,
+      body.context,
+      body.quantities,
+    ),
+  );
+}

@@ -3,6 +3,7 @@
     var CONFIGURATION_MESSAGE_TYPE = 'printforge:options:change';
     var DESIGNER_CONFIGURATION_MESSAGE_TYPE = 'printforge:designer:change';
     var QUANTITY_MESSAGE_TYPE = 'printforge:quantity:change';
+    var QUANTITY_SET_MESSAGE_TYPE = 'printforge:quantity:set';
     var CONFIGURATION_FIELD_NAME = 'printforge_configuration';
     var DESIGNER_CONFIGURATION_FIELD_NAME = 'printforge_designer_configuration';
     var MIN_HEIGHT = 240;
@@ -55,6 +56,21 @@
                 syncQuantityToIframe(iframe);
             }
         });
+    }
+
+    function setFormQuantity(sourceWindow, quantity) {
+        var iframe = findIframe(sourceWindow);
+        var form = iframe ? findCartForm(iframe) : null;
+        var quantityInput = form ? form.querySelector('input.qty[name="quantity"], input[name="quantity"]') : null;
+        var nextQuantity = parseInt(quantity, 10);
+
+        if (!quantityInput || !isFinite(nextQuantity) || nextQuantity <= 0) {
+            return;
+        }
+
+        quantityInput.value = String(nextQuantity);
+        quantityInput.dispatchEvent(new Event('input', { bubbles: true }));
+        quantityInput.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     function setJsonField(sourceWindow, fieldName, payload) {
@@ -112,6 +128,11 @@
 
         if (event.data.type === CONFIGURATION_MESSAGE_TYPE) {
             setConfigurationField(event.source, event.data);
+            return;
+        }
+
+        if (event.data.type === QUANTITY_SET_MESSAGE_TYPE) {
+            setFormQuantity(event.source, event.data.quantity);
             return;
         }
 
