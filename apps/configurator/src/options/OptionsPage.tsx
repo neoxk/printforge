@@ -13,7 +13,8 @@ import {
   getSelectedItemIds,
   isValidProductId,
 } from './optionsConfig.js'
-import { PricePanel } from './PricePanel.js'
+import { getParentTargetOrigin, setParentQuantity } from './parentMessaging.js'
+import { QuantityPriceTable } from './QuantityPriceTable.js'
 import type { DimensionsState, SelectedByContainer } from './types.js'
 import { useIframeResize } from './useIframeResize.js'
 import { useParentConfigurationSync } from './useParentConfigurationSync.js'
