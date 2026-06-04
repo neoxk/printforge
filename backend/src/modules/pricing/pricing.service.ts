@@ -174,6 +174,34 @@ export async function calculatePrice(
   selectedItemIds: string[],
   rawContext: unknown,
 ) {
+  const items = await getPricingItems(productId, selectedItemIds)
+  const ctx = buildOrderContext(rawContext)
+  return calculate(items, ctx)
+}
+
+export async function calculateQuantityTable(
+  productId: string,
+  selectedItemIds: string[],
+  rawContext: unknown,
+  quantities: number[],
+) {
+  const items = await getPricingItems(productId, selectedItemIds)
+  const baseContext = buildOrderContext(rawContext)
+
+  return {
+    rows: quantities.map((quantity) => {
+      const pricing = calculate(items, { ...baseContext, quantity })
+
+      return {
+        quantity,
+        optionsTotal: pricing.total,
+        breakdown: pricing.breakdown,
+      }
+    }),
+  }
+}
+
+async function getPricingItems(productId: string, selectedItemIds: string[]) {
   const product = await prisma.product.findUnique({ where: { id: productId } })
   if (!product) throw new NotFoundError('Product not found.')
 
@@ -242,6 +270,5 @@ export async function calculatePrice(
       calculationBasis: (slot.item.calculationBasis as string) as OptionItemShape['calculationBasis'],
     }))
 
-  const ctx = buildOrderContext(rawContext)
-  return calculate(items, ctx)
+  return items
 }

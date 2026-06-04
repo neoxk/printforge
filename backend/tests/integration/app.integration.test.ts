@@ -378,4 +378,82 @@ describe('backend integration routes', () => {
       ],
     })
   })
+
+  it('calculates quantity table pricing through the public pricing endpoint', async () => {
+    product.findUnique.mockResolvedValue({ id: productId })
+    optionsContainer.findMany.mockResolvedValue([
+      {
+        id: 'container-size',
+        productId,
+        name: 'Size',
+        sortOrder: 0,
+        containerType: 'SINGLE_SELECT',
+        isRequired: true,
+        items: [
+          {
+            id: 'slot-1',
+            containerId: 'container-size',
+            itemId,
+            sortOrder: 0,
+            name: 'Large print',
+            priceUnit: decimal(6),
+            item: {
+              id: itemId,
+              name: 'Large',
+              slug: 'large',
+              priceUnit: decimal(5),
+              lengthMm: null,
+              widthMm: null,
+              calculationBasis: 'PCS',
+            },
+          },
+        ],
+      },
+    ])
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/pricing/quantity-table',
+      payload: {
+        productId,
+        selectedItemIds: [itemId],
+        context: {
+          widthMm: 100,
+          heightMm: 200,
+          quantity: 1,
+        },
+        quantities: [3, 5],
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({
+      rows: [
+        {
+          quantity: 3,
+          optionsTotal: 18,
+          breakdown: [
+            {
+              itemId,
+              name: 'Large print',
+              calculationBasis: 'PCS',
+              cost: 18,
+            },
+          ],
+        },
+        {
+          quantity: 5,
+          optionsTotal: 30,
+          breakdown: [
+            {
+              itemId,
+              name: 'Large print',
+              calculationBasis: 'PCS',
+              cost: 30,
+            },
+          ],
+        },
+      ],
+    })
+  })
 })
