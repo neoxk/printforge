@@ -1,5 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
-import { defineConfig } from 'vite'
+import { defineConfig, type PluginOption } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -46,68 +46,70 @@ const hmrHost = process.env.VITE_HMR_HOST
 const hmrClientPort = process.env.VITE_HMR_CLIENT_PORT
 const hmrPath = process.env.VITE_HMR_PATH
 
+const wooCommerceDevProxyPlugin: PluginOption = {
+  name: 'printforge-woocommerce-dev-proxy',
+  configureServer(server) {
+    server.middlewares.use(WOO_PROXY_PATH, async (req, res) => {
+      if (req.method !== 'POST') {
+        res.statusCode = 405
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ error: 'Method not allowed' }))
+        return
+      }
+
+      try {
+        const body = await new Promise<string>((resolve, reject) => {
+          let rawBody = ''
+
+          req.on('data', (chunk) => {
+            rawBody += chunk
+          })
+          req.on('end', () => resolve(rawBody))
+          req.on('error', reject)
+        })
+
+        const payload = JSON.parse(body) as {
+          authMethod?: 'public_store_api' | 'consumer_keys'
+          restApiBase?: string
+          consumerKey?: string
+          consumerSecret?: string
+        }
+
+        const upstreamUrl = buildWooProductsUrl(payload)
+        const upstreamResponse = await fetch(upstreamUrl, {
+          headers: {
+            Accept: 'application/json',
+          },
+        })
+
+        const responseText = await upstreamResponse.text()
+        res.statusCode = upstreamResponse.status
+        res.setHeader(
+          'Content-Type',
+          upstreamResponse.headers.get('content-type') ?? 'application/json',
+        )
+        res.end(responseText)
+      } catch (error) {
+        res.statusCode = 500
+        res.setHeader('Content-Type', 'application/json')
+        res.end(
+          JSON.stringify({
+            error:
+              error instanceof Error
+                ? error.message
+                : 'WooCommerce proxy request failed.',
+          }),
+        )
+      }
+    })
+  },
+}
+
 export default defineConfig({
   plugins: [
-    react(),
-    tailwindcss(),
-    {
-      name: 'printforge-woocommerce-dev-proxy',
-      configureServer(server) {
-        server.middlewares.use(WOO_PROXY_PATH, async (req, res) => {
-          if (req.method !== 'POST') {
-            res.statusCode = 405
-            res.setHeader('Content-Type', 'application/json')
-            res.end(JSON.stringify({ error: 'Method not allowed' }))
-            return
-          }
-
-          try {
-            const body = await new Promise<string>((resolve, reject) => {
-              let rawBody = ''
-
-              req.on('data', (chunk) => {
-                rawBody += chunk
-              })
-              req.on('end', () => resolve(rawBody))
-              req.on('error', reject)
-            })
-
-            const payload = JSON.parse(body) as {
-              authMethod?: 'public_store_api' | 'consumer_keys'
-              restApiBase?: string
-              consumerKey?: string
-              consumerSecret?: string
-            }
-
-            const upstreamUrl = buildWooProductsUrl(payload)
-            const upstreamResponse = await fetch(upstreamUrl, {
-              headers: {
-                Accept: 'application/json',
-              },
-            })
-
-            const responseText = await upstreamResponse.text()
-            res.statusCode = upstreamResponse.status
-            res.setHeader(
-              'Content-Type',
-              upstreamResponse.headers.get('content-type') ?? 'application/json',
-            )
-            res.end(responseText)
-          } catch (error) {
-            res.statusCode = 500
-            res.setHeader('Content-Type', 'application/json')
-            res.end(
-              JSON.stringify({
-                error:
-                  error instanceof Error
-                    ? error.message
-                    : 'WooCommerce proxy request failed.',
-              }),
-            )
-          }
-        })
-      },
-    },
+    react() as unknown as PluginOption,
+    tailwindcss() as unknown as PluginOption,
+    wooCommerceDevProxyPlugin,
   ],
   base: process.env.VITE_BASE_PATH ?? '/',
   server: {

@@ -38,6 +38,16 @@ export type PricingResult = {
   breakdown: PriceLineItem[]
 }
 
+export type QuantityPriceRow = {
+  quantity: number
+  optionsTotal: number
+  breakdown: PriceLineItem[]
+}
+
+export type QuantityPriceTable = {
+  rows: QuantityPriceRow[]
+}
+
 export type ProductPrintAreaConfig = {
   productId: string
   views: DesignerView[]

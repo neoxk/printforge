@@ -5,7 +5,7 @@ type Props = {
   onChange: (dimensions: DimensionsState) => void
 }
 
-export function DimensionsFields({ dimensions, onChange }: Props) {
+export function DimensionsFields({ dimensions, onChange }: Readonly<Props>) {
   return (
     <div className="container-group">
       <div className="container-label">Choose your dimensions</div>

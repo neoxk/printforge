@@ -1,6 +1,5 @@
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Italic, Strikethrough, Underline } from 'lucide-react'
+import { AlignCenter, AlignLeft, AlignRight, Bold, Italic, Strikethrough, Underline } from 'lucide-react'
 import { FONT_OPTIONS, WEIGHT_LABELS } from './fonts.js'
-import type { FontWeight } from './fonts.js'
 
 const MM_PER_PT = 25.4 / 72  // 1 point in mm
 export const ptToMm = (pt: number) => pt * MM_PER_PT
@@ -31,10 +30,17 @@ const ALIGN_OPTIONS = [
   { value: 'right'  as const, icon: <AlignRight size={14} />,   label: 'Align right'   },
 ]
 
-export function TextPropertiesPanel({ value, onChange }: Props) {
+export function TextPropertiesPanel({ value, onChange }: Readonly<Props>) {
   const fontOption = FONT_OPTIONS.find((f) => f.name === value.fontFamily)
   const availableWeights = fontOption?.weights ?? ['400', '700']
   const supportsItalic = fontOption?.hasItalic ?? true
+  const contentId = 'text-prop-content'
+  const fontId = 'text-prop-font'
+  const weightId = 'text-prop-weight'
+  const sizeId = 'text-prop-size'
+  const colorId = 'text-prop-color'
+  const letterSpacingId = 'text-prop-letter-spacing'
+  const lineHeightId = 'text-prop-line-height'
 
   return (
     <div className="designer-card text-panel">
@@ -42,8 +48,9 @@ export function TextPropertiesPanel({ value, onChange }: Props) {
 
       {/* Text content */}
       <div className="text-prop-group">
-        <label className="text-prop-label">Content</label>
+        <label className="text-prop-label" htmlFor={contentId}>Content</label>
         <textarea
+          id={contentId}
           className="text-prop-textarea"
           value={value.text}
           rows={2}
@@ -53,8 +60,9 @@ export function TextPropertiesPanel({ value, onChange }: Props) {
 
       {/* Font family */}
       <div className="text-prop-group">
-        <label className="text-prop-label">Font</label>
+        <label className="text-prop-label" htmlFor={fontId}>Font</label>
         <select
+          id={fontId}
           className="text-prop-select text-prop-select--font"
           value={value.fontFamily}
           style={{ fontFamily: value.fontFamily }}
@@ -71,22 +79,23 @@ export function TextPropertiesPanel({ value, onChange }: Props) {
       {/* Weight + Italic */}
       <div className="text-prop-row">
         <div className="text-prop-group text-prop-col">
-          <label className="text-prop-label">Weight</label>
+          <label className="text-prop-label" htmlFor={weightId}>Weight</label>
           <select
+            id={weightId}
             className="text-prop-select"
             value={value.fontWeight}
             onChange={(e) => onChange('fontWeight', e.target.value)}
           >
             {availableWeights.map((w) => (
               <option key={w} value={w}>
-                {WEIGHT_LABELS[w as FontWeight] ?? w}
+                {WEIGHT_LABELS[w] ?? w}
               </option>
             ))}
           </select>
         </div>
 
         <div className="text-prop-group text-prop-col text-prop-col--narrow">
-          <label className="text-prop-label">Style</label>
+          <p className="text-prop-label">Style</p>
           <div className="text-toggle-row">
             <button
               type="button"
@@ -112,8 +121,9 @@ export function TextPropertiesPanel({ value, onChange }: Props) {
       {/* Size + Color */}
       <div className="text-prop-row">
         <div className="text-prop-group text-prop-col">
-          <label className="text-prop-label">Size (pt)</label>
+          <label className="text-prop-label" htmlFor={sizeId}>Size (pt)</label>
           <input
+            id={sizeId}
             type="number"
             className="text-prop-input"
             min={4}
@@ -128,8 +138,9 @@ export function TextPropertiesPanel({ value, onChange }: Props) {
         </div>
 
         <div className="text-prop-group text-prop-col text-prop-col--narrow">
-          <label className="text-prop-label">Color</label>
+          <label className="text-prop-label" htmlFor={colorId}>Color</label>
           <input
+            id={colorId}
             type="color"
             className="text-prop-color"
             value={value.fill.startsWith('#') ? value.fill : '#0f172a'}
@@ -140,7 +151,7 @@ export function TextPropertiesPanel({ value, onChange }: Props) {
 
       {/* Alignment */}
       <div className="text-prop-group">
-        <label className="text-prop-label">Alignment</label>
+        <p className="text-prop-label">Alignment</p>
         <div className="text-toggle-row">
           {ALIGN_OPTIONS.map((opt) => (
             <button
@@ -158,7 +169,7 @@ export function TextPropertiesPanel({ value, onChange }: Props) {
 
       {/* Underline + Strikethrough */}
       <div className="text-prop-group">
-        <label className="text-prop-label">Decoration</label>
+        <p className="text-prop-label">Decoration</p>
         <div className="text-toggle-row">
           <button
             type="button"
@@ -182,10 +193,11 @@ export function TextPropertiesPanel({ value, onChange }: Props) {
       {/* Letter spacing */}
       <div className="text-prop-group">
         <div className="text-prop-label-row">
-          <label className="text-prop-label">Letter spacing</label>
+          <label className="text-prop-label" htmlFor={letterSpacingId}>Letter spacing</label>
           <span className="text-prop-badge">{value.charSpacing}</span>
         </div>
         <input
+          id={letterSpacingId}
           type="range"
           className="text-prop-slider"
           min={-200}
@@ -199,14 +211,15 @@ export function TextPropertiesPanel({ value, onChange }: Props) {
       {/* Line height */}
       <div className="text-prop-group">
         <div className="text-prop-label-row">
-          <label className="text-prop-label">Line height</label>
+          <label className="text-prop-label" htmlFor={lineHeightId}>Line height</label>
           <span className="text-prop-badge">{value.lineHeight.toFixed(2)}</span>
         </div>
         <input
+          id={lineHeightId}
           type="range"
           className="text-prop-slider"
           min={0.8}
-          max={3.0}
+          max={3}
           step={0.05}
           value={value.lineHeight}
           onChange={(e) => onChange('lineHeight', Number(e.target.value))}

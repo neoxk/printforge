@@ -15,7 +15,7 @@ const toneClasses: Record<StatusTone, string> = {
   neutral: 'border-border bg-muted/70 text-muted-foreground',
 }
 
-export function StatusPill({ label, tone }: StatusPillProps) {
+export function StatusPill({ label, tone }: Readonly<StatusPillProps>) {
   return (
     <span
       className={cn(

@@ -7,6 +7,26 @@ type AsyncState<T> = {
   reload: () => void
 }
 
+function normalizeUnknownError(error: unknown) {
+  if (error instanceof Error) {
+    return error
+  }
+
+  if (typeof error === 'string') {
+    return new Error(error)
+  }
+
+  if (error && typeof error === 'object') {
+    try {
+      return new Error(JSON.stringify(error))
+    } catch {
+      return new Error('An unknown error occurred.')
+    }
+  }
+
+  return new Error(String(error))
+}
+
 export function useAsync<T>(
   asyncFn: () => Promise<T>,
   deps: DependencyList = [],
@@ -34,7 +54,7 @@ export function useAsync<T>(
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err : new Error(String(err)))
+          setError(normalizeUnknownError(err))
           setIsLoading(false)
         }
       })

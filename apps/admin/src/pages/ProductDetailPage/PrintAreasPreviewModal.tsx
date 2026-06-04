@@ -21,7 +21,7 @@ export function PrintAreasPreviewModal({ productId, isOpen, onClose }: Readonly<
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogContent
-        className="sm:max-w-4xl h-[680px] p-0 flex flex-col overflow-hidden gap-0"
+        className="sm:max-w-4xl h-170 p-0 flex flex-col overflow-hidden gap-0"
         showCloseButton={false}
       >
         <DialogHeader className="flex shrink-0 flex-row items-center justify-between border-b px-4 py-3">

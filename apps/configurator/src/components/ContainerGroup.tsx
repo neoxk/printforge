@@ -6,7 +6,7 @@ type Props = {
   onChange: (containerId: string, selected: string[]) => void
 }
 
-export function ContainerGroup({ container, selected, onChange }: Props) {
+export function ContainerGroup({ container, selected, onChange }: Readonly<Props>) {
   if (container.isHidden || container.containerType === 'AUTO_APPLIED') return null
 
   function handleSingleChange(itemId: string) {

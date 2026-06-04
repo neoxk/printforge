@@ -1,11 +1,11 @@
 (function () {
     console.log('[PrintForge] frontend.js loaded on', window.location.href);
-    var CONFIGURATOR_OPEN_MESSAGE_TYPE = 'printforge:configurator:open';
-    var PREVIEW_REQUEST_TYPE = 'printforge:designer:preview-request';
-    var PREVIEW_RESPONSE_TYPE = 'printforge:designer:preview-response';
-    var PREVIEW_TIMEOUT_MS = 8000;
-    var activeLauncher = null;
-    var previousBodyOverflow = '';
+    const CONFIGURATOR_OPEN_MESSAGE_TYPE = 'printforge:configurator:open';
+    const PREVIEW_REQUEST_TYPE = 'printforge:designer:preview-request';
+    const PREVIEW_RESPONSE_TYPE = 'printforge:designer:preview-response';
+    const PREVIEW_TIMEOUT_MS = 8000;
+    let activeLauncher = null;
+    let previousBodyOverflow = '';
 
     function getParts(launcher) {
         return {
@@ -16,7 +16,7 @@
     }
 
     function isOptionsIframeSource(sourceWindow) {
-        var isSource = false;
+        let isSource = false;
 
         document.querySelectorAll('.printforge-options__iframe').forEach(function (iframe) {
             if (iframe.contentWindow === sourceWindow) {
@@ -28,14 +28,14 @@
     }
 
     function openLauncher(launcher) {
-        var parts = getParts(launcher);
+        let parts = getParts(launcher);
 
         if (!parts.overlay || !parts.iframe) {
             return;
         }
 
         if (!parts.iframe.getAttribute('src')) {
-            parts.iframe.setAttribute('src', parts.iframe.getAttribute('data-src') || '');
+            parts.iframe.setAttribute('src', parts.iframe.dataset.src || '');
         }
 
         activeLauncher = launcher;
@@ -49,7 +49,7 @@
     }
 
     function closeLauncher(launcher) {
-        var parts = getParts(launcher);
+        let parts = getParts(launcher);
 
         if (!parts.overlay) {
             return;
@@ -61,16 +61,16 @@
     }
 
     document.addEventListener('click', function (event) {
-        var target = event.target;
+        let target = event.target;
 
-        if (!target || !target.closest) {
+        if (!target?.closest) {
             return;
         }
 
-        var closeButton = target.closest('.printforge-configurator__close');
+        let closeButton = target.closest('.printforge-configurator__close');
 
         if (closeButton) {
-            var closeLauncherElement = closeButton.closest('[data-printforge-configurator]');
+            let closeLauncherElement = closeButton.closest('[data-printforge-configurator]');
 
             if (closeLauncherElement) {
                 closeLauncher(closeLauncherElement);
@@ -85,7 +85,7 @@
     });
 
     window.addEventListener('message', function (event) {
-        if (!event.data || event.data.type !== CONFIGURATOR_OPEN_MESSAGE_TYPE) {
+        if (event.data?.type !== CONFIGURATOR_OPEN_MESSAGE_TYPE) {
             return;
         }
 
@@ -102,7 +102,7 @@
             return;
         }
 
-        var launcher = document.querySelector('[data-printforge-configurator]');
+        let launcher = document.querySelector('[data-printforge-configurator]');
         console.log('[PrintForge] Launcher found:', !!launcher);
 
         if (launcher) {

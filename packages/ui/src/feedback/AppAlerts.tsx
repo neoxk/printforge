@@ -20,17 +20,21 @@ type AppAlertsContextValue = {
 
 const AppAlertsContext = createContext<AppAlertsContextValue | null>(null)
 
-export function AppAlertsProvider({ children }: PropsWithChildren) {
+export function AppAlertsProvider({ children }: Readonly<PropsWithChildren>) {
   const value = useMemo<AppAlertsContextValue>(
     () => ({
       showAlert: ({ tone, title, message, durationMs }) => {
         const opts = { description: message, duration: durationMs }
-        const id =
-          tone === 'error'
-            ? toast.error(title ?? 'Error', opts)
-            : tone === 'warning'
-              ? toast.warning(title ?? 'Warning', opts)
-              : toast.info(title ?? 'Info', opts)
+        let id: number | string
+
+        if (tone === 'error') {
+          id = toast.error(title ?? 'Error', opts)
+        } else if (tone === 'warning') {
+          id = toast.warning(title ?? 'Warning', opts)
+        } else {
+          id = toast.info(title ?? 'Info', opts)
+        }
+
         return String(id)
       },
       showError: (message, title = 'Error') =>

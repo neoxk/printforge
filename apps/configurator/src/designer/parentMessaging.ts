@@ -14,12 +14,12 @@ export function postDesignerConfiguration({
   routeProductId,
   design,
 }: DesignerSyncPayload) {
-  if (window.parent === window) return
+  if (globalThis.parent === globalThis.window) return
 
   const targetOrigin = getParentTargetOrigin()
   if (!targetOrigin) return
 
-  window.parent.postMessage(
+  globalThis.parent.postMessage(
     {
       type: DESIGNER_CONFIGURATION_MESSAGE_TYPE,
       productId,

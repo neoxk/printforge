@@ -46,7 +46,7 @@ function fromDimensions(d: ProductDimensions): State {
   return EMPTY
 }
 
-export function ProductSettingsCard({ productId }: Props) {
+export function ProductSettingsCard({ productId }: Readonly<Props>) {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [state, setState] = useState<State>(EMPTY)
@@ -70,8 +70,8 @@ export function ProductSettingsCard({ productId }: Props) {
 
   async function handleSave() {
     if (state.dimensionType === 'fixed') {
-      const w = parseInt(state.widthMm, 10)
-      const h = parseInt(state.heightMm, 10)
+      const w = Number.parseInt(state.widthMm, 10)
+      const h = Number.parseInt(state.heightMm, 10)
       if (!w || !h || w <= 0 || h <= 0) {
         showError('Enter valid positive dimensions in mm.', 'Invalid input')
         return
@@ -80,8 +80,8 @@ export function ProductSettingsCard({ productId }: Props) {
 
     setIsSaving(true)
     try {
-      const widthMm = state.dimensionType === 'fixed' ? parseInt(state.widthMm, 10) : null
-      const heightMm = state.dimensionType === 'fixed' ? parseInt(state.heightMm, 10) : null
+      const widthMm = state.dimensionType === 'fixed' ? Number.parseInt(state.widthMm, 10) : null
+      const heightMm = state.dimensionType === 'fixed' ? Number.parseInt(state.heightMm, 10) : null
       await Products.updateDimensions(productId, widthMm, heightMm)
       setState((s) => ({
         ...s,

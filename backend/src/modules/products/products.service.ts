@@ -184,8 +184,8 @@ export async function updateProduct(
   })
   return {
     id: updated.id,
-    widthMm: updated.width != null ? Number(updated.width) : null,
-    heightMm: updated.height != null ? Number(updated.height) : null,
+    widthMm: updated.width == null ? null : Number(updated.width),
+    heightMm: updated.height == null ? null : Number(updated.height),
   }
 }
 

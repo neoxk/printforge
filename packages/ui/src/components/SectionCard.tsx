@@ -11,7 +11,7 @@ type SectionCardProps = {
   contentClassName?: string
 }
 
-export function SectionCard({ title, description, actions, children, className, contentClassName }: SectionCardProps) {
+export function SectionCard({ title, description, actions, children, className, contentClassName }: Readonly<SectionCardProps>) {
   return (
     <Card className={className}>
       <CardHeader>

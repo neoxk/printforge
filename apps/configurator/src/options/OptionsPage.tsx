@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ContainerGroup } from '../components/ContainerGroup.js'
-import { calculatePrice } from '../lib/api.js'
-import type { PricingResult, ProductConfig } from '../types.js'
+import { calculatePrice, calculateQuantityTable } from '../lib/api.js'
+import type { PricingResult, ProductConfig, QuantityPriceRow } from '../types.js'
 import { DimensionsFields } from './DimensionsFields.js'
 import {
   DEFAULT_DIMENSIONS_STATE,
@@ -21,6 +21,7 @@ import { useParentQuantitySync } from './useParentQuantitySync.js'
 import './options-ui.css'
 
 const CONFIGURATOR_OPEN_MESSAGE_TYPE = 'printforge:configurator:open'
+const QUANTITY_TABLE_AMOUNTS = [10, 25, 50, 100, 200, 400, 600]
 
 function getOptionHeading(name: string): string {
   const normalizedName = name.trim()
@@ -31,13 +32,15 @@ function getOptionHeading(name: string): string {
 
 export function OptionsPage() {
   const pageRef = useRef<HTMLElement | null>(null)
-  const productId = useMemo(() => getProductIdFromPath(window.location.pathname), [])
-  const basePrice = useMemo(() => getBasePriceFromSearch(window.location.search), [])
+  const productId = useMemo(() => getProductIdFromPath(globalThis.location.pathname), [])
+  const basePrice = useMemo(() => getBasePriceFromSearch(globalThis.location.search), [])
   const [config, setConfig] = useState<ProductConfig | null>(null)
   const [selectedByContainer, setSelectedByContainer] = useState<SelectedByContainer>({})
   const [dimensions, setDimensions] = useState<DimensionsState>(DEFAULT_DIMENSIONS_STATE)
   const [price, setPrice] = useState<PricingResult | null>(null)
   const [priceError, setPriceError] = useState<string | null>(null)
+  const [quantityRows, setQuantityRows] = useState<QuantityPriceRow[]>([])
+  const [quantityRowsError, setQuantityRowsError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -91,6 +94,7 @@ export function OptionsPage() {
         setConfig(null)
         setSelectedByContainer({})
         setPrice(null)
+        setQuantityRows([])
         setError(nextError instanceof Error ? nextError.message : 'Failed to load product options.')
       })
       .finally(() => {
@@ -139,6 +143,47 @@ export function OptionsPage() {
     }
   }, [config, dimensions.heightMm, dimensions.quantity, dimensions.widthMm, selectedByContainer])
 
+  useEffect(() => {
+    if (!config) return
+
+    const widthMm = Number(dimensions.widthMm)
+    const heightMm = Number(dimensions.heightMm)
+
+    if (widthMm <= 0 || heightMm <= 0) {
+      setQuantityRows([])
+      setQuantityRowsError('Enter dimensions to calculate quantity prices.')
+      return
+    }
+
+    let isCancelled = false
+
+    setQuantityRowsError(null)
+
+    calculateQuantityTable(
+      config.productId,
+      getSelectedItemIds(selectedByContainer),
+      {
+        widthMm,
+        heightMm,
+        quantity: 1,
+      },
+      QUANTITY_TABLE_AMOUNTS,
+    )
+      .then((table) => {
+        if (!isCancelled) setQuantityRows(table.rows)
+      })
+      .catch((nextError: unknown) => {
+        if (isCancelled) return
+
+        setQuantityRows([])
+        setQuantityRowsError(nextError instanceof Error ? nextError.message : 'Failed to calculate quantity prices.')
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [config, dimensions.heightMm, dimensions.widthMm, selectedByContainer])
+
   function handleContainerChange(containerId: string, selected: string[]) {
     setSelectedByContainer((current) => ({
       ...current,
@@ -151,18 +196,13 @@ export function OptionsPage() {
 
     if (!productId) return
 
-    if (window.parent === window) {
-      window.location.href = `/pf/configurator/${encodeURIComponent(productId)}`
+    if (globalThis.parent === globalThis.window) {
+      globalThis.location.href = `/pf/configurator/${encodeURIComponent(productId)}`
       return
     }
 
     console.log('[PrintForge] iframe: posting open message to parent via "*"')
 
-    // Broadcast to the parent with '*' rather than a resolved origin: the parent's
-    // listener authenticates the message by matching event.source against its known
-    // options iframe (isOptionsIframeSource), not by origin. Posting to a specific
-    // targetOrigin that doesn't byte-for-byte match the embedding page's origin makes
-    // the browser silently drop the message, so '*' is both safe here and more robust.
     window.parent.postMessage(
       {
         type: CONFIGURATOR_OPEN_MESSAGE_TYPE,
@@ -170,6 +210,11 @@ export function OptionsPage() {
       },
       '*',
     )
+  }
+
+  function handleQuantitySelect(quantity: number) {
+    setDimensions((current) => ({ ...current, quantity: String(quantity) }))
+    setParentQuantity(quantity)
   }
 
   if (isLoading) {
@@ -208,11 +253,12 @@ export function OptionsPage() {
           />
         ))}
 
-        <PricePanel
-          price={price}
-          error={priceError}
+        <QuantityPriceTable
+          rows={quantityRows}
           basePrice={basePrice}
-          quantity={Number(dimensions.quantity)}
+          selectedQuantity={Number(dimensions.quantity)}
+          error={quantityRowsError ?? priceError}
+          onSelect={handleQuantitySelect}
         />
 
         <button className="design-button" type="button" onClick={handleCustomizeDesign}>

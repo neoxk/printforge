@@ -79,7 +79,7 @@ export const ContainerCard = forwardRef<HTMLDivElement, Props>(function Containe
   return (
     <div ref={ref} className="border border-dashed border-border rounded-xl bg-muted/20 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2.5 bg-card border-b border-dashed border-border">
-        <span ref={handleRef as Ref<HTMLSpanElement>} className="text-muted-foreground/30 hover:text-muted-foreground cursor-grab select-none text-base" aria-hidden="true">
+        <span ref={handleRef} className="text-muted-foreground/30 hover:text-muted-foreground cursor-grab select-none text-base" aria-hidden="true">
           ⠿
         </span>
 
@@ -94,8 +94,9 @@ export const ContainerCard = forwardRef<HTMLDivElement, Props>(function Containe
             autoFocus
           />
         ) : (
-          <span
-            className="italic font-bold text-base cursor-text hover:bg-muted/60 rounded px-1 -mx-1 transition-colors"
+          <button
+            type="button"
+            className="border-0 bg-transparent italic font-bold text-base cursor-text hover:bg-muted/60 rounded px-1 -mx-1 transition-colors"
             title="Double-click to rename"
             onDoubleClick={() => {
               setNameValue(container.name)
@@ -103,7 +104,7 @@ export const ContainerCard = forwardRef<HTMLDivElement, Props>(function Containe
             }}
           >
             {container.name}
-          </span>
+          </button>
         )}
 
         <Select
@@ -143,8 +144,8 @@ export const ContainerCard = forwardRef<HTMLDivElement, Props>(function Containe
             <TableRow className="hover:bg-transparent">
               <TableHead className="pl-4 pr-1 w-6" />
               <TableHead className="px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">item</TableHead>
-              <TableHead className="px-1 w-[100px] text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">basis</TableHead>
-              <TableHead className="px-1 min-w-[100px] text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">price</TableHead>
+              <TableHead className="px-1 w-25 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">basis</TableHead>
+              <TableHead className="px-1 min-w-25 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">price</TableHead>
               <TableHead className="px-1 w-7" />
               <TableHead className="pl-1 pr-4 w-7" />
             </TableRow>
@@ -196,7 +197,7 @@ export const ContainerCard = forwardRef<HTMLDivElement, Props>(function Containe
               add item from library
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="start" className="w-[50vw] min-w-[400px] p-0 overflow-hidden">
+          <PopoverContent align="start" className="w-[50vw] min-w-100 p-0 overflow-hidden">
             <ItemPicker
               libraryItems={libraryItems}
               excludedIds={excludedIds}

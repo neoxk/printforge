@@ -52,6 +52,14 @@ function matchesFilter(product: ProductRecord, key: FilterKey, value: string) {
   return (product.status ?? '').toLowerCase().includes(value)
 }
 
+function getProductStatusLabel(product: ProductRecord) {
+  return product.status ?? 'Unknown'
+}
+
+function getProductStatusTone(product: ProductRecord) {
+  return product.status === 'publish' ? 'success' : 'neutral'
+}
+
 export function ProductsPage() {
   const { showError, showInfo } = useAppAlerts()
   const [products, setProducts] = useState<ProductRecord[]>([])
@@ -137,16 +145,59 @@ export function ProductsPage() {
     const startIndex = (currentPage - 1) * PAGE_SIZE
     return visibleProducts.slice(startIndex, startIndex + PAGE_SIZE)
   }, [currentPage, visibleProducts])
+  const emptyStateMessage =
+    products.length === 0
+      ? 'No products synced yet. Use the Sync button to pull from WooCommerce.'
+      : 'No products matched your search or filter.'
 
   const visibleRangeStart = visibleProducts.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1
   const visibleRangeEnd =
     visibleProducts.length === 0
       ? 0
       : Math.min(currentPage * PAGE_SIZE, visibleProducts.length)
+  const resultsSummary =
+    visibleProducts.length === 0
+      ? 'No results'
+      : `${visibleRangeStart}–${visibleRangeEnd} of ${visibleProducts.length} products`
 
-  const syncLabel = integration?.lastSync && integration.lastSync !== 'Not synced yet'
-    ? `Last synced ${integration.lastSync}`
-    : 'Not synced yet'
+  let syncLabel = 'Not synced yet'
+  if (integration?.lastSync && integration.lastSync !== 'Not synced yet') {
+    syncLabel = `Last synced ${integration.lastSync}`
+  }
+
+  const tableContent = isLoading ? (
+    <TableRow>
+      <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+        Loading products…
+      </TableCell>
+    </TableRow>
+  ) : paginatedProducts.length === 0 ? (
+    <TableRow>
+      <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+        {emptyStateMessage}
+      </TableCell>
+    </TableRow>
+  ) : (
+    paginatedProducts.map((product) => (
+      <TableRow key={product.id}>
+        <TableCell className="font-medium">{product.name}</TableCell>
+        <TableCell className="tabular-nums text-muted-foreground">{product.sku}</TableCell>
+        <TableCell>{product.category ?? '—'}</TableCell>
+        <TableCell className="tabular-nums">{product.basePrice}</TableCell>
+        <TableCell>
+          <StatusPill
+            label={getProductStatusLabel(product)}
+            tone={getProductStatusTone(product)}
+          />
+        </TableCell>
+        <TableCell className="text-right">
+          <Button asChild variant="outline" size="sm">
+            <Link to={`/products/${product.id}`}>Configure</Link>
+          </Button>
+        </TableCell>
+      </TableRow>
+    ))
+  )
 
   return (
     <PageStack>
@@ -245,9 +296,7 @@ export function ProductsPage() {
             ) : paginatedProducts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                  {products.length === 0
-                    ? 'No products synced yet. Use the Sync button to pull from WooCommerce.'
-                    : 'No products matched your search or filter.'}
+                  {emptyStateMessage}
                 </TableCell>
               </TableRow>
             ) : (
@@ -259,8 +308,8 @@ export function ProductsPage() {
                   <TableCell className="tabular-nums">{product.basePrice}</TableCell>
                   <TableCell>
                     <StatusPill
-                      label={product.status ?? 'Unknown'}
-                      tone={product.status === 'publish' ? 'success' : 'neutral'}
+                      label={getProductStatusLabel(product)}
+                      tone={getProductStatusTone(product)}
                     />
                   </TableCell>
                   <TableCell className="text-right">
@@ -275,11 +324,7 @@ export function ProductsPage() {
         </Table>
 
         <div className="mt-3 flex items-center justify-between gap-4 border-t border-border/60 pt-3">
-          <span className="text-sm text-muted-foreground">
-            {visibleProducts.length === 0
-              ? 'No results'
-              : `${visibleRangeStart}–${visibleRangeEnd} of ${visibleProducts.length} products`}
-          </span>
+          <span className="text-sm text-muted-foreground">{resultsSummary}</span>
           <div className="flex gap-1">
             <Button
               variant="outline"

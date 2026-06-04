@@ -34,7 +34,7 @@ export function FabricDesignerCanvas({
   legendEntries,
   onPanChange,
   onZoneRectChange,
-}: FabricDesignerCanvasProps) {
+}: Readonly<FabricDesignerCanvasProps>) {
   const canvasElementRef = useRef<HTMLCanvasElement | null>(null)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const fabricCanvasRef = useRef<Canvas | null>(null)
@@ -161,6 +161,10 @@ export function FabricDesignerCanvas({
     }
 
     async function renderScene() {
+      if (!canvas) {
+        return
+      }
+
       isRenderingRef.current = true
 
       const physical = view.fields.physicalSize.rect
@@ -221,7 +225,13 @@ export function FabricDesignerCanvas({
     }
 
     canvas.selection = activeTool === 'select'
-    canvas.defaultCursor = activeTool === 'pan' ? 'grab' : activeTool === 'draw' ? 'crosshair' : 'default'
+    let defaultCursor = 'default'
+    if (activeTool === 'pan') {
+      defaultCursor = 'grab'
+    } else if (activeTool === 'draw') {
+      defaultCursor = 'crosshair'
+    }
+    canvas.defaultCursor = defaultCursor
     canvas.requestRenderAll()
   }, [activeTool])
 
@@ -232,7 +242,7 @@ export function FabricDesignerCanvas({
     }
 
     function handlePointerDown(event: PointerEvent) {
-      if (activeTool !== 'pan') {
+      if (activeTool !== 'pan' || !wrapper) {
         return
       }
 
@@ -257,7 +267,7 @@ export function FabricDesignerCanvas({
     }
 
     function handlePointerUp(event: PointerEvent) {
-      if (!panStateRef.current) {
+      if (!panStateRef.current || !wrapper) {
         return
       }
 
@@ -280,15 +290,26 @@ export function FabricDesignerCanvas({
 
   const physicalWidth = Math.max(240, mmToStage(view.fields.physicalSize.rect.width))
   const physicalHeight = Math.max(180, mmToStage(view.fields.physicalSize.rect.height))
+  const viewportClassName =
+    activeTool === 'pan' ? 'fabric-stage-viewport fabric-stage-viewport-pan' : 'fabric-stage-viewport'
+  const transformClassName =
+    activeTool === 'pan'
+      ? 'fabric-stage-transform fabric-stage-transform-pan'
+      : 'fabric-stage-transform'
+  let canvasFootnote = 'Select a zone to move or resize it directly on the canvas.'
+
+  if (activeTool === 'draw') {
+    const drawTargetLabel = activeDrawTarget ? view.fields[activeDrawTarget].label : 'zone'
+    canvasFootnote = `Drawing ${drawTargetLabel} on canvas.`
+  } else if (activeTool === 'pan') {
+    canvasFootnote = 'Hand tool active. Drag the stage to move around.'
+  }
 
   return (
     <div className="fabric-stage-shell">
-      <div
-        className={activeTool === 'pan' ? 'fabric-stage-viewport fabric-stage-viewport-pan' : 'fabric-stage-viewport'}
-        ref={wrapperRef}
-      >
+      <div className={viewportClassName} ref={wrapperRef}>
         <div
-          className={activeTool === 'pan' ? 'fabric-stage-transform fabric-stage-transform-pan' : 'fabric-stage-transform'}
+          className={transformClassName}
           style={{
             width: physicalWidth,
             height: physicalHeight,
@@ -317,13 +338,7 @@ export function FabricDesignerCanvas({
         </div>
       </div>
 
-      <div className="canvas-footnote">
-        {activeTool === 'draw'
-          ? `Drawing ${activeDrawTarget ? view.fields[activeDrawTarget].label : 'zone'} on canvas.`
-          : activeTool === 'pan'
-            ? 'Hand tool active. Drag the stage to move around.'
-            : 'Select a zone to move or resize it directly on the canvas.'}
-      </div>
+      <div className="canvas-footnote">{canvasFootnote}</div>
     </div>
   )
 }

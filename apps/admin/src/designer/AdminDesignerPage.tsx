@@ -29,6 +29,28 @@ function updateViewCollection(
   return views.map((view) => (view.id === selectedViewId ? updater(view) : view))
 }
 
+function getSourceModeLabel(mode: string | undefined) {
+  switch (mode) {
+    case 'template':
+      return 'Template-based view'
+    case 'upload':
+      return 'Mockup-guided view'
+    default:
+      return 'Blank canvas view'
+  }
+}
+
+function getSourceModeIcon(mode: string | undefined) {
+  switch (mode) {
+    case 'template':
+      return <SquarePen className="size-4" aria-hidden="true" />
+    case 'upload':
+      return <ImagePlus className="size-4" aria-hidden="true" />
+    default:
+      return <Plus className="size-4" aria-hidden="true" />
+  }
+}
+
 export function AdminDesignerPage() {
   const [views, setViews] = useState<DesignerView[]>([])
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null)
@@ -41,31 +63,8 @@ export function AdminDesignerPage() {
 
   const selectedView = views.find((view) => view.id === selectedViewId) ?? null
   const validation = selectedView ? validateDesignerView(selectedView) : null
-
-  function getSourceModeLabel(mode: string | undefined) {
-    switch (mode) {
-      case 'template':
-        return 'Template-based view'
-      case 'upload':
-        return 'Mockup-guided view'
-      default:
-        return 'Blank canvas view'
-    }
-  }
-
-  function getSourceModeIcon(mode: string | undefined) {
-    switch (mode) {
-      case 'template':
-        return <SquarePen className="size-4" aria-hidden="true" />
-      case 'upload':
-        return <ImagePlus className="size-4" aria-hidden="true" />
-      default:
-        return <Plus className="size-4" aria-hidden="true" />
-    }
-  }
-
-    const selectedViewSourceModeLabel = selectedView ? getSourceModeLabel(selectedView.sourceMode) : ''
-    const selectedViewSourceIcon = selectedView ? getSourceModeIcon(selectedView.sourceMode) : null
+  const selectedViewSourceModeLabel = selectedView ? getSourceModeLabel(selectedView.sourceMode) : ''
+  const selectedViewSourceIcon = selectedView ? getSourceModeIcon(selectedView.sourceMode) : null
 
   const legendEntries = useMemo(
     () =>

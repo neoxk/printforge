@@ -9,7 +9,7 @@ type StatCardProps = {
   progress?: number
 }
 
-export function StatCard({ label, value, trend, icon }: StatCardProps) {
+export function StatCard({ label, value, trend, icon }: Readonly<StatCardProps>) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">

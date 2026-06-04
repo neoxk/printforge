@@ -14,6 +14,7 @@ import {
   updateItemHandler,
   deleteItemHandler,
   calculateHandler,
+  quantityTableHandler,
 } from "./pricing.controller.js";
 import {
   groupIdParam,
@@ -25,6 +26,7 @@ import {
   updateItemBody,
   listItemsQuery,
   calculateBody,
+  quantityTableBody,
 } from "./pricing.schema.js";
 
 export async function pricingRoutes(app: FastifyInstance) {
@@ -96,4 +98,9 @@ export async function pricingRoutes(app: FastifyInstance) {
 
   // Calculate (public — called by configurator iframe)
   app.post("/calculate", { schema: { body: calculateBody } }, calculateHandler);
+  app.post(
+    "/quantity-table",
+    { schema: { body: quantityTableBody } },
+    quantityTableHandler,
+  );
 }

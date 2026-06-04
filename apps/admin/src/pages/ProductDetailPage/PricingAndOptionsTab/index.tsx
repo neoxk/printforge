@@ -1,9 +1,9 @@
 import { Plus, Eye } from 'lucide-react'
-import { type ComponentProps, useEffect, useReducer, useState } from 'react'
+import { type ComponentProps, type ReactNode, useEffect, useReducer, useState } from 'react'
 import { DragDropProvider } from '@dnd-kit/react'
 import { useSortable, isSortable } from '@dnd-kit/react/sortable'
 import { PointerSensor, PointerActivationConstraints } from '@dnd-kit/dom'
-import type { ProductRecord } from '@printforge/ui'
+import type { ProductRecord , ContainerOptionItem } from '@printforge/ui'
 import { SectionCard } from '@printforge/ui'
 import { Button } from '@printforge/ui/components/ui/button'
 import { Input } from '@printforge/ui/components/ui/input'
@@ -27,7 +27,7 @@ import {
 } from '../../../lib/reducers/pricing'
 import { Containers } from '../../../lib/services/containers'
 import type { ContainerItemPatchPayload, ContainerPatchPayload } from '../../../lib/services/containers'
-import type { ContainerOptionItem } from '@printforge/ui'
+
 import { Groups, Items } from '../../../lib/services'
 import { CONTAINER_TYPE_OPTIONS } from '../../../lib/options-meta'
 import { ContainerCard } from './ContainerCard'
@@ -43,7 +43,7 @@ function SortableContainerCard({ index, ...props }: SortableContainerCardProps) 
 
 type Props = { product: ProductRecord }
 
-export function PricingAndOptionsTab({ product }: Props) {
+export function PricingAndOptionsTab({ product }: Readonly<Props>) {
   const [containersState, containersDispatch] = useReducer(containersReducer, initialContainersState)
   const [pricingState, pricingDispatch] = useReducer(pricingReducer, initialPricingState)
   const [isAddingContainer, setIsAddingContainer] = useState(false)
@@ -172,6 +172,54 @@ export function PricingAndOptionsTab({ product }: Props) {
   }
 
   const { containers, items, isLoading } = containersState
+  let containersContent: ReactNode
+
+  if (isLoading) {
+    containersContent = <p className="text-sm text-muted-foreground py-2">Loading…</p>
+  } else if (containers.length === 0) {
+    containersContent = (
+      <p className="text-sm text-muted-foreground py-2">
+        No containers yet. Add one to start building the pricing structure.
+      </p>
+    )
+  } else {
+    containersContent = (
+      <DragDropProvider
+        sensors={[PointerSensor.configure({ activationConstraints: [new PointerActivationConstraints.Distance({ value: 8 })] })]}
+        onDragEnd={(event) => {
+          if (event.canceled) return
+          const { source } = event.operation
+          if (!isSortable(source)) return
+          const { initialIndex, index } = source
+          if (initialIndex === index) return
+          const newOrder = [...containers]
+          const [moved] = newOrder.splice(initialIndex, 1)
+          newOrder.splice(index, 0, moved)
+          void handleReorderContainers(newOrder)
+        }}
+      >
+        <div className="grid gap-3">
+          {containers.map((container, idx) => (
+            <SortableContainerCard
+              key={container.id}
+              index={idx}
+              container={container}
+              containerItems={items[container.id] ?? []}
+              libraryItems={pricingState.items}
+              groups={pricingState.groups}
+              onDelete={() => void handleDeleteContainer(container.id)}
+              onSetDefault={(itemId) => void handleSetDefault(container.id, itemId)}
+              onAddItem={(itemId) => void handleAddItem(container.id, itemId)}
+              onRemoveItem={(itemId) => void handleRemoveItem(container.id, itemId)}
+              onPatchItem={(itemId, payload) => void handlePatchItem(container.id, itemId, payload)}
+              onReorderItems={(newOrder) => void handleReorderItems(container.id, newOrder)}
+              onPatchContainer={(payload) => void handlePatchContainer(container.id, payload)}
+            />
+          ))}
+        </div>
+      </DragDropProvider>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -219,7 +267,7 @@ export function PricingAndOptionsTab({ product }: Props) {
                 value={newContainerType}
                 onValueChange={(v) => setNewContainerType(v as typeof newContainerType)}
               >
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -247,48 +295,7 @@ export function PricingAndOptionsTab({ product }: Props) {
             </div>
           )}
 
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground py-2">Loading…</p>
-          ) : containers.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-2">
-              No containers yet. Add one to start building the pricing structure.
-            </p>
-          ) : (
-            <DragDropProvider
-              sensors={[PointerSensor.configure({ activationConstraints: [new PointerActivationConstraints.Distance({ value: 8 })] })]}
-              onDragEnd={(event) => {
-                if (event.canceled) return
-                const { source } = event.operation
-                if (!isSortable(source)) return
-                const { initialIndex, index } = source
-                if (initialIndex === index) return
-                const newOrder = [...containers]
-                const [moved] = newOrder.splice(initialIndex, 1)
-                newOrder.splice(index, 0, moved)
-                void handleReorderContainers(newOrder)
-              }}
-            >
-              <div className="grid gap-3">
-                {containers.map((container, idx) => (
-                  <SortableContainerCard
-                    key={container.id}
-                    index={idx}
-                    container={container}
-                    containerItems={items[container.id] ?? []}
-                    libraryItems={pricingState.items}
-                    groups={pricingState.groups}
-                    onDelete={() => void handleDeleteContainer(container.id)}
-                    onSetDefault={(itemId) => void handleSetDefault(container.id, itemId)}
-                    onAddItem={(itemId) => void handleAddItem(container.id, itemId)}
-                    onRemoveItem={(itemId) => void handleRemoveItem(container.id, itemId)}
-                    onPatchItem={(itemId, payload) => void handlePatchItem(container.id, itemId, payload)}
-                    onReorderItems={(newOrder) => void handleReorderItems(container.id, newOrder)}
-                    onPatchContainer={(payload) => void handlePatchContainer(container.id, payload)}
-                  />
-                ))}
-              </div>
-            </DragDropProvider>
-          )}
+          {containersContent}
       </SectionCard>
 
       <PreviewModal

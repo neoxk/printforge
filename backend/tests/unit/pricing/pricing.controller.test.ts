@@ -11,6 +11,7 @@ import {
   listGroupsHandler,
   listItemsHandler,
   removeItemFromGroupHandler,
+  quantityTableHandler,
   updateGroupHandler,
   updateItemHandler,
 } from '../../../src/modules/pricing/pricing.controller.js'
@@ -18,6 +19,7 @@ import * as pricingService from '../../../src/modules/pricing/pricing.service.js
 
 vi.mock('../../../src/modules/pricing/pricing.service.js', () => ({
   addItemToGroup: vi.fn(),
+  calculateQuantityTable: vi.fn(),
   calculatePrice: vi.fn(),
   createGroup: vi.fn(),
   createItem: vi.fn(),
@@ -45,6 +47,7 @@ describe('pricing controller', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(pricingService.addItemToGroup).mockResolvedValue({ id: 'item-1' } as any)
+    vi.mocked(pricingService.calculateQuantityTable).mockResolvedValue({ rows: [] } as any)
     vi.mocked(pricingService.calculatePrice).mockResolvedValue({ total: 10, breakdown: [] } as any)
     vi.mocked(pricingService.createGroup).mockResolvedValue({ id: 'group-1' } as any)
     vi.mocked(pricingService.createItem).mockResolvedValue({ id: 'item-1' } as any)
@@ -155,5 +158,25 @@ describe('pricing controller', () => {
 
     expect(pricingService.calculatePrice).toHaveBeenCalledWith('product-1', ['item-1'], { quantity: 2 })
     expect(res.send).toHaveBeenCalledWith({ total: 10, breakdown: [] })
+  })
+
+  it('calculates a quantity table from the request body', async () => {
+    const res = reply()
+    const body = {
+      productId: 'product-1',
+      selectedItemIds: ['item-1'],
+      context: { quantity: 2 },
+      quantities: [50, 100],
+    }
+
+    await quantityTableHandler({ body } as any, res as any)
+
+    expect(pricingService.calculateQuantityTable).toHaveBeenCalledWith(
+      'product-1',
+      ['item-1'],
+      { quantity: 2 },
+      [50, 100],
+    )
+    expect(res.send).toHaveBeenCalledWith({ rows: [] })
   })
 })
