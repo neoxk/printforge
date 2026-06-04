@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../../packages/ui/src";
 @import "@printforge/ui/styles.css";
 @import "@fontsource-variable/geist";
 
@@ -148,6 +149,7 @@ body {
     font-family: "Geist Variable", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
 }
+
 
 /* ─── Switch ─────────────────────────────────────────────────────────────────
    Radix sets data-state="checked" / "unchecked" — Tailwind's data-checked:
