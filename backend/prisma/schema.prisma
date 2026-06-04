@@ -105,7 +105,7 @@ model IntegrationConnection {
 model Product {
   id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   connectionId     String   @map("connection_id") @db.Uuid
-  foreignId        BigInt   @map("foreign_id")
+  wooProductId     BigInt   @map("woo_product_id")
   name             String   @db.VarChar(255)
   category         String   @db.VarChar(255)
   status           String   @db.VarChar(80)
@@ -121,7 +121,7 @@ model Product {
   containers  OptionsContainer[]
   printAreaConfig ProductPrintAreaConfig?
 
-  @@unique([connectionId, foreignId], name: "uq_synced_product_connection_foreign_id")
+  @@unique([connectionId, wooProductId], name: "uq_synced_product_connection_woo_id")
   @@index([connectionId])
   @@map("synced_products")
 }

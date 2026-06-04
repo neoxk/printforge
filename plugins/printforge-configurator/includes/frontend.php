@@ -59,7 +59,15 @@ function printforge_configurator_get_launcher_html(): string
         return '';
     }
 
-    $iframe_src = trailingslashit(printforge_configurator_get_base_url()) . rawurlencode($printforge_product_id);
+    // The visible options iframe is owned by the separate `printforge` plugin
+    // (rendered at woocommerce_single_product_summary priority 31). This plugin
+    // only renders the hidden designer overlay and opens it when the options
+    // page posts `printforge:configurator:open`. Rendering an options iframe here
+    // too would duplicate the container on the product page.
+    $configurator_src = add_query_arg(
+        ['sessionId' => wp_generate_uuid4()],
+        trailingslashit(printforge_configurator_get_base_url()) . rawurlencode($printforge_product_id)
+    );
 
     $modal_id = 'printforge-configurator-modal-' . $product->get_id();
 
@@ -69,7 +77,7 @@ function printforge_configurator_get_launcher_html(): string
         esc_attr__('PrintForge configurator', 'printforge-configurator'),
         esc_attr__('Close configurator', 'printforge-configurator'),
         esc_html__('Close', 'printforge-configurator'),
-        esc_url($iframe_src),
+        esc_url($configurator_src),
         esc_attr__('PrintForge product configurator', 'printforge-configurator')
     );
 }

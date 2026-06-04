@@ -12,6 +12,7 @@ import type { DesignerView, ZoneKey } from '@printforge/ui/designer'
 import {
   fetchDesignerConfig,
   getDesignerProductIdFromPath,
+  getSessionIdFromSearch,
   isValidDesignerProductId,
 } from './designerConfig.js'
 import { postDesignerConfiguration } from './parentMessaging.js'
@@ -33,7 +34,7 @@ type FabricObjectWithMeta = (IText | FabricImage) & {
 }
 
 const VIEWPORT_PADDING = 40
-const DESIGNER_DRAFT_STORAGE_PREFIX = 'printforge:designer:draft:'
+const DESIGNER_SESSION_STORAGE_PREFIX = 'printforge:designer:session:'
 
 function createElementId() {
   return `element-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -129,10 +130,6 @@ function elementFromObject(object: FabricObjectWithMeta): UserDesignElement | nu
   }
 }
 
-function getDesignerDraftKey(productId: string) {
-  return `${DESIGNER_DRAFT_STORAGE_PREFIX}${productId}`
-}
-
 function isUserDesignState(v: unknown): v is UserDesignState {
   return (
     typeof v === 'object' &&
@@ -144,9 +141,9 @@ function isUserDesignState(v: unknown): v is UserDesignState {
   )
 }
 
-function loadDraft(productId: string): UserDesignState | null {
+function loadSession(sessionId: string): UserDesignState | null {
   try {
-    const raw = window.localStorage.getItem(getDesignerDraftKey(productId))
+    const raw = window.localStorage.getItem(`${DESIGNER_SESSION_STORAGE_PREFIX}${sessionId}`)
     if (!raw) return null
     const parsed = JSON.parse(raw) as unknown
     return isUserDesignState(parsed) ? parsed : null
@@ -155,8 +152,8 @@ function loadDraft(productId: string): UserDesignState | null {
   }
 }
 
-function saveDraft(productId: string, design: UserDesignState) {
-  window.localStorage.setItem(getDesignerDraftKey(productId), JSON.stringify(design))
+function saveSession(sessionId: string, design: UserDesignState) {
+  window.localStorage.setItem(`${DESIGNER_SESSION_STORAGE_PREFIX}${sessionId}`, JSON.stringify(design))
 }
 
 function validateDesignForView(view: DesignerView, design: UserDesignViewState) {
@@ -219,15 +216,17 @@ function validateFromCanvas(canvas: Canvas, view: DesignerView) {
 
 export function UserDesignerPage() {
   const pageRef = useRef<HTMLElement | null>(null)
-  const canvasHostRef = useRef<HTMLDivElement | null>(null)
+  const canvasHostMapRef = useRef<Map<string, HTMLDivElement>>(new Map())
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const fabricCanvasRef = useRef<Canvas | null>(null)
+  const fabricCanvasMapRef = useRef<Map<string, Canvas>>(new Map())
+  // Tracks the last UserDesignViewState rendered into each view's canvas (by reference equality)
+  const lastRenderedDesignRef = useRef<Map<string, UserDesignViewState>>(new Map())
   const liveViewRef = useRef<DesignerView | null>(null)
   const liveActiveToolRef = useRef<UserDesignerTool>('select')
   const liveProductIdRef = useRef<string | null>(null)
   const selectedElementIdRef = useRef<string | null>(null)
-  const loadedDraftRef = useRef<string | null>(null)
   // Skip canvas re-render when design update originated from canvas interaction
   const skipNextRenderRef = useRef(false)
   // Stable callback ref for selection changes (avoids re-registering canvas listeners)
@@ -245,6 +244,7 @@ export function UserDesignerPage() {
   const panDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
 
   const [routeProductId] = useState(() => getDesignerProductIdFromPath(window.location.pathname))
+  const [sessionId] = useState(() => getSessionIdFromSearch(window.location.search))
   const [productId, setProductId] = useState<string | null>(null)
   const [views, setViews] = useState<DesignerView[]>([])
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null)
@@ -363,14 +363,55 @@ export function UserDesignerPage() {
   }, [design, productId, routeProductId])
 
   useEffect(() => {
-    if (!productId || views.length === 0) return
-    if (loadedDraftRef.current === productId) return
-    loadedDraftRef.current = productId
-    const draft = loadDraft(productId)
-    if (!draft) return
-    setDesign(draft)
+    if (!sessionId || views.length === 0) return
+    const saved = loadSession(sessionId)
+    if (!saved) return
+    setDesign(saved)
     setStatusMessage('Loaded a saved design draft from this device.')
-  }, [productId, views.length])
+  }, [sessionId, views.length])
+
+  // ── Preview export (postMessage request/response) ────────────────────────────
+
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.source !== window.parent) return
+      if (!event.data || event.data.type !== 'printforge:designer:preview-request') return
+
+      const requestId = event.data.requestId as string
+
+      const previews = views.map((view) => {
+        const canvas = fabricCanvasMapRef.current.get(view.id)
+        return {
+          viewId: view.id,
+          viewName: view.name,
+          dataUrl: canvas ? canvas.toDataURL({ format: 'png', multiplier: 1 }) : null,
+        }
+      })
+
+      console.log(
+        '[PrintForge designer] preview-request received; returning',
+        previews.filter((p) => p.dataUrl).length,
+        'of',
+        previews.length,
+        'views',
+      )
+
+      // Reply to whoever asked. Using event.origin (with a '*' fallback for
+      // sandboxed parents that report a "null" origin) avoids the browser
+      // silently dropping the response when a resolved ancestor origin doesn't
+      // byte-for-byte match the embedding page — the same pitfall the options
+      // page documents for the open message.
+      const targetOrigin = event.origin && event.origin !== 'null' ? event.origin : '*'
+
+      window.parent.postMessage(
+        { type: 'printforge:designer:preview-response', requestId, previews },
+        targetOrigin,
+      )
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [views])
 
   // ── Viewport size tracking ───────────────────────────────────────────────────
 
@@ -489,8 +530,18 @@ export function UserDesignerPage() {
   // ── Canvas init (once per selected view) ────────────────────────────────────
 
   useEffect(() => {
-    const host = canvasHostRef.current
-    if (!host || fabricCanvasRef.current || !selectedView) return
+    if (!selectedView) return
+    const viewId = selectedView.id
+
+    // Reuse the existing canvas if this view was already initialised
+    if (fabricCanvasMapRef.current.has(viewId)) {
+      fabricCanvasRef.current = fabricCanvasMapRef.current.get(viewId)!
+      liveViewRef.current = selectedView
+      return
+    }
+
+    const host = canvasHostMapRef.current.get(viewId)
+    if (!host) return
 
     const canvasEl = document.createElement('canvas')
     host.replaceChildren(canvasEl)
@@ -502,15 +553,16 @@ export function UserDesignerPage() {
     canvas.lowerCanvasEl.style.touchAction = 'none'
     canvas.upperCanvasEl.style.touchAction = 'none'
 
+    // Capture viewId in closure so this handler always updates the right view
+    // regardless of which view is currently selected.
     const syncObject = (target?: FabricObjectWithMeta) => {
-      const view = liveViewRef.current
-      if (!view || !target) return
+      if (!target) return
       const nextEl = elementFromObject(target)
       if (!nextEl) return
 
       skipNextRenderRef.current = true
       setDesign((cur) =>
-        updateViewDesign(cur, view.id, (entry) => ({
+        updateViewDesign(cur, viewId, (entry) => ({
           ...entry,
           elements: entry.elements.map((el) => (el.id === nextEl.id ? nextEl : el)),
         })),
@@ -532,14 +584,20 @@ export function UserDesignerPage() {
       if (e.target) onSelectionChangeRef.current(e.target)
     }) as never)
 
+    fabricCanvasMapRef.current.set(viewId, canvas)
     fabricCanvasRef.current = canvas
+    liveViewRef.current = selectedView
 
-    return () => {
-      canvas.dispose()
-      fabricCanvasRef.current = null
-      host.replaceChildren()
-    }
+    // Canvas instances are kept alive for the component lifetime — no per-view cleanup.
   }, [selectedView])
+
+  // Dispose all canvases when the component unmounts
+  useEffect(() => {
+    return () => {
+      for (const canvas of fabricCanvasMapRef.current.values()) canvas.dispose()
+      fabricCanvasMapRef.current.clear()
+    }
+  }, [])
 
   // ── Canvas render (only when design or view changes, NOT on zoom/pan) ────────
 
@@ -552,8 +610,16 @@ export function UserDesignerPage() {
     // already reflects the new state — skip clearing and rebuilding.
     if (skipNextRenderRef.current) {
       skipNextRenderRef.current = false
+      // Still mark this as the last rendered state so a subsequent view switch
+      // doesn't trigger a redundant re-render.
+      lastRenderedDesignRef.current.set(view.id, getViewDesign(design, view.id))
       return
     }
+
+    // Skip re-render when switching back to a view whose design hasn't changed.
+    const currentViewDesign = getViewDesign(design, view.id)
+    if (lastRenderedDesignRef.current.get(view.id) === currentViewDesign) return
+    lastRenderedDesignRef.current.set(view.id, currentViewDesign)
 
     liveViewRef.current = view
     let disposed = false
@@ -845,7 +911,7 @@ export function UserDesignerPage() {
     }
 
     setDesign(nextDesign)
-    saveDraft(productId, nextDesign)
+    if (sessionId) saveSession(sessionId, nextDesign)
     postDesignerConfiguration({ productId, routeProductId, design: nextDesign })
     setStatusMessage('Design saved on this device and synced to the embedding page.')
   }
@@ -1058,8 +1124,18 @@ export function UserDesignerPage() {
                   )
                 })}
 
-              {/* Fabric canvas host — covers the full physical product area */}
-              <div ref={canvasHostRef} className="designer-stage-canvas-host" />
+              {/* One canvas host per view — hidden via CSS so each canvas persists across view switches */}
+              {views.map((view) => (
+                <div
+                  key={view.id}
+                  ref={(el) => {
+                    if (el) canvasHostMapRef.current.set(view.id, el)
+                    else canvasHostMapRef.current.delete(view.id)
+                  }}
+                  className="designer-stage-canvas-host"
+                  style={{ display: view.id === selectedViewId ? '' : 'none' }}
+                />
+              ))}
             </div>
 
             {/* Legend — fixed in viewport, not transformed */}

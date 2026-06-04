@@ -15,6 +15,11 @@ const envSchema = z.object({
   JWT_SECRET: z.string(),
   JWT_REFRESH_SECRET: z.string(),
   WOOCOMMERCE_INTERNAL_URL: z.string().optional(),
+  S3_ENDPOINT: z.string(),
+  S3_BUCKET: z.string(),
+  S3_ACCESS_KEY_ID: z.string(),
+  S3_SECRET_ACCESS_KEY: z.string(),
+  S3_REGION: z.string().default('auto'),
 })
 
 export const env = envSchema.parse(process.env)

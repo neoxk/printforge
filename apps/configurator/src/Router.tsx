@@ -39,6 +39,13 @@ function NotFoundRoute() {
 
 export function Router() {
   const [pathname, setPathname] = useState(() => window.location.pathname)
+  // Track which routes have ever been active. Each component mounts only once
+  // (on first visit) and is then hidden with CSS rather than unmounted, so that
+  // closing the designer panel never destroys its canvas state.
+  const [mountedRoutes, setMountedRoutes] = useState<Set<Route>>(() => {
+    const initial = getRoute(window.location.pathname)
+    return initial === 'not-found' ? new Set() : new Set([initial])
+  })
 
   useEffect(() => {
     const handlePopState = () => setPathname(window.location.pathname)
@@ -58,13 +65,31 @@ export function Router() {
 
   const route = useMemo(() => getRoute(pathname), [pathname])
 
-  if (route === 'configurator') {
-    return <UserDesignerPage />
-  }
+  // Lazily add each route to the mounted set on first visit
+  useEffect(() => {
+    if (route !== 'not-found') {
+      setMountedRoutes((prev) => {
+        if (prev.has(route)) return prev
+        const next = new Set(prev)
+        next.add(route)
+        return next
+      })
+    }
+  }, [route])
 
-  if (route === 'options') {
-    return <OptionsPage />
-  }
-
-  return <NotFoundRoute />
+  return (
+    <>
+      {mountedRoutes.has('configurator') && (
+        <div style={{ display: route === 'configurator' ? '' : 'none' }}>
+          <UserDesignerPage />
+        </div>
+      )}
+      {mountedRoutes.has('options') && (
+        <div style={{ display: route === 'options' ? '' : 'none' }}>
+          <OptionsPage />
+        </div>
+      )}
+      {route === 'not-found' && <NotFoundRoute />}
+    </>
+  )
 }

@@ -13,7 +13,6 @@ import {
   getSelectedItemIds,
   isValidProductId,
 } from './optionsConfig.js'
-import { getParentTargetOrigin } from './parentMessaging.js'
 import { PricePanel } from './PricePanel.js'
 import type { DimensionsState, SelectedByContainer } from './types.js'
 import { useIframeResize } from './useIframeResize.js'
@@ -148,6 +147,8 @@ export function OptionsPage() {
   }
 
   function handleCustomizeDesign() {
+    console.log('[PrintForge] Customize design clicked, productId:', productId)
+
     if (!productId) return
 
     if (window.parent === window) {
@@ -155,15 +156,19 @@ export function OptionsPage() {
       return
     }
 
-    const targetOrigin = getParentTargetOrigin()
-    if (!targetOrigin) return
+    console.log('[PrintForge] iframe: posting open message to parent via "*"')
 
+    // Broadcast to the parent with '*' rather than a resolved origin: the parent's
+    // listener authenticates the message by matching event.source against its known
+    // options iframe (isOptionsIframeSource), not by origin. Posting to a specific
+    // targetOrigin that doesn't byte-for-byte match the embedding page's origin makes
+    // the browser silently drop the message, so '*' is both safe here and more robust.
     window.parent.postMessage(
       {
         type: CONFIGURATOR_OPEN_MESSAGE_TYPE,
         productId,
       },
-      targetOrigin,
+      '*',
     )
   }
 

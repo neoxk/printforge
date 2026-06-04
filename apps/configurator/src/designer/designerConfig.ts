@@ -16,6 +16,12 @@ export function isValidDesignerProductId(productId: string): boolean {
   return UUID_PATTERN.test(productId) || WOO_PRODUCT_ID_PATTERN.test(productId)
 }
 
+export function getSessionIdFromSearch(search: string): string | null {
+  const params = new URLSearchParams(search)
+  const value = params.get('sessionId')
+  return value && UUID_PATTERN.test(value) ? value : null
+}
+
 export function fetchDesignerConfig(productId: string): Promise<ProductPrintAreaConfig> {
   return UUID_PATTERN.test(productId)
     ? fetchProductPrintAreas(productId)

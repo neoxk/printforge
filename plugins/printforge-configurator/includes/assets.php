@@ -24,4 +24,8 @@ function printforge_configurator_enqueue_frontend_assets(): void
         PRINTFORGE_CONFIGURATOR_VERSION,
         true
     );
+
+    wp_localize_script('printforge-configurator-frontend', 'printforgeConfigurator', [
+        'apiUrl' => untrailingslashit(get_option('printforge_public_api_url', '')),
+    ]);
 }
