@@ -21,6 +21,7 @@ vi.mock('bcrypt', () => ({
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: {
     user: {
+      count: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
     },
@@ -56,6 +57,7 @@ vi.mock('../../src/lib/prisma.js', () => ({
 }))
 
 const user = (prisma as any).user as {
+  count: ReturnType<typeof vi.fn>
   findUnique: ReturnType<typeof vi.fn>
   create: ReturnType<typeof vi.fn>
 }
@@ -111,6 +113,7 @@ describe('backend integration routes', () => {
 
     bcryptMock.compare.mockResolvedValue(true)
     bcryptMock.hash.mockResolvedValue('new-hashed-password')
+    user.count.mockResolvedValue(0)
     user.findUnique.mockResolvedValue(storedUser)
     user.create.mockResolvedValue({
       ...storedUser,

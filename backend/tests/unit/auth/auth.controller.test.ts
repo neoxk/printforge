@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { loginHandler, refreshHandler, registerHandler } from '../../../src/modules/auth/auth.controller.js'
-import { registerUser, validateCredentials } from '../../../src/modules/auth/auth.service.js'
+import { isFirstTime, registerUser, validateCredentials } from '../../../src/modules/auth/auth.service.js'
 
 vi.mock('../../../src/modules/auth/auth.service.js', () => ({
+  isFirstTime: vi.fn(),
   registerUser: vi.fn(),
   validateCredentials: vi.fn(),
 }))
 
+const firstTime = isFirstTime as ReturnType<typeof vi.fn>
 const register = registerUser as ReturnType<typeof vi.fn>
 const validate = validateCredentials as ReturnType<typeof vi.fn>
 
@@ -31,6 +33,7 @@ function reply() {
 describe('auth controller', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    firstTime.mockResolvedValue(true)
     register.mockResolvedValue(user)
     validate.mockResolvedValue(user)
   })
