@@ -38,28 +38,25 @@ function NotFoundRoute() {
 }
 
 export function Router() {
-  const [pathname, setPathname] = useState(() => window.location.pathname)
-  // Track which routes have ever been active. Each component mounts only once
-  // (on first visit) and is then hidden with CSS rather than unmounted, so that
-  // closing the designer panel never destroys its canvas state.
+  const [pathname, setPathname] = useState(() => globalThis.location.pathname)
   const [mountedRoutes, setMountedRoutes] = useState<Set<Route>>(() => {
-    const initial = getRoute(window.location.pathname)
+    const initial = getRoute(globalThis.location.pathname)
     return initial === 'not-found' ? new Set() : new Set([initial])
   })
 
   useEffect(() => {
-    const handlePopState = () => setPathname(window.location.pathname)
+    const handlePopState = () => setPathname(globalThis.location.pathname)
 
-    window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
+    globalThis.addEventListener('popstate', handlePopState)
+    return () => globalThis.removeEventListener('popstate', handlePopState)
   }, [])
 
   useEffect(() => {
     const path = normalizePath(pathname)
 
     if (path === BASE_PATH) {
-      window.history.replaceState(null, '', `${BASE_PATH}/configurator${window.location.search}${window.location.hash}`)
-      setPathname(window.location.pathname)
+      globalThis.history.replaceState(null, '', `${BASE_PATH}/configurator${globalThis.location.search}${globalThis.location.hash}`)
+      setPathname(globalThis.location.pathname)
     }
   }, [pathname])
 
