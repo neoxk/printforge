@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { AppError } from '../../lib/errors.js'
 import { env } from '../../config/env.js'
@@ -269,14 +270,18 @@ export async function syncWooProducts() {
 
   const products = (await response.json()) as WooStoreProduct[]
   const syncedAt = new Date()
+  const incomingWooIds = products.map((product) => BigInt(product.id))
 
-  await prisma.$transaction([
-    prisma.product.deleteMany({
-      where: { connectionId: connection.id },
-    }),
-    ...products.map((product) =>
-      prisma.product.create({
-        data: {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    for (const product of products) {
+      await tx.product.upsert({
+        where: {
+          uq_synced_product_connection_woo_id: {
+            connectionId: connection.id,
+            wooProductId: BigInt(product.id),
+          },
+        },
+        create: {
           connectionId: connection.id,
           wooProductId: BigInt(product.id),
           name: product.name,
@@ -285,16 +290,30 @@ export async function syncWooProducts() {
           sku: getSku(product),
           basePrice: formatStorePrice(product),
         },
-      }),
-    ),
-    prisma.integrationConnection.update({
+        update: {
+          name: product.name,
+          category: product.categories?.map((category) => category.name).join(', ') || 'Uncategorized',
+          sku: getSku(product),
+          basePrice: formatStorePrice(product),
+        },
+      })
+    }
+
+    await tx.product.deleteMany({
+      where: {
+        connectionId: connection.id,
+        wooProductId: { notIn: incomingWooIds },
+      },
+    })
+
+    await tx.integrationConnection.update({
       where: { id: connection.id },
       data: {
         apiStatus: 'Healthy',
         lastSync: syncedAt,
       },
-    }),
-  ])
+    })
+  })
 
   return {
     products: await listSyncedProducts(),
