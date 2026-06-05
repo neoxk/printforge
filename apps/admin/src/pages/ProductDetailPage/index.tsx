@@ -4,7 +4,7 @@ import { PageHeader, PageStack, useAppAlerts } from '@printforge/ui'
 import type { ProductRecord } from '@printforge/ui'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@printforge/ui/components/ui/tabs'
 import type { CreateViewDraft, DesignerTool, DesignerView, ZoneKey } from '@printforge/ui/designer'
-import { createEmptyDraft } from '@printforge/ui/designer'
+import { createEmptyDraft, createViewFromDraft } from '@printforge/ui/designer'
 import { getProductPrintAreasRequest, getProductsRequest, saveProductPrintAreasRequest } from '../../lib/Api'
 import { GeneralInfoTab } from './GeneralInfoTab'
 import { PrintAreasPreviewModal } from './PrintAreasPreviewModal'
@@ -70,6 +70,43 @@ export function ProductDetailPage() {
     }
     void loadProductEditor()
   }, [productId, showError])
+
+  function handleBlankViewRequested(widthMm: number, heightMm: number) {
+    const nextView = createViewFromDraft({
+      name: `${widthMm} × ${heightMm} mm`,
+      sourceMode: 'blank',
+      templateId: '',
+      mockupName: null,
+      mockupSrc: null,
+    })
+    nextView.fields.physicalSize = {
+      ...nextView.fields.physicalSize,
+      rect: { x: 0, y: 0, width: widthMm, height: heightMm, rotation: 0 },
+    }
+    nextView.mockupRect = { x: 0, y: 0, width: widthMm, height: heightMm, rotation: 0 }
+    setPrintAreaViews((v) => [...v, nextView])
+    setSelectedPrintAreaViewId(nextView.id)
+    showInfo(
+      `A ${widthMm} × ${heightMm} mm blank canvas view has been added to the Print Areas designer.`,
+      'View added',
+    )
+  }
+
+  function handlePresetApplied(templateId: string, presetLabel: string) {
+    const nextView = createViewFromDraft({
+      name: presetLabel,
+      sourceMode: 'template',
+      templateId,
+      mockupName: null,
+      mockupSrc: null,
+    })
+    setPrintAreaViews((v) => [...v, nextView])
+    setSelectedPrintAreaViewId(nextView.id)
+    showInfo(
+      `A "${presetLabel}" view has been added to the Print Areas designer.`,
+      'View added',
+    )
+  }
 
   async function handleSavePrintAreas() {
     if (!product) {
@@ -162,7 +199,7 @@ export function ProductDetailPage() {
         </TabsContent>
 
         <TabsContent value="pricing-options">
-          <PricingAndOptionsTab product={product} />
+          <PricingAndOptionsTab product={product} onPresetApplied={handlePresetApplied} onBlankViewRequested={handleBlankViewRequested} />
         </TabsContent>
 
         <TabsContent value="print-areas">

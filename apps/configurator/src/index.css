@@ -1,11 +1,35 @@
+@import "tailwindcss";
+@source "../../../packages/ui/src";
+@import "@printforge/ui/styles.css";
+
 :root {
+  /* ── Configurator-specific tokens ────────────────────────────────────────── */
   --text: #2d2d2d;
   --text-muted: #6b7280;
   --bg: #fff;
-  --border: #e5e7eb;
-  --accent: #7c3aed;
+  --pf-brand: #5b21b6;   /* primary brand colour used by option chips */
   --accent-light: #ede9fe;
-  --radius: 6px;
+
+  /* ── Shadcn / Tailwind design tokens ─────────────────────────────────────── */
+  --background: #ffffff;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #0050cc;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #111827;
+  --muted: #f9fafb;
+  --muted-foreground: #6b7280;
+  --accent: #f3f4f6;
+  --accent-foreground: #111827;
+  --destructive: #dc2626;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #0050cc;
+  --radius: 0.375rem;
 
   font: 15px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
   color: var(--text);
@@ -80,7 +104,7 @@ textarea {
 }
 
 .required-mark {
-  color: var(--accent);
+  color: var(--pf-brand);
   margin-left: 2px;
 }
 
@@ -110,13 +134,13 @@ textarea {
 }
 
 .option-chip:hover {
-  border-color: var(--accent);
+  border-color: var(--pf-brand);
 }
 
 .option-chip.selected {
-  border-color: var(--accent);
+  border-color: var(--pf-brand);
   background: var(--accent-light);
-  color: var(--accent);
+  color: var(--pf-brand);
   font-weight: 500;
 }
 
@@ -140,7 +164,7 @@ textarea {
 
 .dimensions-row input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--pf-brand);
 }
 
 .dimensions-sep {
@@ -160,7 +184,7 @@ textarea {
 
 .quantity-input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--pf-brand);
 }
 
 /* ── Price panel ── */
@@ -242,4 +266,10 @@ textarea {
 .cf-route-state p {
   margin: 0;
   color: var(--text-muted);
+}
+
+/* Ensure primary/default variant buttons always render white text and icons.
+   Needed because Tailwind v4's text-white class may not be emitted from scanned sources. */
+[data-variant="default"] {
+  color: #ffffff;
 }

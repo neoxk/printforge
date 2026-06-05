@@ -8,6 +8,7 @@ import {
   Save,
   Shapes,
   SquarePen,
+  X,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react'
@@ -126,6 +127,26 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
     showInfo(`View "${nextView.name}" created. Remember to save when done.`, 'View created')
   }
 
+  function handleRenameView(viewId: string, name: string) {
+    setViews((v) => v.map((view) => (view.id === viewId ? { ...view, name } : view)))
+  }
+
+  function handleDeleteView(viewId: string) {
+    const remaining = views.filter((v) => v.id !== viewId)
+    setViews(remaining)
+    if (selectedViewId === viewId) {
+      const next = remaining[0] ?? null
+      setSelectedViewId(next?.id ?? null)
+      setActiveTool('select')
+      setActiveDrawTarget(null)
+      setSelectedZoneKey(null)
+      if (!next) {
+        resetViewport()
+        setStatusMessage('Create a view to start defining print zones.')
+      }
+    }
+  }
+
   function handleSelectView(viewId: string) {
     setSelectedViewId(viewId)
     setActiveTool('select')
@@ -140,7 +161,8 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
       return
     }
     const mockupSrc = await readMockupFile(file)
-    setDraft((d) => ({ ...d, mockupName: file.name, mockupSrc }))
+    const nameFromFile = file.name.replace(/\.[^.]+$/, '')
+    setDraft((d) => ({ ...d, mockupName: file.name, mockupSrc, name: nameFromFile }))
   }
 
   function handleFieldToggle(key: ZoneKey, enabled: boolean) {
@@ -194,27 +216,44 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
               <p className="m-0 text-sm text-muted-foreground">No views created yet.</p>
             ) : (
               views.map((view) => (
-                <button
+                <div
                   key={view.id}
-                  type="button"
-                  className={cn(PILL_BASE, selectedViewId === view.id ? CHIP_ACTIVE : CHIP_INACTIVE)}
-                  onClick={() => handleSelectView(view.id)}
+                  className={cn(PILL_BASE, selectedViewId === view.id ? CHIP_ACTIVE : CHIP_INACTIVE, 'pr-1.5')}
                 >
-                  <Layers3 className="size-4" aria-hidden="true" />
-                  <span>{view.name}</span>
-                </button>
+                  <button
+                    type="button"
+                    className="flex min-w-0 items-center gap-2"
+                    onClick={() => handleSelectView(view.id)}
+                  >
+                    <Layers3 className="size-4 shrink-0" aria-hidden="true" />
+                    <span className="truncate">{view.name}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="ml-1.5 shrink-0 rounded-full p-0.5 opacity-50 transition-opacity hover:opacity-100"
+                    onClick={() => handleDeleteView(view.id)}
+                    title={`Remove view "${view.name}"`}
+                    aria-label={`Remove view "${view.name}"`}
+                  >
+                    <X className="size-3" aria-hidden="true" />
+                  </button>
+                </div>
               ))
             )}
           </div>
 
           <div className="flex flex-col gap-3.5">
             <div className="flex flex-col gap-1.5">
-              <Label>View name</Label>
+              <Label>{selectedView ? 'Rename view' : 'View name'}</Label>
               <Input
                 type="text"
-                value={draft.name}
+                value={selectedView ? selectedView.name : draft.name}
                 placeholder="Front, Back, Sleeve, Lid..."
-                onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+                onChange={(e) =>
+                  selectedView
+                    ? handleRenameView(selectedView.id, e.target.value)
+                    : setDraft((d) => ({ ...d, name: e.target.value }))
+                }
               />
             </div>
 
@@ -228,7 +267,13 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
                   key={mode}
                   type="button"
                   className={cn(TILE_BASE, draft.sourceMode === mode ? TILE_ACTIVE : TILE_INACTIVE)}
-                  onClick={() => setDraft((d) => ({ ...d, sourceMode: mode }))}
+                  onClick={() => {
+                    let autoName = draft.name
+                    if (mode === 'blank') autoName = 'Blank canvas'
+                    else if (mode === 'upload') autoName = 'Mockup view'
+
+                    setDraft((d) => ({ ...d, sourceMode: mode, name: autoName }))
+                  }}
                 >
                   {icon}
                   <strong>{title}</strong>
@@ -242,7 +287,10 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
                 <Label>Template preset</Label>
                 <Select
                   value={draft.templateId}
-                  onValueChange={(value) => setDraft((d) => ({ ...d, templateId: value }))}
+                  onValueChange={(value) => {
+                    const preset = templatePresets.find((t) => t.id === value)
+                    setDraft((d) => ({ ...d, templateId: value, name: preset?.label ?? d.name }))
+                  }}
                 >
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -275,7 +323,7 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
 
         {/* Zone inspector */}
         {selectedView ? (
-          <SectionCard title={selectedView.name} description="Configure optional print-area guides for the selected view.">
+          <SectionCard title={selectedView.name} description="Configure optional print-area zones for this view.">
             <div className="flex flex-col gap-3.5">
               {fieldOrder.map((key) => {
                 const field = selectedView.fields[key]

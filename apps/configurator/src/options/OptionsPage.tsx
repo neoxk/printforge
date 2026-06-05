@@ -202,14 +202,19 @@ export function OptionsPage() {
       return
     }
 
-    console.log('[PrintForge] iframe: posting open message to parent via "*"')
+    const targetOrigin = getParentTargetOrigin()
+    if (!targetOrigin) {
+      return
+    }
 
-    window.parent.postMessage(
+    console.log('[PrintForge] iframe: posting open message to parent via trusted origin', targetOrigin)
+
+    globalThis.parent.postMessage(
       {
         type: CONFIGURATOR_OPEN_MESSAGE_TYPE,
         productId,
       },
-      '*',
+      targetOrigin,
     )
   }
 

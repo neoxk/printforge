@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IText } from 'fabric'
-import { Hand, MousePointer2 } from 'lucide-react'
+import { Hand, MousePointer2, Plus, Trash2, ZoomIn, ZoomOut, RotateCcw, Image, Save, Type, X, Eye } from 'lucide-react'
 import { fieldOrder, mmToStage, roundMetric, stageToMm, zoneVisual } from '@printforge/ui/designer'
+import { Button } from '@printforge/ui/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@printforge/ui/components/ui/dialog'
 import type { DesignerView } from '@printforge/ui/designer'
 import {
   fetchDesignerConfig,
@@ -61,6 +63,9 @@ export function UserDesignerPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null)
   const [selectedTextProps, setSelectedTextProps] = useState<TextProps | null>(null)
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewUrls, setPreviewUrls] = useState<{ viewId: string; name: string; url: string }[]>([])
 
   useIframeResize(pageRef)
 
@@ -88,6 +93,7 @@ export function UserDesignerPage() {
   // ── Hooks ─────────────────────────────────────────────────────────────────
 
   const onSelectionChange = useCallback((obj: FabricObjectWithMeta | null) => {
+    setSelectedElementId(obj?.__elementId ?? null)
     if (obj?.__kind !== 'user-text' || !(obj instanceof IText)) {
       setSelectedTextId(null)
       setSelectedTextProps(null)
@@ -317,8 +323,29 @@ export function UserDesignerPage() {
     selectedElementIdRef.current = null
     setSelectedTextId(null)
     setSelectedTextProps(null)
+    setSelectedElementId(null)
     setStatusMessage('Removed the selected layer.')
   }
+
+  const selectElementOnCanvas = useCallback((elementId: string) => {
+    const canvas = fabricCanvasRef.current
+    if (!canvas) return
+    setActiveTool('select')
+    const obj = canvas.getObjects().find((o) => (o as FabricObjectWithMeta).__elementId === elementId)
+    if (!obj) return
+    canvas.setActiveObject(obj)
+    canvas.requestRenderAll()
+    onSelectionChange(obj as FabricObjectWithMeta)
+  }, [fabricCanvasRef, onSelectionChange])
+
+  const removeElementById = useCallback((elementId: string) => {
+    if (!selectedView) return
+    setDesign((cur) => removeElementFromDesign(cur, selectedView.id, elementId))
+    if (selectedElementIdRef.current === elementId) selectedElementIdRef.current = null
+    if (selectedTextId === elementId) { setSelectedTextId(null); setSelectedTextProps(null) }
+    setSelectedElementId(null)
+    setStatusMessage('Removed the layer.')
+  }, [selectedView, selectedTextId, selectedElementIdRef])
 
   function handleSaveDesign() {
     if (!productId || !selectedView) return
@@ -339,15 +366,36 @@ export function UserDesignerPage() {
       : (selectedDesignValidation ?? { isValid: true, violations: [] })
 
     if (!validation.isValid) {
+      skipNextRenderRef.current = true
       setDesign(nextDesign)
-      setStatusMessage(validation.violations[0] ?? 'Design is outside the configured print areas.')
       return
     }
 
+    skipNextRenderRef.current = true
     setDesign(nextDesign)
     if (sessionId) saveSession(sessionId, nextDesign)
     postDesignerConfiguration({ productId, routeProductId, design: nextDesign })
-    setStatusMessage('Design saved on this device and synced to the embedding page.')
+    setStatusMessage('Design saved.')
+  }
+
+  function handleOpenPreview() {
+    const urls: { viewId: string; name: string; url: string }[] = []
+    for (const view of views) {
+      const canvas = fabricCanvasMapRef.current.get(view.id)
+      if (!canvas) continue
+      const src = canvas.lowerCanvasEl
+      const tmp = document.createElement('canvas')
+      tmp.width = src.width
+      tmp.height = src.height
+      const ctx = tmp.getContext('2d')
+      if (!ctx) continue
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, tmp.width, tmp.height)
+      ctx.drawImage(src, 0, 0)
+      urls.push({ viewId: view.id, name: view.name, url: tmp.toDataURL('image/png') })
+    }
+    setPreviewUrls(urls)
+    setPreviewOpen(true)
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -381,6 +429,7 @@ export function UserDesignerPage() {
                     setZoom(1)
                     setSelectedTextId(null)
                     setSelectedTextProps(null)
+                    setSelectedElementId(null)
                     setStatusMessage(`Viewing ${view.name}.`)
                   }}
                 >
@@ -391,32 +440,47 @@ export function UserDesignerPage() {
           </div>
 
           <div className="designer-card">
-            <p className="designer-eyebrow">Tools</p>
-            <div className="designer-tool-grid">
-              <button
-                type="button"
-                className={activeTool === 'select' ? 'designer-tool-button designer-tool-button--active' : 'designer-tool-button'}
-                onClick={() => { setActiveTool('select'); setStatusMessage('Select tool active. Move, resize, or rotate artwork directly on the canvas.') }}
-              >
-                <MousePointer2 size={16} />
-                Select tool
-              </button>
-              <button
-                type="button"
-                className={activeTool === 'pan' ? 'designer-tool-button designer-tool-button--active' : 'designer-tool-button'}
-                onClick={() => { setActiveTool('pan'); setStatusMessage('Hand tool active. Drag to pan around the canvas.') }}
-              >
-                <Hand size={16} />
-                Hand tool
-              </button>
-              <button type="button" className="designer-tool-button" onClick={() => void handleAddText()}>Add text</button>
-              <button type="button" className="designer-tool-button" onClick={() => fileInputRef.current?.click()}>Upload image</button>
-              <button type="button" className="designer-tool-button" onClick={handleDeleteSelection}>Delete selected</button>
-              <button type="button" className="designer-tool-button" onClick={() => setZoom((z) => Math.max(0.25, Number((z - 0.1).toFixed(2))))}>Zoom out</button>
-              <button type="button" className="designer-tool-button" onClick={() => setZoom((z) => Math.min(4, Number((z + 0.1).toFixed(2))))}>Zoom in</button>
-              <button type="button" className="designer-tool-button" onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); setStatusMessage('Canvas view reset.') }}>Reset view</button>
-              <button type="button" className="designer-tool-button designer-tool-button--primary" onClick={handleSaveDesign}>Save design</button>
+            <p className="designer-eyebrow">Add content</p>
+            <div className="designer-tool-grid mt-2">
+              <Button size="sm" variant="secondary" className="w-full gap-1.5" onClick={() => void handleAddText()}>
+                <Plus className="size-3.5" />
+                Add text
+              </Button>
+              <Button size="sm" variant="secondary" className="w-full gap-1.5" onClick={() => fileInputRef.current?.click()}>
+                <Image className="size-3.5" />
+                Upload image
+              </Button>
             </div>
+            {selectedDesign && selectedDesign.elements.length > 0 && (
+              <div className="designer-layer-list">
+                {selectedDesign.elements.map((el) => (
+                  <div
+                    key={el.id}
+                    role="button"
+                    tabIndex={0}
+                    className={el.id === selectedElementId ? 'designer-layer-pill is-active' : 'designer-layer-pill'}
+                    onClick={() => selectElementOnCanvas(el.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') selectElementOnCanvas(el.id) }}
+                  >
+                    <span className="designer-layer-icon">
+                      {el.kind === 'text' ? <Type className="size-3" /> : <Image className="size-3" />}
+                    </span>
+                    <span className="designer-layer-label">
+                      {el.kind === 'text' ? (el.text || 'Text layer') : 'Image'}
+                    </span>
+                    <button
+                      type="button"
+                      className="designer-layer-remove"
+                      title="Remove layer"
+                      onClick={(e) => { e.stopPropagation(); removeElementById(el.id) }}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -457,12 +521,79 @@ export function UserDesignerPage() {
               <p className="designer-eyebrow">Canvas</p>
               <h2 className="designer-stage-title">{selectedView.name}</h2>
             </div>
-            <div className="designer-stage-actions">
-              <button type="button" className="designer-tool-button designer-tool-button--primary designer-stage-save" onClick={handleSaveDesign}>
-                Save design
-              </button>
-              <p className="designer-status">{statusMessage}</p>
+            <div className="flex items-center gap-1">
+              <Button
+                size="icon-sm"
+                variant={activeTool === 'select' ? 'default' : 'outline'}
+                type="button"
+                title="Select tool"
+                onClick={() => { setActiveTool('select'); setStatusMessage('Select tool active. Move, resize, or rotate artwork directly on the canvas.') }}
+              >
+                <MousePointer2 className="size-4" aria-hidden="true" />
+              </Button>
+              <Button
+                size="icon-sm"
+                variant={activeTool === 'pan' ? 'default' : 'outline'}
+                type="button"
+                title="Hand tool — drag to pan"
+                onClick={() => { setActiveTool('pan'); setStatusMessage('Hand tool active. Drag to pan around the canvas.') }}
+              >
+                <Hand className="size-4" aria-hidden="true" />
+              </Button>
+              <div className="mx-1 h-4 w-px bg-border" />
+              <Button
+                size="icon-sm"
+                variant="outline"
+                type="button"
+                title="Zoom out"
+                onClick={() => setZoom((z) => Math.max(0.25, Number((z - 0.1).toFixed(2))))}
+              >
+                <ZoomOut className="size-4" aria-hidden="true" />
+              </Button>
+              <Button
+                size="icon-sm"
+                variant="outline"
+                type="button"
+                title="Zoom in"
+                onClick={() => setZoom((z) => Math.min(4, Number((z + 0.1).toFixed(2))))}
+              >
+                <ZoomIn className="size-4" aria-hidden="true" />
+              </Button>
+              <div className="mx-1 h-4 w-px bg-border" />
+              <Button
+                size="icon-sm"
+                variant="outline"
+                type="button"
+                title="Delete selected"
+                onClick={handleDeleteSelection}
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+              </Button>
+              <Button
+                size="icon-sm"
+                variant="outline"
+                type="button"
+                title="Reset view"
+                onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); setStatusMessage('Canvas view reset.') }}
+              >
+                <RotateCcw className="size-4" aria-hidden="true" />
+              </Button>
             </div>
+          </div>
+
+          <div className="designer-stage-action-bar">
+            <Button variant="outline" className="gap-1.5" onClick={handleOpenPreview}>
+              <Eye className="size-4" />
+              Preview
+            </Button>
+            <Button
+              className="gap-1.5"
+              onClick={handleSaveDesign}
+              disabled={selectedDesignValidation?.isValid === false}
+            >
+              <Save className="size-4" />
+              Save design
+            </Button>
           </div>
 
           <div
@@ -559,8 +690,54 @@ export function UserDesignerPage() {
                 })}
             </div>
           </div>
+
+          {selectedDesignValidation && !selectedDesignValidation.isValid ? (
+            <div className="designer-stage-status-bar is-error">
+              {selectedDesignValidation.violations[0]}
+            </div>
+          ) : statusMessage ? (
+            <div className="designer-stage-status-bar">
+              {statusMessage}
+            </div>
+          ) : null}
         </section>
       </div>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Design preview</DialogTitle>
+          </DialogHeader>
+          <div style={{ overflowY: 'auto', maxHeight: 'calc(85vh - 120px)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {previewUrls.length === 0 ? (
+              <p style={{ margin: 0, color: '#6b7280', fontSize: '14px', textAlign: 'center', padding: '24px 0' }}>
+                No views have been loaded yet. Select a view on the canvas first.
+              </p>
+            ) : previewUrls.map(({ viewId, name, url }) => (
+              <div key={viewId} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {previewUrls.length > 1 && (
+                  <p style={{ margin: 0, fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6b7280' }}>
+                    {name}
+                  </p>
+                )}
+                <img
+                  src={url}
+                  alt={name}
+                  style={{
+                    display: 'block',
+                    maxWidth: '100%',
+                    objectFit: 'contain',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <DialogFooter showCloseButton />
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

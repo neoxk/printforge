@@ -35,7 +35,7 @@ body.cf-options-route .container-label {
 }
 
 body.cf-options-route .required-mark {
-  color: #00a676;
+  color: #007a56;
 }
 
 body.cf-options-route .option-list {
@@ -103,8 +103,8 @@ body.cf-options-route .option-chip.selected::after {
   content: "✓";
   display: grid;
   place-items: center;
-  border-color: #00a676;
-  background: #00a676;
+  border-color: #007a56;
+  background: #007a56;
   color: #fff;
   font-size: 14px;
   font-weight: 800;
@@ -253,7 +253,7 @@ body.cf-options-route .quantity-selected-mark {
   height: 20px;
   place-items: center;
   border-radius: 999px;
-  background: #00a676;
+  background: #007a56;
   color: #fff;
   font-size: 14px;
   font-weight: 800;
