@@ -194,6 +194,7 @@ export function createViewFromDraft(draft: CreateViewDraft): DesignerView {
         ? { x: 0, y: 0, width: 100, height: 100, rotation: 0 }
         : null,
     fields: createFieldMap(),
+    triggerItemId: null,
   }
 
   nextView.mockupRect = {

@@ -25,6 +25,7 @@ export function useFabricCanvas(
   const fabricCanvasRef = useRef<Canvas | null>(null)
   const fabricCanvasMapRef = useRef<Map<string, Canvas>>(new Map())
   const lastRenderedDesignRef = useRef<Map<string, ReturnType<typeof getViewDesign>>>(new Map())
+  const lastRenderedPhysicalRef = useRef<Map<string, string>>(new Map())
   const liveViewRef = useRef<DesignerView | null>(null)
   const selectedElementIdRef = useRef<string | null>(null)
   const skipNextRenderRef = useRef(false)
@@ -99,15 +100,22 @@ export function useFabricCanvas(
     const view = selectedView
     if (!canvas || !view) return
 
+    const physKey = `${view.fields.physicalSize.rect.width}x${view.fields.physicalSize.rect.height}`
+
     if (skipNextRenderRef.current) {
       skipNextRenderRef.current = false
       lastRenderedDesignRef.current.set(view.id, getViewDesign(design, view.id))
+      lastRenderedPhysicalRef.current.set(view.id, physKey)
       return
     }
 
     const currentViewDesign = getViewDesign(design, view.id)
-    if (lastRenderedDesignRef.current.get(view.id) === currentViewDesign) return
+    if (
+      lastRenderedDesignRef.current.get(view.id) === currentViewDesign &&
+      lastRenderedPhysicalRef.current.get(view.id) === physKey
+    ) return
     lastRenderedDesignRef.current.set(view.id, currentViewDesign)
+    lastRenderedPhysicalRef.current.set(view.id, physKey)
 
     liveViewRef.current = view
     let disposed = false

@@ -49,6 +49,11 @@ import { FabricPrintAreaCanvas } from './FabricPrintAreaCanvas'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export type TriggerOption = {
+  itemId: string
+  label: string
+}
+
 type PrintAreasDesignerState = {
   views: DesignerView[]
   selectedViewId: string | null
@@ -74,6 +79,7 @@ type PrintAreasDesignerActions = {
 type Props = {
   state: PrintAreasDesignerState
   actions: PrintAreasDesignerActions
+  triggerOptions?: TriggerOption[]
   isSaving: boolean
   onSave: () => Promise<void> | void
   onPreview: () => Promise<void> | void
@@ -99,9 +105,10 @@ function getCanvasDescription(view: DesignerView | null): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview }: Readonly<Props>) {
+export function PrintAreasDesigner({ state, actions, triggerOptions, isSaving, onSave, onPreview }: Readonly<Props>) {
   const { views, selectedViewId, draft, activeTool, activeDrawTarget, zoom, pan } = state
   const { setViews, setSelectedViewId, setDraft, setActiveTool, setActiveDrawTarget, setZoom, setPan, setStatusMessage } = actions
+  const effectiveTriggerOptions = triggerOptions ?? []
 
   const selectedView = views.find((view) => view.id === selectedViewId) ?? null
   const [selectedZoneKey, setSelectedZoneKey] = useState<ZoneKey | null>(null)
@@ -129,6 +136,10 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
 
   function handleRenameView(viewId: string, name: string) {
     setViews((v) => v.map((view) => (view.id === viewId ? { ...view, name } : view)))
+  }
+
+  function handleSetTrigger(viewId: string, triggerItemId: string | null) {
+    setViews((v) => v.map((view) => (view.id === viewId ? { ...view, triggerItemId } : view)))
   }
 
   function handleDeleteView(viewId: string) {
@@ -227,6 +238,13 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
                   >
                     <Layers3 className="size-4 shrink-0" aria-hidden="true" />
                     <span className="truncate">{view.name}</span>
+                    {view.triggerItemId && (
+                      <span
+                        className="size-2 shrink-0 rounded-full bg-primary"
+                        title="Has visibility trigger"
+                        aria-label="Has visibility trigger"
+                      />
+                    )}
                   </button>
                   <button
                     type="button"
@@ -256,6 +274,27 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
                 }
               />
             </div>
+
+            {selectedView && effectiveTriggerOptions.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <Label>Visibility trigger</Label>
+                <Select
+                  value={selectedView.triggerItemId ?? '__none__'}
+                  onValueChange={(value) => handleSetTrigger(selectedView.id, value === '__none__' ? null : value)}
+                >
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Always visible</SelectItem>
+                    {effectiveTriggerOptions.map((opt) => (
+                      <SelectItem key={opt.itemId} value={opt.itemId}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Link this view to an option item - it will only appear when the customer selects that option. Leave as "Always visible" for views shown in every case.
+                </p>
+              </div>
+            )}
 
             <div className="grid gap-2.5">
               {[
