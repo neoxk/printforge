@@ -268,7 +268,10 @@ export function PrintAreasDesigner({ state, actions, isSaving, onSave, onPreview
                   type="button"
                   className={cn(TILE_BASE, draft.sourceMode === mode ? TILE_ACTIVE : TILE_INACTIVE)}
                   onClick={() => {
-                    const autoName = mode === 'blank' ? 'Blank canvas' : mode === 'upload' ? 'Mockup view' : draft.name
+                    let autoName = draft.name
+                    if (mode === 'blank') autoName = 'Blank canvas'
+                    else if (mode === 'upload') autoName = 'Mockup view'
+
                     setDraft((d) => ({ ...d, sourceMode: mode, name: autoName }))
                   }}
                 >
