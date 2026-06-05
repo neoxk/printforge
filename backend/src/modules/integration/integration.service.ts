@@ -273,7 +273,7 @@ export async function syncWooProducts() {
   
   const incomingWooIds = products.map((p) => BigInt(p.id))
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Upsert each product: create new ones, update WooCommerce-sourced fields on existing
     // ones — pricing, options containers, print area config, and status are preserved.
     for (const product of products) {
