@@ -379,7 +379,8 @@ export function FabricPrintAreaCanvas({
     function handlePointerDown(event: PointerEvent) {
       if (activeTool !== 'pan') return
       panStateRef.current = { startX: event.clientX, startY: event.clientY, originX: pan.x, originY: pan.y }
-      wrapper!.setPointerCapture(event.pointerId)
+      if (!wrapper) return
+      wrapper.setPointerCapture(event.pointerId)
     }
     function handlePointerMove(event: PointerEvent) {
       if (!panStateRef.current || activeTool !== 'pan') return
@@ -388,7 +389,8 @@ export function FabricPrintAreaCanvas({
     function handlePointerUp(event: PointerEvent) {
       if (!panStateRef.current) return
       panStateRef.current = null
-      wrapper!.releasePointerCapture(event.pointerId)
+      if (!wrapper) return
+      wrapper.releasePointerCapture(event.pointerId)
     }
     function handleWheel(event: WheelEvent) {
       if (!event.ctrlKey && !event.metaKey) return

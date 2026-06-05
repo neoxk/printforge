@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@printforge/ui/compone
 import type { CreateViewDraft, DesignerTool, DesignerView, ZoneKey } from '@printforge/ui/designer'
 import { createEmptyDraft, createViewFromDraft } from '@printforge/ui/designer'
 import { getProductPrintAreasRequest, getProductsRequest, saveProductPrintAreasRequest } from '../../lib/Api'
+import { Containers } from '../../lib/services/containers'
+import type { TriggerOption } from './PrintAreasDesigner'
 import { GeneralInfoTab } from './GeneralInfoTab'
 import { PrintAreasPreviewModal } from './PrintAreasPreviewModal'
 import { PricingAndOptionsTab } from './PricingAndOptionsTab/index'
@@ -28,6 +30,7 @@ export function ProductDetailPage() {
   const [printAreaStatusMessage, setPrintAreaStatusMessage] = useState(
     'Create a view to start defining print zones.',
   )
+  const [triggerOptions, setTriggerOptions] = useState<TriggerOption[]>([])
 
   useEffect(() => {
     if (!productId) return
@@ -61,6 +64,25 @@ export function ProductDetailPage() {
             error instanceof Error ? error.message : 'Failed to load print area configuration.',
             'Print areas load failed',
           )
+        }
+
+        // Load option items for the view-trigger dropdown — non-fatal if absent
+        try {
+          const containers = await Containers.list(nextProduct.id)
+          const slotLists = await Promise.all(
+            containers.map((c) => Containers.listItems(nextProduct.id, c.id)),
+          )
+          setTriggerOptions(
+            containers.flatMap((container, i) =>
+              slotLists[i].map((slot) => ({
+                itemId: slot.itemId,
+                label: `${container.name}: ${slot.name ?? slot.item.name}`,
+              })),
+            ),
+          )
+        } catch {
+          // No trigger options available — the designer still works, views just won't
+          // have the trigger dropdown
         }
       } catch {
         setProduct(null)
@@ -224,6 +246,7 @@ export function ProductDetailPage() {
               setPan: setPrintAreaPan,
               setStatusMessage: setPrintAreaStatusMessage,
             }}
+            triggerOptions={triggerOptions}
             isSaving={isPrintAreasSaving}
             onSave={handleSavePrintAreas}
             onPreview={handlePreviewPrintAreas}

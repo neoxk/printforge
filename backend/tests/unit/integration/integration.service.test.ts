@@ -25,7 +25,7 @@ vi.mock('../../../src/lib/prisma.js', () => ({
     },
     product: {
       deleteMany: vi.fn(),
-      create: vi.fn(),
+      upsert: vi.fn(),
       findMany: vi.fn(),
     },
   },
@@ -39,7 +39,7 @@ const integrationConnection = (prisma as any).integrationConnection as {
 
 const product = (prisma as any).product as {
   deleteMany: ReturnType<typeof vi.fn>
-  create: ReturnType<typeof vi.fn>
+  upsert: ReturnType<typeof vi.fn>
   findMany: ReturnType<typeof vi.fn>
 }
 
@@ -226,8 +226,8 @@ describe('syncWooProducts', () => {
     vi.clearAllMocks()
     vi.stubGlobal('fetch', fetchMock)
     integrationConnection.findFirst.mockResolvedValue(connection)
-    product.deleteMany.mockReturnValue({ operation: 'delete-products' })
-    product.create.mockReturnValue({ operation: 'create-product' })
+    product.upsert.mockResolvedValue({})
+    product.deleteMany.mockResolvedValue({ count: 0 })
     product.findMany.mockResolvedValue([
       {
         id: 'product-1',
@@ -240,8 +240,14 @@ describe('syncWooProducts', () => {
         updatedAt: new Date('2026-05-20T10:00:00.000Z'),
       },
     ])
-    integrationConnection.update.mockReturnValue({ operation: 'update-connection' })
-    transaction.mockResolvedValue([])
+    integrationConnection.update.mockResolvedValue({})
+    // Execute the async callback with a mock tx so inner assertions are reachable
+    transaction.mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) =>
+      fn({
+        product: { upsert: product.upsert, deleteMany: product.deleteMany },
+        integrationConnection: { update: integrationConnection.update },
+      } as unknown as typeof prisma),
+    )
     fetchMock.mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue([
@@ -265,7 +271,7 @@ describe('syncWooProducts', () => {
     vi.unstubAllGlobals()
   })
 
-  it('fetches WooCommerce products, replaces synced products, and returns the refreshed list', async () => {
+  it('fetches WooCommerce products, upserts each one, removes stale products, and returns the refreshed list', async () => {
     const result = await syncWooProducts()
 
     expect(fetchMock).toHaveBeenCalledWith('http://localhost:8080/wp-json/wc/store/v1/products', {
@@ -273,11 +279,14 @@ describe('syncWooProducts', () => {
         Accept: 'application/json',
       },
     })
-    expect(product.deleteMany).toHaveBeenCalledWith({
-      where: { connectionId: 'connection-1' },
-    })
-    expect(product.create).toHaveBeenCalledWith({
-      data: {
+    expect(product.upsert).toHaveBeenCalledWith({
+      where: {
+        uq_synced_product_connection_woo_id: {
+          connectionId: 'connection-1',
+          wooProductId: BigInt(123),
+        },
+      },
+      create: {
         connectionId: 'connection-1',
         wooProductId: BigInt(123),
         name: 'Business Cards',
@@ -286,12 +295,26 @@ describe('syncWooProducts', () => {
         sku: 'BC-001',
         basePrice: '$12.34',
       },
+      update: {
+        name: 'Business Cards',
+        category: 'Stationery',
+        sku: 'BC-001',
+        basePrice: '$12.34',
+      },
     })
-    expect(transaction).toHaveBeenCalledWith([
-      { operation: 'delete-products' },
-      { operation: 'create-product' },
-      { operation: 'update-connection' },
-    ])
+    expect(product.deleteMany).toHaveBeenCalledWith({
+      where: {
+        connectionId: 'connection-1',
+        wooProductId: { notIn: [BigInt(123)] },
+      },
+    })
+    expect(integrationConnection.update).toHaveBeenCalledWith({
+      where: { id: 'connection-1' },
+      data: {
+        apiStatus: 'Healthy',
+        lastSync: expect.any(Date),
+      },
+    })
     expect(result).toMatchObject({
       products: [
         {

@@ -270,9 +270,12 @@ export async function syncWooProducts() {
 
   const products = (await response.json()) as WooStoreProduct[]
   const syncedAt = new Date()
-  const incomingWooIds = products.map((product) => BigInt(product.id))
+  
+  const incomingWooIds = products.map((p) => BigInt(p.id))
 
-  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  await prisma.$transaction(async (tx) => {
+    // Upsert each product: create new ones, update WooCommerce-sourced fields on existing
+    // ones — pricing, options containers, print area config, and status are preserved.
     for (const product of products) {
       await tx.product.upsert({
         where: {
@@ -285,20 +288,21 @@ export async function syncWooProducts() {
           connectionId: connection.id,
           wooProductId: BigInt(product.id),
           name: product.name,
-          category: product.categories?.map((category) => category.name).join(', ') || 'Uncategorized',
+          category: product.categories?.map((c) => c.name).join(', ') || 'Uncategorized',
           status: 'Store synced',
           sku: getSku(product),
           basePrice: formatStorePrice(product),
         },
         update: {
           name: product.name,
-          category: product.categories?.map((category) => category.name).join(', ') || 'Uncategorized',
+          category: product.categories?.map((c) => c.name).join(', ') || 'Uncategorized',
           sku: getSku(product),
           basePrice: formatStorePrice(product),
         },
       })
     }
 
+    // Delete products that no longer exist in WooCommerce
     await tx.product.deleteMany({
       where: {
         connectionId: connection.id,
