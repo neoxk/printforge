@@ -12,6 +12,7 @@ import {
   isValidDesignerProductId,
 } from './designerConfig.js'
 import { postDesignerConfiguration } from './parentMessaging.js'
+import { recalculateViewsForDimensions } from './recalculate.js'
 import type { UserDesignElement, UserDesignState, UserDesignerTool } from './types.js'
 import { ensureFontReady } from './fonts.js'
 import { TextPropertiesPanel } from './TextPropertiesPanel.js'
@@ -37,6 +38,28 @@ import {
 import { useFabricCanvas } from './useFabricCanvas.js'
 import { useViewportInteraction } from './useViewportInteraction.js'
 import './designer-ui.css'
+
+function getEffectiveViews(
+  views: DesignerView[],
+  customDimensions: { widthMm: number; heightMm: number } | null,
+) {
+  if (!customDimensions || customDimensions.widthMm <= 0 || customDimensions.heightMm <= 0) {
+    return views
+  }
+
+  return recalculateViewsForDimensions(views, customDimensions.widthMm, customDimensions.heightMm)
+}
+
+function getSelectedDesignValidation(
+  view: DesignerView | null,
+  selectedDesign: ReturnType<typeof getViewDesign> | null,
+) {
+  if (!view || !selectedDesign) {
+    return null
+  }
+
+  return validateDesignForView(view, selectedDesign)
+}
 
 export function UserDesignerPage() {
   const pageRef = useRef<HTMLElement | null>(null)
@@ -66,6 +89,7 @@ export function UserDesignerPage() {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewUrls, setPreviewUrls] = useState<{ viewId: string; name: string; url: string }[]>([])
+  const [customDimensions, setCustomDimensions] = useState<{ widthMm: number; heightMm: number } | null>(null)
 
   useIframeResize(pageRef)
 
@@ -75,9 +99,14 @@ export function UserDesignerPage() {
   useEffect(() => { liveActiveToolRef.current = activeTool }, [activeTool])
   useEffect(() => { liveProductIdRef.current = productId }, [productId])
 
+  const effectiveViews = useMemo(
+    () => getEffectiveViews(views, customDimensions),
+    [views, customDimensions],
+  )
+
   const selectedView = useMemo(
-    () => views.find((v) => v.id === selectedViewId) ?? null,
-    [selectedViewId, views],
+    () => effectiveViews.find((v) => v.id === selectedViewId) ?? null,
+    [selectedViewId, effectiveViews],
   )
 
   const selectedDesign = useMemo(
@@ -86,7 +115,7 @@ export function UserDesignerPage() {
   )
 
   const selectedDesignValidation = useMemo(
-    () => selectedView && selectedDesign ? validateDesignForView(selectedView, selectedDesign) : null,
+    () => getSelectedDesignValidation(selectedView, selectedDesign),
     [selectedDesign, selectedView],
   )
 
@@ -196,6 +225,33 @@ export function UserDesignerPage() {
     setStatusMessage('Loaded a saved design draft from this device.')
   }, [sessionId, views.length])
 
+  // ── Cross-iframe dimension sync (BroadcastChannel) ────────────────────────
+
+  // Listen for real-time dimension updates from the options iframe
+  useEffect(() => {
+    let channel: BroadcastChannel | null = null
+    try { channel = new BroadcastChannel('printforge-config') } catch { return }
+
+    channel.onmessage = (event: MessageEvent) => {
+      if (event.data?.type !== 'printforge:dims:update') return
+      const { widthMm, heightMm } = event.data as { widthMm: number; heightMm: number }
+      if (widthMm > 0 && heightMm > 0) setCustomDimensions({ widthMm, heightMm })
+    }
+
+    return () => { channel?.close() }
+  }, [])
+
+  // Once views are loaded, request the current dimensions from the options iframe
+  const hasViews = views.length > 0
+  useEffect(() => {
+    if (!hasViews) return
+    try {
+      const ch = new BroadcastChannel('printforge-config')
+      ch.postMessage({ type: 'printforge:dims:request' })
+      ch.close()
+    } catch { /* BroadcastChannel not supported */ }
+  }, [hasViews])
+
   // ── Preview export ────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -214,10 +270,9 @@ export function UserDesignerPage() {
         }
       })
 
-      const targetOrigin = event.origin && event.origin !== 'null' ? event.origin : '*'
       window.parent.postMessage(
         { type: 'printforge:designer:preview-response', requestId, previews },
-        targetOrigin,
+        event.origin,
       )
     }
 
@@ -456,18 +511,20 @@ export function UserDesignerPage() {
                 {selectedDesign.elements.map((el) => (
                   <div
                     key={el.id}
-                    role="button"
-                    tabIndex={0}
                     className={el.id === selectedElementId ? 'designer-layer-pill is-active' : 'designer-layer-pill'}
-                    onClick={() => selectElementOnCanvas(el.id)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') selectElementOnCanvas(el.id) }}
                   >
-                    <span className="designer-layer-icon">
-                      {el.kind === 'text' ? <Type className="size-3" /> : <Image className="size-3" />}
-                    </span>
-                    <span className="designer-layer-label">
-                      {el.kind === 'text' ? (el.text || 'Text layer') : 'Image'}
-                    </span>
+                    <button
+                      type="button"
+                      className="designer-layer-select"
+                      onClick={() => selectElementOnCanvas(el.id)}
+                    >
+                      <span className="designer-layer-icon">
+                        {el.kind === 'text' ? <Type className="size-3" /> : <Image className="size-3" />}
+                      </span>
+                      <span className="designer-layer-label">
+                        {el.kind === 'text' ? (el.text || 'Text layer') : 'Image'}
+                      </span>
+                    </button>
                     <button
                       type="button"
                       className="designer-layer-remove"
@@ -691,15 +748,23 @@ export function UserDesignerPage() {
             </div>
           </div>
 
-          {selectedDesignValidation && !selectedDesignValidation.isValid ? (
-            <div className="designer-stage-status-bar is-error">
-              {selectedDesignValidation.violations[0]}
-            </div>
-          ) : statusMessage ? (
-            <div className="designer-stage-status-bar">
-              {statusMessage}
-            </div>
-          ) : null}
+          {(() => {
+            if (selectedDesignValidation && !selectedDesignValidation.isValid) {
+              return (
+                <div className="designer-stage-status-bar is-error">
+                  {selectedDesignValidation.violations[0]}
+                </div>
+              )
+            }
+            if (statusMessage) {
+              return (
+                <div className="designer-stage-status-bar">
+                  {statusMessage}
+                </div>
+              )
+            }
+            return null
+          })()}
         </section>
       </div>
 

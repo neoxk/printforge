@@ -36,6 +36,9 @@ export type DesignerView = {
   mockupSrc: string | null
   mockupRect: ZoneRect | null
   fields: ZoneFieldMap
+  /** ID of the OptionItem that must be selected for this view to be shown.
+   *  null means the view is always visible regardless of option selection. */
+  triggerItemId: string | null
 }
 
 export type CreateViewDraft = {

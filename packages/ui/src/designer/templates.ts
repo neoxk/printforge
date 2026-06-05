@@ -6,21 +6,35 @@ function zone(x: number, y: number, width: number, height: number, enabled = tru
   return { x, y, width, height, enabled }
 }
 
+type StandardPresetConfig = {
+  id: string
+  label: string
+  description: string
+  size: {
+    width: number
+    height: number
+  }
+  margins: {
+    bleed: number
+    safe: number
+    allowed: number
+  }
+}
+
 /**
  * Standard print preset: physicalSize = nominal cut dimensions.
  * bleedArea wraps everything, cutArea is inset by `bleed`, safeZone by `bleed+safe`,
  * allowedPrintArea by `bleed+safe+allowed`.
  */
-function makeStandardPreset(
-  id: string,
-  label: string,
-  description: string,
-  w: number,
-  h: number,
-  bleed: number,
-  safe: number,
-  allowed: number,
-): TemplatePreset {
+function makeStandardPreset({
+  id,
+  label,
+  description,
+  size,
+  margins,
+}: StandardPresetConfig): TemplatePreset {
+  const { width, height } = size
+  const { bleed, safe, allowed } = margins
   const b = bleed
   const s = bleed + safe
   const a = bleed + safe + allowed
@@ -28,12 +42,12 @@ function makeStandardPreset(
     id,
     label,
     description,
-    physicalSize: { width: w, height: h },
+    physicalSize: { width, height },
     fields: {
-      bleedArea: zone(0, 0, w, h),
-      cutArea: zone(b, b, w - b * 2, h - b * 2),
-      safeZone: zone(s, s, w - s * 2, h - s * 2),
-      allowedPrintArea: zone(a, a, w - a * 2, h - a * 2),
+      bleedArea: zone(0, 0, width, height),
+      cutArea: zone(b, b, width - b * 2, height - b * 2),
+      safeZone: zone(s, s, width - s * 2, height - s * 2),
+      allowedPrintArea: zone(a, a, width - a * 2, height - a * 2),
     },
   }
 }
@@ -68,24 +82,24 @@ function makeLargeFormatPreset(
 
 export const templatePresets: TemplatePreset[] = [
   // ── Sheet / card formats (3 mm bleed) ──────────────────────────────────────
-  makeStandardPreset('business-card', 'Business card (85 × 55 mm)', 'Standard business card with 3 mm bleed, cut, and safe zone.', 85, 55, 3, 3, 2),
-  makeStandardPreset('a6', 'A6 (105 × 148 mm)', 'A6 postcard or leaflet with 3 mm bleed.', 105, 148, 3, 3, 2),
-  makeStandardPreset('dl', 'DL / Flyer (99 × 210 mm)', 'DL envelope-sized flyer with 3 mm bleed.', 99, 210, 3, 3, 2),
-  makeStandardPreset('a5', 'A5 (148 × 210 mm)', 'A5 flyer or booklet page with 3 mm bleed.', 148, 210, 3, 3, 2),
-  makeStandardPreset('a4', 'A4 (210 × 297 mm)', 'A4 sheet with 3 mm bleed and safe zone.', 210, 297, 3, 3, 2),
-  makeStandardPreset('a3', 'A3 (297 × 420 mm)', 'A3 sheet with 3 mm bleed and 5 mm safe zone.', 297, 420, 3, 5, 3),
-  makeStandardPreset('a2', 'A2 (420 × 594 mm)', 'A2 sheet with 3 mm bleed and 5 mm safe zone.', 420, 594, 3, 5, 3),
-  makeStandardPreset('a1', 'A1 (594 × 841 mm)', 'A1 sheet with 3 mm bleed and 8 mm safe zone.', 594, 841, 3, 8, 5),
+  makeStandardPreset({ id: 'business-card', label: 'Business card (85 × 55 mm)', description: 'Standard business card with 3 mm bleed, cut, and safe zone.', size: { width: 85, height: 55 }, margins: { bleed: 3, safe: 3, allowed: 2 } }),
+  makeStandardPreset({ id: 'a6', label: 'A6 (105 × 148 mm)', description: 'A6 postcard or leaflet with 3 mm bleed.', size: { width: 105, height: 148 }, margins: { bleed: 3, safe: 3, allowed: 2 } }),
+  makeStandardPreset({ id: 'dl', label: 'DL / Flyer (99 × 210 mm)', description: 'DL envelope-sized flyer with 3 mm bleed.', size: { width: 99, height: 210 }, margins: { bleed: 3, safe: 3, allowed: 2 } }),
+  makeStandardPreset({ id: 'a5', label: 'A5 (148 × 210 mm)', description: 'A5 flyer or booklet page with 3 mm bleed.', size: { width: 148, height: 210 }, margins: { bleed: 3, safe: 3, allowed: 2 } }),
+  makeStandardPreset({ id: 'a4', label: 'A4 (210 × 297 mm)', description: 'A4 sheet with 3 mm bleed and safe zone.', size: { width: 210, height: 297 }, margins: { bleed: 3, safe: 3, allowed: 2 } }),
+  makeStandardPreset({ id: 'a3', label: 'A3 (297 × 420 mm)', description: 'A3 sheet with 3 mm bleed and 5 mm safe zone.', size: { width: 297, height: 420 }, margins: { bleed: 3, safe: 5, allowed: 3 } }),
+  makeStandardPreset({ id: 'a2', label: 'A2 (420 × 594 mm)', description: 'A2 sheet with 3 mm bleed and 5 mm safe zone.', size: { width: 420, height: 594 }, margins: { bleed: 3, safe: 5, allowed: 3 } }),
+  makeStandardPreset({ id: 'a1', label: 'A1 (594 × 841 mm)', description: 'A1 sheet with 3 mm bleed and 8 mm safe zone.', size: { width: 594, height: 841 }, margins: { bleed: 3, safe: 8, allowed: 5 } }),
   // ── Square formats ─────────────────────────────────────────────────────────
-  makeStandardPreset('square-100', 'Square 100 × 100 mm', '100 mm square with 2 mm bleed.', 100, 100, 2, 3, 2),
-  makeStandardPreset('square-150', 'Square 150 × 150 mm', '150 mm square with 3 mm bleed.', 150, 150, 3, 3, 2),
-  makeStandardPreset('square-200', 'Square 200 × 200 mm', '200 mm square with 3 mm bleed and 5 mm safe zone.', 200, 200, 3, 5, 3),
+  makeStandardPreset({ id: 'square-100', label: 'Square 100 × 100 mm', description: '100 mm square with 2 mm bleed.', size: { width: 100, height: 100 }, margins: { bleed: 2, safe: 3, allowed: 2 } }),
+  makeStandardPreset({ id: 'square-150', label: 'Square 150 × 150 mm', description: '150 mm square with 3 mm bleed.', size: { width: 150, height: 150 }, margins: { bleed: 3, safe: 3, allowed: 2 } }),
+  makeStandardPreset({ id: 'square-200', label: 'Square 200 × 200 mm', description: '200 mm square with 3 mm bleed and 5 mm safe zone.', size: { width: 200, height: 200 }, margins: { bleed: 3, safe: 5, allowed: 3 } }),
   // ── Stickers ───────────────────────────────────────────────────────────────
-  makeStandardPreset('sticker-50', 'Sticker 50 × 50 mm', 'Small sticker with 2 mm bleed.', 50, 50, 2, 3, 2),
-  makeStandardPreset('sticker-100', 'Sticker 100 × 100 mm', 'Standard sticker with 2 mm bleed.', 100, 100, 2, 3, 2),
+  makeStandardPreset({ id: 'sticker-50', label: 'Sticker 50 × 50 mm', description: 'Small sticker with 2 mm bleed.', size: { width: 50, height: 50 }, margins: { bleed: 2, safe: 3, allowed: 2 } }),
+  makeStandardPreset({ id: 'sticker-100', label: 'Sticker 100 × 100 mm', description: 'Standard sticker with 2 mm bleed.', size: { width: 100, height: 100 }, margins: { bleed: 2, safe: 3, allowed: 2 } }),
   // ── Large format / wide print (no bleed, wider margins) ───────────────────
   makeLargeFormatPreset('poster-500x700', 'Poster 500 × 700 mm', 'Large poster with 15 mm safe zone margins.', 500, 700, 15, 10),
   makeLargeFormatPreset('poster-700x1000', 'Poster 700 × 1000 mm', 'Extra-large poster with 20 mm safe zone margins.', 700, 1000, 20, 10),
   makeLargeFormatPreset('banner-600x1600', 'Banner 600 × 1600 mm', 'Wide-format banner with 20 mm safe zone margins.', 600, 1600, 20, 10),
-  makeStandardPreset('roll-label', 'Roll label 100 × 150 mm', 'Roll label with 2 mm bleed and safe zone.', 100, 150, 2, 3, 2),
+  makeStandardPreset({ id: 'roll-label', label: 'Roll label 100 × 150 mm', description: 'Roll label with 2 mm bleed and safe zone.', size: { width: 100, height: 150 }, margins: { bleed: 2, safe: 3, allowed: 2 } }),
 ]
