@@ -1,4 +1,4 @@
-# PrintForge — Tehnična dokumentacija
+# PrintForge - Tehnična dokumentacija
 
 ## Kazalo vsebine
 
@@ -8,11 +8,12 @@
 4. [Arhitektura sistema](#4-arhitektura-sistema)
 5. [Podatkovni model](#5-podatkovni-model)
 6. [Backend](#6-backend)
-7. [Frontend — Admin SPA](#7-frontend--admin-spa)
-8. [Frontend — Konfigurator](#8-frontend--konfigurator)
+7. [Frontend - Admin SPA](#7-frontend--admin-spa)
+8. [Frontend - Konfigurator](#8-frontend--konfigurator)
 9. [WooCommerce integracija](#9-woocommerce-integracija)
-10. [Varnost](#10-varnost)
-11. [Namestitev in zagon](#11-namestitev-in-zagon)
+10. [Dizajni naročil](#10-dizajni-naročil)
+11. [Varnost](#11-varnost)
+12. [Namestitev in zagon](#12-namestitev-in-zagon)
 
 ---
 
@@ -20,25 +21,25 @@
 
 ### 1.1 Kaj je PrintForge?
 
-PrintForge je odprtokodna spletna platforma za tiskarne in produkcijska podjetja, ki prodajajo prilagodljive tiskarske produkte prek spletnih trgovin. Sistem se namesti in zaganja lokalno — lastnik tiskarne si postavi lasten primerek PrintForge na svojem strežniku s pomočjo Dockerja, se registrira v sistem in ga nato upravlja prek spletnega administratorskega vmesnika.
+PrintForge je odprtokodna spletna platforma za tiskarne in produkcijska podjetja, ki prodajajo prilagodljive tiskarske produkte prek spletnih trgovin. Sistem se namesti in zaganja lokalno: lastnik tiskarne si postavi lasten primerek PrintForge na svojem strežniku ali v oblaku s pomočjo Dockerja, se registrira v sistem in ga nato upravlja prek spletnega administratorskega vmesnika.
 
-PrintForge ni zamenjava za obstoječo spletno trgovino — je razširitev. Sistem se poveže z obstoječo e-commerce platformo (WooCommerce, OpenCart ali katero koli drugo) in jo obogati z dvema zmogljivostima, ki jih generične platforme same po sebi ne ponujajo: **konfiguratorjem tiskarskih produktov** in **spletnim dizajnerjem**. Obe orodji sta vgrajeni kot iframe neposredno na produktno stran v e-commerce platformi in delujeta kot del nakupovalnega procesa stranke.
+PrintForge ni zamenjava za obstoječo spletno trgovino - je razširitev. Sistem se poveže z nameščeno e-commerce platformo (WooCommerce) in jo obogati z dvema zmogljivostima, ki jih generične platforme same po sebi ne ponujajo: **konfiguratorjem tiskarskih produktov** in **spletnim dizajnerjem**. Obe orodji sta vgrajeni kot iframe neposredno na produktno stran v e-commerce platformi in delujeta kot del nakupovalnega procesa stranke.
 
-Celoten nakupovalni proces ostane v obstoječi e-commerce platformi. PrintForge prevzame samo korak konfiguracije in dizajniranja produkta — preden stranka doda artikel v košarico.
+Celoten nakupovalni proces ostane v obstoječi e-commerce platformi. PrintForge prevzame samo korak konfiguracije in dizajniranja produkta preden stranka doda artikel v košarico.
 
 ### 1.2 Namestitev in prvi zagon
 
-PrintForge je zasnovan za lokalno namestitev. Lastnik tiskarne mora imeti na strežniku nameščen Docker, s katerim zažene celoten sistem (backend, administracijsko aplikacijo, konfiguratorsko aplikacijo in podatkovno bazo) z enim ukazom. Ob prvi vzpostavitvi se skozi administratorski vmesnik registrira (ustvari račun), nato pa se pri vsakem naslednjem obisku prijavi s svojimi podatki. Vse nastavitve sistema, produktov in cenilnega stroja se shranjujejo v lokalno PostgreSQL podatkovno bazo.
+PrintForge je zasnovan za lokalno namestitev. Lastnik tiskarne mora imeti na strežniku nameščen Docker, s katerim zažene celoten sistem (zaledni sistem, administracijsko aplikacijo, konfiguratorsko aplikacijo, podatkovno bazo in spletno trgovino) z enim ukazom. Ob prvi vzpostavitvi se skozi administratorski vmesnik registrira (ustvari račun), nato pa se pri vsakem naslednjem obisku prijavi s svojimi podatki. Vse nastavitve sistema, produktov in cenilnega stroja se shranjujejo v lokalno PostgreSQL podatkovno bazo.
 
 ### 1.3 Problem, ki ga rešuje
 
 Generične e-commerce platforme imajo pri tiskarskih produktih dve temeljni omejitvi:
 
-**1. Kompleksne konfiguracijske možnosti** — Tiskarski produkt ni enostaven artikel z eno ceno in fiksnimi lastnostmi. Ima dimenzije, količino, vrsto papirja, vrsto tiska, laminacijo, rezanje in mnogo drugih parametrov. Večina e-commerce platform podpira le preproste variacije (npr. barva, velikost), ki ne zadostijo kompleksnosti tiskarniškega cenovnika. Vsaka kombinacija bi zahtevala ročno ustvarjanje ogromnega števila variacij, kar je nepraktično in neobvladljivo.
+**1. Kompleksne konfiguracijske možnosti** - Tiskarski produkt ni enostaven artikel z eno ceno in fiksnimi lastnostmi. Ima dimenzije, količino, vrsto papirja, vrsto tiska, laminacijo, rezanje in mnogo drugih parametrov. Večina e-commerce platform podpira le preproste variacije (npr. barva, velikost), ki ne zadostijo kompleksnosti tiskarniškega cenovnika. Vsaka kombinacija bi zahtevala ročno ustvarjanje ogromnega števila variacij, kar je nepraktično in neobvladljivo.
 
-**2. Dinamično cenovanje** — Cena tiskarskega produkta ni enostavna vsota. Odvisna je od dimenzij (npr. koliko vizitk gre na en tiskarski pol), od količine (ekonomija obsega), od procesa obdelave (laminacija se zaračuna po tekočem metru, rezanje po kosu, preflight kot fiksni strošek na naročilo). E-commerce platforme tega izračuna ne znajo izvesti — cena mora biti statična ali ročno vnesena.
+**2. Dinamično cenovanje** - Cena tiskarskega produkta ni enostavna vsota. Odvisna je od dimenzij (npr. koliko vizitk gre na en tiskarski pol), od količine (ekonomija obsega), od procesa obdelave (laminacija se zaračuna po tekočem metru, rezanje po kosu, preflight kot fiksni strošek na naročilo). E-commerce platforme tega izračuna ne znajo izvesti: cena mora biti statična ali ročno vnesena.
 
-Na primer: platforma WooCommerce podpira variacije produktov, a ne zna modelirati kompleksnih tiskarskih cenovnikov. Enaka omejitev velja za OpenCart in večino ostalih platform.
+Na primer: platforma WooCommerce podpira variacije produktov, a ne zna modelirati kompleksnih tiskarskih cenovnikov. Enaka omejitev velja za Shopify, OpenCart in večino ostalih platform.
 
 PrintForge oba problema rešuje z ločenim sistemom, ki deluje vzporedno z e-commerce platformo:
 - Konfiguratorski iframe prikaže stranki možnosti, ki jih je lastnik tiskarne predhodno definiral v administratorskem vmesniku, ter dizajnerski vmesnik s tiskovnimi območji, ki so prav tako definirana s strani lastnika tiskarne.
@@ -50,7 +51,7 @@ PrintForge oba problema rešuje z ločenim sistemom, ki deluje vzporedno z e-com
 **Brez PrintForge:**
 
 ```mermaid
-graph TD
+graph LR
     A[Stranka obišče produkt] --> B[Statične variacije ali ročno vnesene kombinacije]
     B --> C[Fiksna cena brez dinamičnega izračuna]
     C --> D[Naročilo brez natančnih tiskarskih parametrov]
@@ -60,7 +61,7 @@ graph TD
 **Z PrintForge:**
 
 ```mermaid
-graph TD
+graph LR
     A[Stranka obišče produkt] --> B[Konfiguratorski iframe se naloži v produktno stran]
     B --> C[Stranka izbere možnosti definirane s strani administratorja]
     C --> D[Stranka po želji odpre dizajnerski vmesnik]
@@ -76,9 +77,9 @@ graph TD
 
 Ko se stranka znajde na produktni strani v e-commerce platformi, PrintForge vgradi iframe, ki vsebuje dve komponenti:
 
-**Konfigurator možnosti** prikaže vse konfiguracijske možnosti za določen produkt — na primer vrsto papirja, laminacijo, dimenzije, količino in podobno. Katere možnosti so na voljo in kakšne so njihove cene, določi lastnik tiskarne vnaprej v administratorskem vmesniku. Ko stranka izbira, cenilni stroj sproti posodablja prikaz cene.
+**Konfigurator možnosti** prikaže vse konfiguracijske možnosti za določen produkt (na primer vrsto papirja, laminacijo, dimenzije, količino in podobno). Katere možnosti so na voljo in kakšne so njihove cene, določi lastnik tiskarne vnaprej v administratorskem vmesniku. Ko stranka izbira, cenilni stroj sproti posodablja prikaz cene.
 
-**Spletni dizajner** je vizualni urejevalnik, ki stranki omogoča, da na produkt doda besedilo, naloži grafiko in premika elemente. Ključno je, da lastnik tiskarne v administratorskem vmesniku vnaprej definira **tiskovna območja** (*print areas*) — torej območja znotraj katerih sme stranka postavljati elemente. S tem je zagotovljeno, da dizajn stranke ustreza tehničnim zahtevam tiska.
+**Spletni dizajner** je vizualni urejevalnik, ki stranki omogoča, da na produkt doda besedilo, naloži grafiko in premika elemente. Ključno je, da lastnik tiskarne v administratorskem vmesniku vnaprej definira **tiskovna območja** (*print areas*), torej območja znotraj katerih sme stranka postavljati elemente. S tem je zagotovljeno, da dizajn stranke ustreza tehničnim zahtevam tiska.
 
 Ko stranka zaključi konfiguracijo ali dizajniranje, se cena in vsi konfiguracijski podatki prek `postMessage` mehanizma prenesejo iz iframe-a na stran e-commerce platforme, od koder jih stranka skupaj z artiklom doda v košarico.
 
@@ -86,14 +87,7 @@ Ko stranka zaključi konfiguracijo ali dizajniranje, se cena in vsi konfiguracij
 
 PrintForge je zasnovan tako, da se integrira s katerokoli e-commerce platformo. Vsaka integracija je ločena komponenta (vtičnik ali prilagoditev za ciljno platformo), ki vgradi konfiguracijski iframe na produktno stran in poskrbi za prenos podatkov v košarico.
 
-Trenutno podprte integracije:
-
-| Platforma | Status |
-|---|---|
-| **WooCommerce** | Implementirano — vtičnik za WordPress (`/plugins/printforge`) |
-| **OpenCart** | V implementaciji |
-
-Ker je arhitektura modularno zastavljena, je dodajanje novih integracij (Shopify, Magento, lastni storefront) stvar razvoja novega vtičnika ali prilagoditve za ciljno platformo, ne poseganja v jedro PrintForge sistema.
+Trenutno podprta integracija je WooCommerce (vtičnik za WordPress (`/plugins/printforge`)). Ker je arhitektura modularno zastavljena, je dodajanje novih integracij (na primer OpenCart ali lastni storefront) stvar razvoja novega vtičnika, ne poseganja v jedro PrintForge sistema.
 
 ```mermaid
 graph TD
@@ -104,7 +98,7 @@ graph TD
     CS[Lastni storefront] <-->|REST API| PF
 
     PF --> DB[(PostgreSQL)]
-    PF --> S3[(S3 / MinIO)]
+    PF --> S3[(S3)]
 ```
 
 ### 1.6 Ciljna publika
@@ -114,49 +108,56 @@ Sistem ima tri ločene tipe uporabnikov z različnimi potrebami:
 | Tip uporabnika | Opis | Dostop |
 |---|---|---|
 | **Administrator (lastnik tiskarne)** | Konfigurira produkte, cenovnik, tiskovna območja, integracijo z e-commerce platformo. | Admin SPA (`/pf-admin/`) |
-| **Stranka** | Obišče produktno stran, konfigurira in dizajnira produkt, doda v košarico. Ne ve, da obstaja PrintForge — vidi le iframe. | Konfiguratorski iframe (`/pf/`) |
+| **Stranka** | Obišče produktno stran, konfigurira in dizajnira produkt, doda v košarico. Ne ve, da obstaja PrintForge (vidi le iframe). | Konfiguratorski iframe (`/pf/`) |
 | **Razvijalec / integrater** | Postavlja sistem, razvija integracije z novimi platformami, razširja funkcionalnost. | REST API, Docker, vtičniki |
 
 ### 1.7 Pregled primerov uporabe
 
 ```mermaid
-graph TD
+graph LR
+
     Admin([Administrator])
     Customer([Stranka])
     Dev([Razvijalec])
 
-    Admin --> UC1[Sinhronizacija produktov iz e-commerce platforme]
-    Admin --> UC2[Konfiguracija možnosti za produkt]
-    Admin --> UC3[Nastavitev tiskovnih območij]
-    Admin --> UC4[Upravljanje cenilnega stroja]
-    Admin --> UC5[Upravljanje integracije]
+    subgraph PrintForge sistem
+        UC1[Sinhronizacija produktov]
+        UC2[Konfiguracija možnosti za produkt]
+        UC3[Nastavitev tiskovnih območij]
+        UC4[Upravljanje cenilnega stroja]
+        UC5[Upravljanje integracije]
 
-    Customer --> UC6[Konfiguracija produkta v iframeu]
-    Customer --> UC7[Ogled cene v realnem času]
-    Customer --> UC8[Dizajniranje produkta]
-    Customer --> UC9[Dodajanje konfiguracije v košarico]
+        UC6[Izbira med možnostmi produkta v iframeu]
+        UC7[Ogled cene v realnem času]
+        UC8[Dizajniranje produkta]
+        UC9[Dodajanje konfiguracije v košarico]
 
-    Dev --> UC10[Namestitev sistema z Dockerjem]
-    Dev --> UC11[Razvoj integracije z novo platformo]
-    Dev --> UC12[Razširitev prek REST API]
+        UC10[Namestitev sistema z Dockerjem]
+        UC11[Razvoj integracije z novo platformo]
+        UC12[Razširitev prek REST API]
+    end
 
-    UC1 --> Backend[(PrintForge Backend)]
-    UC2 --> Backend
-    UC3 --> Backend
-    UC4 --> Backend
-    UC5 --> Backend
-    UC6 --> Backend
-    UC7 --> Backend
-    UC8 --> Backend
-    Backend --> DB[(PostgreSQL)]
-    Backend --> S3[(S3 / MinIO)]
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+    Admin --> UC4
+    Admin --> UC5
+
+    Customer --> UC6
+    Customer --> UC7
+    Customer --> UC8
+    Customer --> UC9
+
+    Dev --> UC10
+    Dev --> UC11
+    Dev --> UC12
 ```
 
 ---
 
 ## 2. Projektno vodenje
 
-Projekt je bil razvit po **agilni metodologiji Scrum**. Pred začetkom sprintov je potekala **faza vzpostavitve**, v kateri je ekipa postavila osnovno infrastrukturo: monorepo strukturo, Docker okolje, CI/CD pipeline, osnovno Fastify aplikacijo in začetne React aplikacije. Po vzpostavitvi je sledilo **4 iteracij (sprintov)**, vsak s trajanjem **1 teden**, v katerih se je razvijala dejanska funkcionalnost sistema.
+Projekt je bil razvit po **agilni metodologiji Scrum**. Pred začetkom sprintov je potekala **faza vzpostavitve**, v kateri je ekipa postavila osnovno infrastrukturo: monorepo strukturo, Docker okolje, osnovno Fastify aplikacijo in začetne React aplikacije. Po vzpostavitvi je sledilo **4 iteracij (sprintov)**, vsak s trajanjem **1 teden**, v katerih se je razvijala dejanska funkcionalnost sistema.
 
 ### 2.1 Metodologija
 
@@ -170,13 +171,13 @@ Ekipa je štela **tri razvijalce**, vsak z definiranim primarnim področjem, a v
 
 | Član | Primarno področje |
 |---|---|
-| Ena Imamović | Frontend — Admin SPA, Konfigurator, shared UI paket |
-| Neo Xander Kirbiš | Backend — Fastify API, Prisma, cenilni stroj, podatkovna baza |
-| Gal Petelin | Vtičniki in DevOps — WooCommerce plugin, Docker, CI/CD pipeline |
+| Ena Imamović | Frontend - Admin SPA, Konfigurator, deljeni UI paket |
+| Neo Xander Kirbiš | Backend - Fastify API, Prisma, cenilni stroj, podatkovna baza |
+| Gal Petelin | Vtičniki in DevOps - WooCommerce plugin, Docker, CI/CD pipeline |
 
-Poleg razvojne ekipe je imel projekt **skrbnika projekta** — profesor Mitja Gradišnik, ki je opravljal vlogo **product ownerja**. Z ekipo je imel redne tedenske sestanke, predlagal funkcionalnosti in prioritete ter sprejemal deliverables. **Scrum master** znotraj ekipe je bil Neo Xander Kirbiš, ki je koordiniral sprint procese in stand-upe.
+Poleg razvojne ekipe je imel projekt **skrbnika projekta** - prof. asist. Mitja Gradišnik, ki je opravljal vlogo **product ownerja**. Z ekipo je imel redne tedenske sestanke, predlagal funkcionalnosti in prioritete ter sprejemal rezultate (*deliverables*). **Scrum master** znotraj ekipe je bil Neo Xander Kirbiš, ki je koordiniral sprint procese in stand-upe.
 
-### 2.3 Sledenje nalogam — Jira
+### 2.3 Sledenje nalogam - Jira
 
 Za sledenje nalogam in sprintom je ekipa uporabljala **Jiro** (Jira Software). Vsaka naloga je bila predstavljena kot **user story** (nova funkcionalnost) ali **task/bug** (tehnična naloga ali popravek) in je šla skozi naslednje statuse v Kanbanu:
 
@@ -188,7 +189,7 @@ graph LR
     D --> E[Done]
 ```
 
-Stanje **Code Review / Testing** je zajemalo odprtje Pull Requesta na GitHubu, pregled kode s strani ostalih članov ekipe in testiranje sprememb. Naloga se je premaknila v **Done** šele po uspešnem pregledu in odobritvi PR-ja.
+Stanje **Code Review / Testing** je zajemalo odprtje Pull Requesta na GitHubu, pregled kode s strani ostalih članov ekipe in testiranje sprememb. Naloga se je premaknila v **Done** šele po uspešnem pregledu in testiranju.
 
 ### 2.4 Git workflow
 
@@ -213,8 +214,8 @@ gitGraph
     commit id: "init" tag: "main"
     branch ui-architecture
     checkout ui-architecture
-    commit id: "feat: admin layout"
-    commit id: "feat: product page"
+    commit id: "feat: added admin dashboard"
+    commit id: "feat: added product page"
     checkout main
     branch pricing
     checkout pricing
@@ -243,10 +244,10 @@ S tem je bil git log pregleden in je jasno razvidno, katere spremembe so bile no
 
 ### 2.6 Pull requesti in pregled kode
 
-Nobena sprememba ni šla direktno v `main` brez Pull Requesta. Vsak PR je moral izpolniti dva pogoja, preden je bil lahko združen:
+Vsak PR je moral izpolniti dva pogoja, preden je bil lahko združen:
 
-1. **Uspešen CI/CD pipeline** — avtomatski testi, build in SonarCloud statična analiza so morali biti uspešno opravljeni.
-2. **Code review** — vsaj en drug član ekipe je moral pregledati kodo in jo odobriti.
+1. **Uspešen CI/CD pipeline** - avtomatski testi, build in SonarCloud statična analiza so morali biti uspešno opravljeni.
+2. **Code review** - vsaj en drug član ekipe je moral pregledati kodo.
 
 Ta proces je zagotavljal, da je bila koda v `main` vedno stabilna, pregledana in skladna s kakovostnimi standardi.
 
@@ -256,21 +257,21 @@ Ta proces je zagotavljal, da je bila koda v `main` vedno stabilna, pregledana in
 
 Kakovost kode je bila zagotovljena na treh nivojih: **statična analiza** (SonarQube / SonarCloud), **avtomatsko testiranje** (Vitest) in **pregled kode** (pull request proces). Nobena sprememba ni prišla v `main` brez uspešno opravljenih vseh treh.
 
-### 3.1 Statična analiza — SonarQube
+### 3.1 Statična analiza - SonarQube
 
 Ekipa je uporabljala **SonarQube** na dva načina:
 
-- **SonarLint (SonarQube for IDE) plugin v VSCode** — sprotna analiza med pisanjem kode, ki opozori na probleme direktno v urejevalniku, še preden je koda commitana
-- **SonarCloud v CI/CD pipeline-u** — ob vsakem pushu na GitHub in ob vsakem pull requestu se je avtomatsko sprožila analiza celotnega repozitorija v oblaku
+- **SonarLint (SonarQube for IDE) plugin v VSCode** - sprotna analiza med pisanjem kode, ki opozori na probleme direktno v urejevalniku, še preden je koda commitana
+- **SonarCloud v CI/CD pipeline-u** - ob vsakem pushu na GitHub in ob vsakem pull requestu se je avtomatsko sprožila analiza celotnega repozitorija v oblaku
 
 SonarCloud je skeniral naslednjo izvorno kodo:
-- `backend/src` — zaledna logika
-- `apps/` — Admin SPA in Konfigurator
-- `packages/` — deljeni UI paket
+- `backend/src` - zaledna logika
+- `apps/` - Admin SPA in Konfigurator
+- `packages/` - deljeni UI paket
 
-Analiza je zajemala statično preverjanje kode — code smells, potencialne hrošče in varnostne ranljivosti. Iz analize so bila izključena generirana in vendor dela: `node_modules`, `dist`, `build`, minirani JS/CSS in markdown datoteke.
+Analiza je zajemala statično preverjanje kode - code smells, potencialne hrošče in varnostne ranljivosti. Iz analize so bila izključena generirana in vendor dela: `node_modules`, `dist`, `build` in markdown datoteke.
 
-### 3.2 CI/CD pipeline — GitHub Actions
+### 3.2 CI/CD pipeline - GitHub Actions
 
 Ob vsakem pushu na `main` in ob vsakem pull requestu se je avtomatsko sprožil pipeline definiran v `.github/workflows/main.yml`:
 
@@ -294,14 +295,15 @@ Pipeline je tekel na `ubuntu-24.04` z Node.js 24. Za SonarCloud scan je pipeline
 
 Backend ima dve vrsti testov, pisanih z ogrodjem **Vitest**:
 
-**Unit testi** (`backend/tests/unit/`) testirajo posamezne module v izolaciji — vsak modul ima svojo testno datoteko:
+**Unit testi** (`backend/tests/unit/`) testirajo posamezne module v izolaciji.
+Vsak modul ima svojo testno datoteko:
 
 | Testna datoteka | Kaj testira |
 |---|---|
 | `auth/auth.service.test.ts` | Registracija, prijava, upravljanje uporabnikov |
 | `auth/auth.controller.test.ts` | HTTP sloj auth endpointov |
 | `auth/authenticate.middleware.test.ts` | JWT middleware |
-| `pricing/pricing.lib.test.ts` | Cenilni stroj — izračuni po posameznih bazah |
+| `pricing/pricing.lib.test.ts` | Cenilni stroj - izračuni po posameznih bazah |
 | `pricing/pricing.service.test.ts` | Pricing service logika |
 | `pricing/pricing.controller.test.ts` | HTTP sloj pricing endpointov |
 | `products/products.service.test.ts` | Produktna logika |
@@ -309,14 +311,14 @@ Backend ima dve vrsti testov, pisanih z ogrodjem **Vitest**:
 | `integration/integration.service.test.ts` | WooCommerce integracija |
 | `integration/integration.controller.test.ts` | HTTP sloj integration endpointov |
 
-**Integracijski testi** (`backend/tests/integration/app.integration.test.ts`) testirajo celoten HTTP API kot celoto — od sprejema zahtevka do odgovora — z mockano podatkovno bazo, brez potrebe po dejanskem PostgreSQL strežniku med izvajanjem testov.
+**Integracijski testi** (`backend/tests/integration/app.integration.test.ts`) testirajo celoten HTTP API kot celoto, od sprejema zahtevka do odgovora, z mockano podatkovno bazo, brez potrebe po dejanskem PostgreSQL strežniku med izvajanjem testov.
 
 Testi se zaženejo z ukazom:
 ```bash
 npm run test:coverage --workspace=backend
 ```
 
-Rezultat je `backend/coverage/lcov.info` — poročilo o pokritosti v LCOV formatu, ki ga SonarCloud prebere in prikaže kot metriko kakovosti.
+Rezultat je `backend/coverage/lcov.info` - poročilo o pokritosti v LCOV formatu, ki ga SonarCloud prebere in prikaže kot metriko kakovosti.
 
 ### 3.4 Code review
 
@@ -335,9 +337,9 @@ Vsak Pull Request je moral biti pregledan s strani vsaj enega drugega člana eki
 
 ### 4.1 Pregled
 
-PrintForge je sestavljen iz štirih glavnih komponent, ki tečejo v Dockerju. Pred vsemi komponentami stoji **Caddy** kot obratni posrednik (*reverse proxy*), ki usmerja promet po URL poti do pravilne komponente — tako v lokalnem razvoju kot v produkciji. Sistem je v produkciji nameščen in dostopen na naslovu [printforge.neoxk.dev](https://printforge.neoxk.dev).
+PrintForge je sestavljen iz štirih glavnih komponent, ki tečejo v Dockerju. Pred vsemi komponentami stoji **Caddy** kot obratni posrednik (*reverse proxy*), ki usmerja promet po URL poti do pravilne komponente, tako v lokalnem razvoju kot v produkciji. Sistem je v produkciji nameščen in dostopen na naslovu [printforge.neoxk.dev](https://printforge.neoxk.dev).
 
-Spodnji diagram prikazuje produkcijsko arhitekturo (za podroben vizualni prikaz glej [`docs/overview/server-structure.png`](docs/overview/server-structure.png)):
+Spodnji diagram prikazuje produkcijsko arhitekturo (za prvotno verzijo glej [`docs/overview/server-structure.png`](docs/overview/server-structure.png)):
 
 ```mermaid
 graph TD
@@ -380,8 +382,8 @@ printforge/
 │   └── ui/                       ← Deljeni UI paket (@printforge/ui)
 ├── backend/                      ← Fastify API (TypeScript)
 ├── plugins/
-│   ├── printforge/               ← WooCommerce vtičnik (košarica, cene, naročila)
-│   └── printforge-configurator/  ← Vtičnik za prikaz konfiguratorja (gumb + modal + iframe)
+│   ├── printforge/               ← WooCommerce vtičnik (košarica, cene, naročila, opcije)
+│   └── printforge-configurator/  ← Vtičnik za prikaz dizajnerja
 ├── docker/
 │   ├── printforge/               ← Docker Compose za PrintForge storitve
 │   └── wordpress/                ← Docker Compose za WordPress
@@ -392,7 +394,7 @@ printforge/
 
 Prednosti monorepo pristopa:
 - Deljene spremembe (npr. tipi v `@printforge/ui`) so takoj vidne vsem aplikacijam brez objavljanja paketa
-- En sam `npm ci` namesti vse odvisnosti hkrati
+- En sam `npm i` namesti vse odvisnosti hkrati
 - CI/CD pipeline gradi in testira vse v enem koraku
 
 ### 4.3 Komponente
@@ -403,13 +405,13 @@ Prednosti monorepo pristopa:
 
 **Konfigurator SPA** je React aplikacija za stranke, dostopna na `/pf/`. Vgradi se kot iframe v produktno stran e-commerce platforme ter komunicira z backendom za podatke o produktu in s starševsko stranjo prek `postMessage`.
 
-**PostgreSQL** hrani vse PrintForge podatke: uporabnike, produkte, konfiguracijske možnosti, cenilni stroj in nastavitve integracije.
+**PostgreSQL** hrani vse PrintForge podatke: uporabnika, produkte, konfiguracijske možnosti, cenilni stroj in nastavitve integracije.
 
-**S3** (objektno shranjevanje) bo uporabljen za shranjevanje datotek dizajna, ki jih stranke naložijo med dizajniranjem produkta.
+**S3** (objektno shranjevanje) je implementiran za shranjevanje datotek dizajna. Stranke naložijo grafike med dizajniranjem. Te se začasno shranijo pod ključ `temp/{sessionId}/`. Ko stranka zaključi naročilo, vtičnik kliče backend, ki datoteke premesti v `orders/{orderId}/`. Backend komunicira s katerokoli S3-kompatibilno storitvijo prek AWS SDK.
 
-**WooCommerce vtičnik `printforge`** skrbi za celotno integracijo s košarico WooCommerce: zapiše konfiguracijo in ceno v metapodatke artikla, posodobi ceno v košarici in prenese podatke na naročilo.
+**WooCommerce vtičnik `printforge`** skrbi za celotno integracijo s košarico WooCommerce in izbiro med možnostmi: zapiše konfiguracijo in ceno v metapodatke artikla, posodobi ceno v košarici in prenese podatke na naročilo.
 
-**WooCommerce vtičnik `printforge-configurator`** vstavi gumb na produktno stran WooCommerce, ki ob kliku odpre modalni dialog z iframe-om konfiguratorja (pot `/pf/configurator/{productId}`). Vtičnik podpira tako klasičen WooCommerce prikaz produkta kot blok-based prikaz.
+**WooCommerce vtičnik `printforge-configurator`** vstavi gumb na produktno stran WooCommerce, ki ob kliku odpre modalni dialog z iframe-om dizajnerja (pot `/pf/configurator/{productId}`). Vtičnik podpira tako klasičen WooCommerce prikaz produkta kot blok-based prikaz.
 
 ### 4.4 Komunikacijski tok
 
@@ -424,9 +426,9 @@ sequenceDiagram
 
     Stranka->>WC: Odpre produktno stran
     WC->>Plugin: Renderira stran
-    Plugin->>Stranka: Vstavi gumb za odprtje konfiguratorja
+    Plugin->>Stranka: Vstavi gumbe za izbiro opcij in gumb za odprtje dizajnerja
 
-    Stranka->>Plugin: Klikne gumb
+    Stranka->>Plugin: Izbere opcije in klikne gumb
     Plugin->>Stranka: Odpre modalni dialog z iframe-om (/pf/configurator/:id)
 
     Iframe->>Backend: GET /api/products/:id/config
@@ -454,7 +456,7 @@ sequenceDiagram
 | **Baza** | PostgreSQL 17 | Trajno shranjevanje podatkov |
 | **Validacija** | Zod + fastify-type-provider-zod | Validacija API zahtevkov, odgovorov in env spremenljivk |
 | **Avtentikacija** | JWT prek @fastify/jwt | Dvojni žetoni: access (kratkotrajen) + refresh (dolgotrajen) |
-| **Frontend (Admin)** | React 19, Vite 6, TailwindCSS 4, shadcn/ui | Administratorski vmesnik |
+| **Frontend (Admin)** | React 19, Vite 6, TailwindCSS 4, shadcn/ui, fabric.js | Administratorski vmesnik |
 | **Frontend (Konfigurator)** | React 19, Vite 6, fabric.js | Konfiguratorski + dizajnerski iframe |
 | **Deljeni paket** | @printforge/ui | Skupne komponente med aplikacijama |
 | **Proxy (lokalno)** | Caddy 2 | Usmerjanje prometa po poteh med razvojem |
@@ -470,17 +472,17 @@ sequenceDiagram
 
 Podatkovni model je definiran s **Prisma 6** ORM v datoteki `backend/prisma/schema.prisma` in se hrani v PostgreSQL 17. Model je razdeljen v tri logične sklope:
 
-- **Avtentikacija** — uporabniški računi (`User`)
-- **Integracija in produkti** — WooCommerce povezava, sinhronizirani produkti in tiskovna območja
-- **Knjižnica cenovnih postavk in konfiguracija produktov** — skupne cenovne postavke, ki se nato dodelijo posameznim produktom prek konfiguracijskih zabojnikov
+- **Avtentikacija** - uporabniški računi (`User`)
+- **Integracija in produkti** - WooCommerce povezava, sinhronizirani produkti in tiskovna območja
+- **Knjižnica cenovnih postavk in konfiguracija produktov** - skupne cenovne postavke, ki se nato dodelijo posameznim produktom prek konfiguracijskih zabojnikov
 
 ### 5.2 ER diagram
 
-Za konceptualni prikaz podatkovnega modela si oglejte tudi obstoječe diagrame v repozitoriju:
-- [`docs/backend/pricing/er-diagram.png`](docs/backend/pricing/er-diagram.png) — abstrakten pregled cenovnega modela
-- [`docs/backend/pricing/er-diagram-concrete.png`](docs/backend/pricing/er-diagram-concrete.png) — konkreten prikaz z zabojniki
+Za prvotno verzijo podatkovnega modela si oglejte tudi obstoječe diagrame v repozitoriju:
+- [`docs/backend/pricing/er-diagram.png`](docs/backend/pricing/er-diagram.png) - abstrakten pregled cenovnega modela
+- [`docs/backend/pricing/er-diagram-concrete.png`](docs/backend/pricing/er-diagram-concrete.png) - konkreten prikaz z zabojniki
 
-Spodnji diagram prikazuje celoten dejanski podatkovni model po Prisma shemi:
+Spodnji diagram prikazuje celoten trenutni podatkovni model:
 
 ```mermaid
 erDiagram
@@ -575,35 +577,35 @@ erDiagram
 ### 5.3 Opis entitet
 
 #### `User`
-Račun lastnika tiskarne. Vsak uporabnik ima svoje poverilnice za prijavo v Admin SPA. Polje `tenantName` označuje ime podjetja oz. tiskarne.
+Račun lastnika tiskarne. Polje `tenantName` označuje ime podjetja oz. tiskarne.
 
 #### `IntegrationConnection`
-Predstavlja eno povezavo z e-commerce platformo (npr. WooCommerce). Hrani URL trgovine, metodo avtentikacije in opcijsko `consumerKey`/`consumerSecret` za WooCommerce REST API. En primerek PrintForge ima lahko več integracij.
+Predstavlja eno povezavo z e-commerce platformo (npr. WooCommerce). Hrani URL trgovine in metodo avtentikacije. Iz trgovine se pridobijo produkti, za katere lastnik tiskarne definira možnosti in dizajn.
 
 Polje `authMethod` je enum z vrednostma:
-- `public_store_api` — branje brez ključev (javni API)
-- `consumer_keys` — avtentikacija s ključema potrošnika
+- `public_store_api` - branje brez ključev (javni API)
+- `consumer_keys` - avtentikacija s ključema potrošnika (`consumerKey`/`consumerSecret` za WooCommerce REST API)
 
 #### `Product`
 Produkt, sinhroniziran iz e-commerce platforme. Hrani osnovna polja, ki pridejo iz WooCommerce (`wooProductId`, `name`, `sku`, `basePrice`, `category`), ter opcijsko dimenziji (`width`, `height`). Edinstvena kombinacija `connectionId + wooProductId` prepreči podvojene vnose.
 
 #### `ProductPrintAreaConfig`
-Konfiguracija tiskovnih območij za posamezen produkt — razmerje 1:1 s `Product`. Polje `views` je JSON, ki opisuje vse poglede produkta in tiskovna območja znotraj vsakega pogleda (koordinate, dimenzije, omejitve).
+Konfiguracija tiskovnih območij za posamezen produkt - razmerje 1:1 s `Product`. Polje `views` je JSON, ki opisuje vse poglede produkta in tiskovna območja znotraj vsakega pogleda (koordinate, dimenzije, omejitve).
 
 #### `OptionsGroup`
-Organizacijska skupina v knjižnici cenovnih postavk (npr. "Papirji", "Laminacije"). Nima poslovne logike — služi samo za preglednost v administratorskem vmesniku.
+Organizacijska skupina v knjižnici cenovnih postavk (npr. "Papirji", "Laminacije").
 
 #### `OptionItem`
-Billable korak v produkcijskem procesu — osnovna enota cenilnega stroja. Vsaka postavka ima:
-- `priceUnit` — cena na enoto izračuna
-- `calculationBasis` — kako se enota izračuna (podrobno razloženo v razdelku 6)
-- `lengthMm` / `widthMm` — dimenzije procesa (npr. velikost tiskarskega pola)
-- `slug` — enolični identifikator za programsko referenciranje
+Osnovna enota cenilnega stroja ("billable" korak v produkcijskem procesu). Vsaka postavka ima:
+- `priceUnit` - cena na enoto izračuna
+- `calculationBasis` - kako se enota izračuna (podrobno razloženo v razdelku 6)
+- `lengthMm` / `widthMm` - dimenzije procesa (npr. velikost tiskarskega pola)
+- `slug` - enolični identifikator za programsko referenciranje
 
-Postavke so **globalna knjižnica** — definirane enkrat, nato dodeljene različnim produktom prek `OptionsContainer`.
+Postavke so **globalna knjižnica**: definirane enkrat, nato dodeljene različnim produktom prek `OptionsContainer`.
 
 #### `OptionsContainer`
-Konfiguracijski zabojnik na produktu — na primer "Vrsta papirja", "Laminacija", "Rezanje". Vsak zabojnik pripada enemu produktu in vsebuje seznam `OptionItem` postavk, med katerimi stranka izbira.
+Konfiguracijski zabojnik na produktu: na primer "Vrsta papirja", "Laminacija", "Rezanje". Vsak zabojnik pripada enemu produktu in vsebuje seznam `OptionItem` postavk, med katerimi stranka izbira.
 
 Polje `containerType` določa vedenje:
 
@@ -611,12 +613,12 @@ Polje `containerType` določa vedenje:
 |---|---|
 | `SINGLE_SELECT` | Stranka izbere točno eno postavko |
 | `MULTI_SELECT` | Stranka lahko izbere več postavk |
-| `AUTO_APPLIED` | Postavka se doda avtomatsko (skrita pred stranko) |
+| `AUTO_APPLIED` | Postavka se doda avtomatsko |
 
 Zastavici `isHidden` in `isRequired` dodatno kontrolirata prikaz in obveznost v konfiguratorju.
 
 #### `ContainerOptionItem`
-Vezna tabela med `OptionsContainer` in `OptionItem`. Ker je vsaka dodelitev kontekstualna, lahko `ContainerOptionItem` preglasi `priceUnit` in `name` iz originalne `OptionItem` — kar pomeni, da ista postavka (npr. "Digitalni tisk") v različnih produktih nastopa z drugačno ceno ali imenom.
+Vezna tabela med `OptionsContainer` in `OptionItem`. Ker je vsaka dodelitev kontekstualna, lahko `ContainerOptionItem` preglasi `priceUnit` in `name` iz originalne `OptionItem` - kar pomeni, da ista postavka (npr. "Digitalni tisk") v različnih produktih nastopa z drugačno ceno ali imenom.
 
 ### 5.4 Enumi
 
@@ -625,9 +627,6 @@ Vezna tabela med `OptionsContainer` in `OptionItem`. Ker je vsaka dodelitev kont
 | `CalculationBasis` | `YIELD_PCS`, `LINEAR_M`, `SQM`, `PERIMETER`, `PCS`, `ORDER`, `FREE` | `OptionItem` |
 | `ContainerType` | `SINGLE_SELECT`, `MULTI_SELECT`, `AUTO_APPLIED` | `OptionsContainer` |
 | `WooAuthMethod` | `public_store_api`, `consumer_keys` | `IntegrationConnection` |
-| `ValidationSeverity` | `Critical`, `Warning`, `Info` | Rezervirano za prihodnje validacijske funkcionalnosti |
-| `OptionType` | `select`, `boolean`, `integer`, `decimal` | Rezervirano za prihodnje razširitve |
-| `PricingRuleType` | `flat_surcharge`, `percentage`, `quantity_discount` | Rezervirano za prihodnje cenovne pravile |
 
 ---
 
@@ -641,7 +640,7 @@ Backend je **Fastify 5** aplikacija v TypeScriptu, organizirana v module. Vstopn
 backend/
 ├── index.ts                    ← vstopna točka
 ├── src/
-│   ├── app.ts                  ← createApp() — registracija vtičnikov in modulov
+│   ├── app.ts                  ← createApp() - registracija vtičnikov in modulov
 │   ├── config/
 │   │   └── env.ts              ← validacija env spremenljivk z Zodom
 │   ├── middleware/
@@ -650,6 +649,7 @@ backend/
 │   ├── lib/
 │   │   ├── prisma.ts           ← singleton Prisma odjemalec
 │   │   ├── errors.ts           ← AppError, NotFoundError, ConflictError, ...
+│   │   ├── s3.ts               ← S3Client instanca in S3_BUCKET konstanta
 │   │   └── pricing/            ← cenilni stroj (čista knjižnica)
 │   │       ├── index.ts
 │   │       ├── engine.ts
@@ -660,14 +660,15 @@ backend/
 │       ├── auth/               ← registracija, prijava, osvežitev žetona
 │       ├── integration/        ← WooCommerce integracija in sinhronizacija
 │       ├── products/           ← produkti, tiskovna območja, zabojniki
-│       └── pricing/            ← cenovne skupine, postavke, izračun
+│       ├── pricing/            ← cenovne skupine, postavke, izračun
+│       └── storage/            ← nalaganje in dodeljevanje datotek dizajna (S3)
 ```
 
 Vsak modul je sestavljen iz štirih datotek:
-- `*.routes.ts` — registracija HTTP rut
-- `*.controller.ts` — HTTP sloj (razčlenitev zahtevka, klic service-a, oblikovanje odgovora)
-- `*.service.ts` — poslovna logika in dostop do baze
-- `*.schema.ts` — Zod sheme za validacijo zahtevkov in odgovorov
+- `*.routes.ts` - registracija HTTP rut
+- `*.controller.ts` - HTTP sloj (razčlenitev zahtevka, klic service-a, oblikovanje odgovora)
+- `*.service.ts` - poslovna logika in dostop do baze
+- `*.schema.ts` - Zod sheme za validacijo zahtevkov in odgovorov
 
 ### 6.2 Inicializacija aplikacije
 
@@ -691,9 +692,10 @@ flowchart TD
 
 | Metoda | Pot | Zaščita | Opis |
 |---|---|---|---|
-| `POST` | `/api/auth/register` | — | Registracija novega računa |
-| `POST` | `/api/auth/login` | — | Prijava, vrne access + refresh žeton |
-| `POST` | `/api/auth/refresh` | — | Izmenjava refresh žetona za nov access žeton |
+| `GET` | `/api/auth/firstTime` | - | Preveri, ali je sistem prvič vzpostavljen (brez registriranega uporabnika) |
+| `POST` | `/api/auth/register` | - | Registracija prvega in edinega računa (samo ob prvem zagonu) |
+| `POST` | `/api/auth/login` | - | Prijava, vrne access + refresh žeton |
+| `POST` | `/api/auth/refresh` | - | Izmenjava refresh žetona za nov access žeton |
 
 #### Integracija (`/api/integration`)
 
@@ -709,11 +711,11 @@ flowchart TD
 |---|---|---|---|
 | `GET` | `/api/products` | JWT | Seznam vseh produktov |
 | `PATCH` | `/api/products/:id` | JWT | Posodobi produkt |
-| `GET` | `/api/products/:id/config` | — | Javna konfiguracija produkta za konfigurator |
-| `GET` | `/api/products/:id/print-areas` | — | Tiskovna območja produkta |
+| `GET` | `/api/products/:id/config` | - | Javna konfiguracija produkta za konfigurator |
+| `GET` | `/api/products/:id/print-areas` | - | Tiskovna območja produkta |
 | `PUT` | `/api/products/:id/print-areas` | JWT | Shrani tiskovna območja |
-| `GET` | `/api/products/woo/:wooProductId/config` | — | Javna konfiguracija po WooCommerce ID |
-| `GET` | `/api/products/woo/:wooProductId/print-areas` | — | Tiskovna območja po WooCommerce ID |
+| `GET` | `/api/products/woo/:wooProductId/config` | - | Javna konfiguracija po WooCommerce ID |
+| `GET` | `/api/products/woo/:wooProductId/print-areas` | - | Tiskovna območja po WooCommerce ID |
 | `GET` | `/api/products/:id/containers` | JWT | Seznam zabojnikov produkta |
 | `POST` | `/api/products/:id/containers` | JWT | Ustvari nov zabojnik |
 | `GET` | `/api/products/:id/containers/:cid` | JWT | Pridobi en zabojnik |
@@ -740,9 +742,18 @@ flowchart TD
 | `GET` | `/api/pricing/items/:id` | JWT | Pridobi postavko |
 | `PUT` | `/api/pricing/items/:id` | JWT | Posodobi postavko |
 | `DELETE` | `/api/pricing/items/:id` | JWT | Izbriši postavko |
-| `POST` | `/api/pricing/calculate` | — | Izračunaj ceno (kliče konfigurator) |
+| `POST` | `/api/pricing/calculate` | - | Izračunaj ceno za izbrane postavke (kliče konfigurator) |
+| `POST` | `/api/pricing/quantity-table` | - | Generira tabelo cen za seznam količin (prikaže se v konfiguratorju) |
 
-### 6.4 Avtentikacija — dvojni JWT
+#### Shranjevanje datotek (`/api/storage`)
+
+| Metoda | Pot | Zaščita | Opis |
+|---|---|---|---|
+| `POST` | `/api/storage/temp/:sessionId` | - | Naloži datoteko dizajna v začasno mapo (`temp/{sessionId}/`) |
+| `POST` | `/api/storage/orders/:orderId/assign` | JWT | Prestavi datoteke iz začasnih map v mapo naročila (`orders/{orderId}/`) |
+| `GET` | `/api/storage/orders/:orderId/downloads` | JWT | Vrne presigned S3 download URL-je za vse dizajne naročila |
+
+### 6.4 Avtentikacija - dvojni JWT
 
 Backend uporablja **dvojni JWT namespace** prek `@fastify/jwt`:
 
@@ -763,15 +774,15 @@ sequenceDiagram
     Backend-->>Admin: Nov accessToken
 ```
 
-- **Access žeton** — kratkotrajen, posredovan v `Authorization: Bearer` glavi za vsak zaščiten API klic
-- **Refresh žeton** — dolgotrajen, posredovan ob osvežitvi za pridobitev novega access žetona
+- **Access žeton** - kratkotrajen, posredovan v `Authorization: Bearer` glavi za vsak zaščiten API klic
+- **Refresh žeton** - dolgotrajen, posredovan ob osvežitvi za pridobitev novega access žetona
 - Oba žetona sta podpisana z ločenima skrivnostma (`JWT_SECRET` in `JWT_REFRESH_SECRET`)
 
 Zaščitene rute imajo `preHandler: authenticate`, ki žeton preveri in zavrne z `401 Unauthorized` če ni veljaven.
 
 ### 6.5 Cenilni stroj (Pricing Engine)
 
-Cenilni stroj je **čista knjižnica** v `src/lib/pricing/` — brez odvisnosti od baze ali HTTP. Sprejme seznam `OptionItem` postavk in kontekst naročila ter vrne skupno ceno z razčlenitvijo po postavkah.
+Cenilni stroj je **čista knjižnica** v `src/lib/pricing/` - brez odvisnosti od baze ali HTTP. Sprejme seznam `OptionItem` postavk in kontekst naročila ter vrne skupno ceno z razčlenitvijo po postavkah.
 
 **Kontekst naročila:**
 ```typescript
@@ -807,7 +818,7 @@ Vsaka `OptionItem` postavka ima svojo **bazo izračuna**, ki določa procesor:
 | `ORDER` | Fiksna cena neodvisno od količine/dimenzij | Predpriprava, preflight |
 | `FREE` | Vedno 0 | Brezplačno vključene storitve |
 
-Primer — izračun za 500 vizitk (85×55 mm) na pol 720×500 mm:
+Primer - izračun za 500 vizitk (85×55 mm) na pol 720×500 mm:
 ```
 YIELD_PCS: floor(720/85) × floor(500/55) = 8 × 9 = 72 kosov/pol
            ali floor(720/55) × floor(500/85) = 13 × 5 = 65 kosov/pol
@@ -815,7 +826,7 @@ YIELD_PCS: floor(720/85) × floor(500/55) = 8 × 9 = 72 kosov/pol
            → ceil(500/72) = 7 polov × 0.80 €/pol = 5.60 €
 ```
 
-Arhitektura procesorjev je registrna — vsak procesor je funkcija tipa `(item, ctx) => number`, ki se poveže z bazo izračuna v `processors/index.ts`. Dodajanje nove baze pomeni samo napisati novo funkcijo in jo dodati v register.
+Arhitektura procesorjev je registrna - vsak procesor je funkcija tipa `(item, ctx) => number`, ki se poveže z bazo izračuna v `processors/index.ts`. Dodajanje nove baze pomeni samo napisati novo funkcijo in jo dodati v register.
 
 ### 6.6 Upravljanje napak
 
@@ -838,17 +849,17 @@ AppError (bazni razred)
 
 ---
 
-## 7. Frontend — Admin SPA
+## 7. Frontend - Admin SPA
 
 ### 7.1 Namen in tehnologije
 
 Admin SPA je React aplikacija za lastnika tiskarne, dostopna na `/pf-admin/`. Omogoča upravljanje produktov, konfiguracijo cenilnega stroja, nastavitev tiskovnih območij in upravljanje integracije z WooCommerce. Zgrajena je z:
 
-- **React 19** + **Vite 6** — aplikacijski okvir in razvojno okolje
-- **React Router DOM 7** — odjemalsko usmerjanje
-- **TailwindCSS 4** + **shadcn/ui** — stiliranje in UI komponente
-- **useReducer** — upravljanje stanja (brez Redux ali TanStack)
-- **@printforge/ui** — deljene komponente iz shared paketa
+- **React 19** + **Vite 6** - aplikacijski okvir in razvojno okolje
+- **React Router DOM 7** - odjemalsko usmerjanje
+- **TailwindCSS 4** + **shadcn/ui** - stiliranje in UI komponente
+- **useReducer** - upravljanje stanja (brez Redux ali TanStack)
+- **@printforge/ui** - deljene komponente iz shared paketa
 
 ### 7.2 Trislojna arhitektura
 
@@ -874,37 +885,13 @@ flowchart TD
     State -->|re-render| Page
 ```
 
-**Sloj 1 — API client (`src/lib/api/client.ts`):** Centralna funkcija `apiRequest<T>()` skrbi za vse HTTP klice. Samodejno doda `Authorization: Bearer` glavo, zazna `401 Unauthorized` odgovor in transparentno osveži access žeton prek refresh žetona — brez da bi to moral vedeti kateri koli drug del aplikacije.
+**Sloj 1 - API client (`src/lib/api/client.ts`):** Centralna funkcija `apiRequest<T>()` skrbi za vse HTTP klice. Samodejno doda `Authorization: Bearer` glavo, zazna `401 Unauthorized` odgovor in transparentno osveži access žeton prek refresh žetona - brez da bi to moral vedeti kateri koli drug del aplikacije.
 
-**Sloj 2 — Services (`src/lib/services/`):** Namespace objekti (ne razredi) grupirajo API klice po domenah. Vsaka funkcija kliče `apiRequest` in vrne čiste podatke. Services nimajo stranskih učinkov in ne vedo nič o stanju aplikacije.
+**Sloj 2 - Services (`src/lib/services/`):** Namespace objekti (ne razredi) grupirajo API klice po domenah. Vsaka funkcija kliče `apiRequest` in vrne čiste podatke. Services nimajo stranskih učinkov in ne vedo nič o stanju aplikacije.
 
-**Sloj 3 — Reducers (`src/lib/reducers/`):** Čiste funkcije `(state, action) → nextState`, ki upravljajo lokalno stanje strani. Vsak reducer ima pripadajoče `ActionCreators`, ki preprečijo napake pri pisanju akcij.
+**Sloj 3 - Reducers (`src/lib/reducers/`):** Čiste funkcije `(state, action) → nextState`, ki upravljajo lokalno stanje strani. Vsak reducer ima pripadajoče `ActionCreators`, ki preprečijo napake pri pisanju akcij.
 
-### 7.3 Rute in zaščita
-
-```mermaid
-flowchart TD
-    Root[BrowserRouter basename=/pf-admin/]
-
-    Root --> Login[/login - samo javno]
-    Root --> Register[/register - samo javno]
-    Root --> Protected[/ - zaščiteno]
-
-    Protected --> Dashboard[/ - nadzorna plošča]
-    Protected --> Products[/products - seznam produktov]
-    Protected --> ProductDetail[/products/:productId - urejevalnik produkta]
-    Protected --> Pricing[/pricing - cenilni stroj]
-    Protected --> Settings[/settings - nastavitve integracije]
-
-    Login -->|isAuthenticated| RedirectHome[Preusmeri na /]
-    Protected -->|ni isAuthenticated| RedirectLogin[Preusmeri na /login]
-```
-
-Rute so razdeljene v dve skupini:
-- **Javne rute** (`/login`, `/register`) — dostopne samo neprijavljenim. Prijavljeni so preusmerjeni na `/`
-- **Zaščitene rute** (`/`, `/products`, `/pricing`, `/settings`) — ovojene v `ProtectedLayout`, ki preveri `isAuthenticated` in preusmeri na `/login` če ni veljavne seje
-
-### 7.4 API client in JWT tok
+### 7.3 API client in JWT tok
 
 `apiRequest<T>()` v `src/lib/api/client.ts` avtomatsko obvladuje celoten JWT cikel:
 
@@ -933,9 +920,9 @@ sequenceDiagram
     end
 ```
 
-### 7.5 Service sloj
+### 7.4 Service sloj
 
-Services so **namespace objekti** — ne razredi, ne singleton instance. Vsak klic je čista funkcija brez stranskih učinkov:
+Services so **namespace objekti** - ne razredi, ne singleton instance. Vsak klic je čista funkcija brez stranskih učinkov:
 
 | Service | Namespace | Odgovornost |
 |---|---|---|
@@ -944,17 +931,18 @@ Services so **namespace objekti** — ne razredi, ne singleton instance. Vsak kl
 | `pricing.ts` | `Pricing` | Izračun cene |
 | `containers.ts` | `Containers` | CRUD za zabojnike in postavke v zabojnikih |
 | `products.ts` | `Products` | Seznam produktov, dimenzije, tiskovna območja |
+| `orders.ts` | `Orders` | Pridobivanje naročil in download URL-jev za dizajne |
 
 Primer uporabe v komponenti:
 ```typescript
-// Klic service-a — ne ve nič o stanju
+// Klic service-a - ne ve nič o stanju
 const group = await Groups.create(name)
 
 // Posodobitev stanja prek reducerja
 dispatch(PricingActions.GROUP_CREATED(group))
 ```
 
-### 7.6 Upravljanje stanja — Reducer vzorec
+### 7.5 Upravljanje stanja - Reducer vzorec
 
 Stanje se upravlja z `useReducer` in tipiziranimi **ActionCreators**, ki preprečijo napake pri pisanju imen akcij:
 
@@ -965,7 +953,7 @@ const [state, dispatch] = useReducer(pricingReducer, initialPricingState)
 // Po uspešnem API klicu
 dispatch(PricingActions.ITEM_UPDATED(updatedItem))
 
-// Reducer (čista funkcija — ne pozna API-ja)
+// Reducer (čista funkcija - ne pozna API-ja)
 case 'ITEM_UPDATED':
   return {
     ...state,
@@ -981,22 +969,28 @@ Obstoječi reducerji:
 | `reducers/containers.ts` | `ContainersState` | Upravljanje zabojnikov in njihovih postavk |
 
 Prednosti tega vzorca:
-- Stanje je lokalno pri strani, ki ga potrebuje — ni globalnega store-a
+- Stanje je lokalno pri strani, ki ga potrebuje - ni globalnega store-a
 - Reducer je čista funkcija, enostavna za testiranje
 - `ActionCreators` dajejo avtodopolnjevanje in preprečijo napake pri pisanju
 
+### 7.6 Stran naročil
+
+`OrdersPage` na poti `/orders` prikazuje seznam WooCommerce naročil, ki vsebujejo PrintForge dizajne. Za vsako naročilo so vidni osnovni podatki (ID naročila, produkt, datum, status) in gumb **Prenesi dizajne**.
+
+Ob kliku na gumb Admin SPA pokliče `GET /api/storage/orders/:orderId/downloads`, ki vrne seznam presigned S3 URL-jev za vse PNG datoteke dizajnov tega naročila. Brskalnik nato vsako datoteko prenese neposredno iz S3 - backend pri tem ne pretaka podatkov, ampak le posreduje kratkotrajen podpisan URL.
+
 ---
 
-## 8. Frontend — Konfigurator
+## 8. Frontend - Konfigurator
 
 ### 8.1 Namen in tehnologije
 
 Konfigurator SPA je React aplikacija za stranke, dostopna na `/pf/`. Vgradi se kot iframe v produktno stran e-commerce platforme in stranki ponudi vmesnik za konfiguracijo in dizajniranje produkta. Zgrajena je z:
 
 - **React 19** + **Vite 6**
-- **fabric.js 6** — canvas knjižnica za dizajnerski vmesnik
-- **@printforge/ui** — deljene komponente
-- **Lasten router** na osnovi `window.location` (brez BrowserRouter — iframe ne sme upravljati zgodovine brskalnika)
+- **fabric.js 6** - canvas knjižnica za dizajnerski vmesnik
+- **@printforge/ui** - deljene komponente
+- **Lasten router** na osnovi `window.location` (brez BrowserRouter - iframe ne sme upravljati zgodovine brskalnika)
 
 ### 8.2 Struktura
 
@@ -1035,7 +1029,7 @@ flowchart TD
     URL -->|vse ostalo| NotFound[NotFoundRoute]
 ```
 
-Ob obisku `/pf` se URL samodejno preusmeri na `/pf/configurator` z `replaceState` — brez dodajanja vnosa v zgodovino.
+Ob obisku `/pf` se URL samodejno preusmeri na `/pf/configurator` z `replaceState` - brez dodajanja vnosa v zgodovino.
 
 ### 8.4 Komunikacija z nadrejeno stranjo (postMessage)
 
@@ -1043,44 +1037,92 @@ Ker konfigurator teče v iframe-u, ne more direktno dostopati do DOM elementa na
 
 Definirana sporočila:
 
-| Tip sporočila | Smer | Vsebina | Namen |
-|---|---|---|---|
-| `printforge:options:resize` | iframe → starš | `{ height }` | Obvesti starša o novi višini iframe-a |
-| `printforge:designer:change` | iframe → starš | `{ productId, wooProductId, design }` | Pošlje aktualno stanje dizajna |
+**Sporočila iz iframe-a na nadrejeno stran:**
+
+| Tip sporočila | Vsebina | Namen |
+|---|---|---|
+| `printforge:options:resize` | `{ height }` | Obvesti starša o novi višini (auto-resize iframe-a) |
+| `printforge:options:change` | `{ productId, wooProductId, selectedItemIds, context, price }` | Pošlje izbrane možnosti in ceno (shranjeno v skrito polje `printforge_configuration`) |
+| `printforge:quantity:set` | `{ quantity }` | Obvesti starša o spremembi količine iz konfiguratorja |
+| `printforge:designer:change` | `{ productId, wooProductId, design }` | Pošlje aktualno stanje dizajna (JSON, shranjeno v `printforge_designer_configuration`) |
+
+**Sporočila iz nadrejene strani v iframe:**
+
+| Tip sporočila | Vsebina | Namen |
+|---|---|---|
+| `printforge:quantity:change` | `{ quantity }` | Obvesti opcijski iframe o spremembi quantity inputa na WooCommerce strani |
+| Preview request | - | `printforge-configurator` JS zahteva od dizajnerskega iframe-a izvoz PNG preview-jev ob oddaji košarice |
 
 Konfigurator sproti sporoča višino svojega vsebnika nadrejeni strani, ki nato prilagodi višino iframe elementa. To zagotavlja, da se iframe nikoli ne prikaže z drsnim trakom.
 
 ### 8.5 Konfigurator možnosti
 
-`OptionsPage` naloži konfiguracijo produkta iz backenda (`GET /api/products/woo/:id/config`), prikaže konfiguracijske zabojnike z možnostmi in ob vsaki spremembi sproži izračun cene. Cena se prikaže v `PricePanel` komponenti in se prek `postMessage` pošlje na nadrejeno stran.
+`OptionsPage` naloži konfiguracijo produkta iz backenda (`GET /api/products/woo/:id/config`), prikaže konfiguracijske zabojnike z možnostmi in ob vsaki spremembi sproži izračun cene v realnem času.
+
+**Dimenzije:** Odvisno od konfiguracije produkta podpira dva načina:
+- `fixed` - dimenzije so vnaprej določene in nespremenljive (npr. standardni format)
+- `custom` - stranka vnese lastne dimenzije v polji širina/višina
+
+**Tabela cen po količinah:** Poleg trenutne cene `OptionsPage` samodejno generira tabelo cen za 7 vnaprej določenih količin (`[10, 25, 50, 100, 200, 400, 600]`). Klic `POST /api/pricing/quantity-table` vrne ceno opcij za vsako količino. Komponenta `QuantityPriceTable` prikaže stolpce: Količina | Cena/kos | Cena paketa.
+
+**Sinhronizacija s starševsko stranjo:** Ob vsaki spremembi (izbira možnosti, dimenzije, količina) se pošlje `printforge:options:change` z naslednjo vsebino:
+```
+{ productId, wooProductId, selectedItemIds[], context: { widthMm, heightMm, quantity }, price }
+```
 
 ### 8.6 Dizajnerski vmesnik
 
-`UserDesignerPage` je celovit vizualni urejevalnik zgrajen na **fabric.js** canvasu. Stranki omogoča:
-- Dodajanje in urejanje besedila (pisava, barva, velikost, poravnava)
-- Nalaganje lastnih grafik
-- Premikanje, skaliranje in rotiranje elementov
-- Vse znotraj vnaprej definiranih **tiskovnih območij** (*print areas*), ki jih je lastnik tiskarne določil v Admin SPA
+`UserDesignerPage` je celovit vizualni urejevalnik za stranke, zgrajen na **fabric.js** canvasu.
 
-Tiskovna območja so pridobljena iz backenda (`GET /api/products/woo/:id/print-areas`) in se na canvasu prikažejo kot vizualne meje, ki jih stranka ne more prekoračiti. Ko stranka zaključi dizajniranje, se stanje dizajna (serializirano fabric.js stanje) prek `postMessage` pošlje na nadrejeno stran.
+**Session ID:** WordPress vtičnik ob prikazu produktne strani generira enolični UUID (`wp_generate_uuid4()`) in ga poda dizajnerskemu iframe-u kot URL parameter `?sessionId={uuid}`. Konfigurator ga prebere ob inicializaciji iz `window.location.search`. ID je validiran z UUID regex vzorcem - neveljavni IDji se ignorirajo. Session ID je kritičen za shranjevanje preview datotek ob oddaji košarice.
+
+**Upravljanje pogledov in canvasa:** Produkt ima lahko več tiskovnih površin (npr. sprednja/zadnja stran), vsaka je ločen "pogled" (`DesignerView`). Za vsak pogled se ustvari ločena Fabric canvas instanca, ki je vezana na lasten DOM element. Ob preklopu med pogledi se canvas prejšnjega pogleda samo skrije (`display: none`), novi pa pokaže - canvas stanje je vedno v pomnilniku in se ne uniči ob preklopu. To zagotavlja, da stranka ne izgubi dela ob navigaciji med pogledi.
+
+**Lokalna persistenca:** Celotno stanje dizajna se ob vsaki spremembi shrani v `localStorage` s ključem `printforge:designer:session:{sessionId}`. Ob ponovnem obisku (npr. po osvežitvi strani) se seja samodejno obnovi.
+
+**Tipi elementov (`UserDesignElement`):**
+```typescript
+{
+  id: string           // element-{timestamp}-{random}
+  kind: 'text' | 'image'
+  x, y, width, height: number   // pozicija in velikost v mm
+  rotation: number
+  // Besedilni elementi:
+  text, fontSize, fill, fontFamily, fontWeight, fontStyle,
+  textAlign, charSpacing, lineHeight, underline, linethrough
+  // Slikovni elementi:
+  src: string          // data URL naložene slike
+}
+```
+
+**Tiskovna območja** so pridobljena iz backenda (`GET /api/products/woo/:id/print-areas`) in se na canvasu prikažejo kot vizualne meje. Elementi se ob premikanju samodejno omejijo na dovoljeno območje - stranka ne more postavljati elementov izven tiskovnega območja. Ob vsaki spremembi dizajna se pošlje `printforge:designer:change` sporočilo nadrejeni strani z aktualnim JSON stanjem.
 
 ```mermaid
 sequenceDiagram
     actor Stranka
-    participant Designer as UserDesignerPage
+    participant WP as WordPress vtičnik
+    participant Designer as UserDesignerPage /pf/configurator/:id
     participant Backend
-    participant Parent as WooCommerce stran
+    participant Storage as S3
 
+    WP->>Designer: Odpre iframe z ?sessionId={uuid}
     Designer->>Backend: GET /api/products/woo/:id/print-areas
-    Backend-->>Designer: Tiskovna območja (koordinate, dimenzije)
-    Designer->>Designer: Inicializacija fabric.js canvasa s tiskovnimi območji
+    Backend-->>Designer: Tiskovna območja (koordinate, dimenzije, pogledi)
+    Designer->>Designer: Inicializacija Fabric canvasa za vsak pogled
 
     Stranka->>Designer: Doda besedilo / grafiko
     Designer->>Designer: Omeji elemente na tiskovna območja
-    Designer->>Parent: postMessage printforge:designer:change + design JSON
+    Designer->>WP: postMessage printforge:designer:change + design JSON
+    Designer->>Designer: Shrani stanje v localStorage
 
-    Stranka->>Designer: Zaključi dizajniranje
-    Designer->>Parent: postMessage printforge:designer:change + končni design JSON
+    Stranka->>WP: Klikne Dodaj v košarico
+    WP->>Designer: Zahteva PNG preview za vsak pogled
+    Designer->>Designer: canvas.toDataURL('image/png') za vsak pogled
+    Designer-->>WP: PNG data URL-ji za vse poglede
+    WP->>Backend: POST /api/storage/temp/{sessionId} (multipart PNG)
+    Backend->>Storage: PutObjectCommand → temp/{sessionId}/{view}.png
+    WP->>WP: Doda printforge_session_id v obrazec
+    WP->>WP: Odda obrazec za dodajanje v košarico
 ```
 
 ---
@@ -1093,10 +1135,10 @@ Integracija z WooCommerce je razdeljena med dva ločena WordPress vtičnika in J
 
 | Komponenta | Datoteka | Odgovornost |
 |---|---|---|
-| `printforge` vtičnik | `plugins/printforge/` | Vstavi opcijski iframe, prevzame košarico, preveri ceno na strežniku, shrani naročilo |
-| `printforge-configurator` vtičnik | `plugins/printforge-configurator/` | Vstavi gumb in modalni dialog z dizajnerskim iframe-om |
+| `printforge` vtičnik | `plugins/printforge/` | Vstavi opcijski iframe, prevzame košarico, preveri ceno na strežniku, shrani naročilo, gumb za prenos dizajnov |
+| `printforge-configurator` vtičnik | `plugins/printforge-configurator/` | Vstavi gumb in modalni dialog z dizajnerskim iframe-om, generira `sessionId`, intercept oddaje košarice in naloži preview v S3 |
 | `frontend.js` (printforge) | `plugins/printforge/assets/js/` | Posluša postMessage sporočila, sinhronizira količino, shranjuje konfiguracijo v skrita polja obrazca |
-| `frontend.js` (configurator) | `plugins/printforge-configurator/assets/js/` | Odpira/zapira modalni dialog, posreduje sporočila med opcijskim in dizajnerskim iframe-om |
+| `frontend.js` (configurator) | `plugins/printforge-configurator/assets/js/` | Odpira/zapira modalni dialog, intercept `form.cart`, zahteva PNG preview od dizajnerja, naloži v S3, nastavi `printforge_session_id` |
 
 ### 9.2 Vtičnika in WordPress kljuke
 
@@ -1128,41 +1170,54 @@ Integracija z WooCommerce je razdeljena med dva ločena WordPress vtičnika in J
 sequenceDiagram
     actor Stranka
     participant WP as WordPress / WooCommerce
-    participant JS as frontend.js
-    participant OptionsIframe as Opcijski iframe /pf/options
-    participant DesignerIframe as Dizajnerski iframe /pf/configurator
+    participant OptJS as frontend.js (printforge)
+    participant CfgJS as frontend.js (configurator)
+    participant OptionsIframe as /pf/options/:id
+    participant DesignerIframe as /pf/configurator/:id?sessionId
     participant Backend as Fastify Backend
+    participant S3
 
-    WP->>Stranka: Renderira produktno stran
-    WP->>Stranka: Vstavi opcijski iframe (printforge vtičnik)
-    WP->>Stranka: Vstavi gumb za dizajner (printforge-configurator vtičnik)
+    WP->>Stranka: Renderira produktno stran (generira sessionId)
+    WP->>Stranka: Vstavi opcijski iframe
+    WP->>Stranka: Vstavi gumb za dizajner (iframe z data-src)
 
     OptionsIframe->>Backend: GET /api/products/woo/:id/config
-    Backend-->>OptionsIframe: Konfiguracijske možnosti
+    Backend-->>OptionsIframe: Konfiguracijske možnosti + dimenzije
 
-    Stranka->>OptionsIframe: Izbere opcije
-    OptionsIframe->>JS: postMessage printforge:options:change + konfiguracija
-    JS->>WP: Shrani v skrito polje printforge_configuration
-
-    OptionsIframe->>JS: postMessage printforge:options:resize + višina
-    JS->>WP: Nastavi višino iframe-a
+    Stranka->>OptionsIframe: Izbere opcije, nastavi dimenzije
+    OptionsIframe->>Backend: POST /api/pricing/calculate
+    Backend-->>OptionsIframe: Izračunana cena + razčlenitev
+    OptionsIframe->>OptJS: postMessage printforge:options:change
+    OptJS->>WP: Shrani v skrito polje printforge_configuration
+    OptionsIframe->>OptJS: postMessage printforge:options:resize
+    OptJS->>WP: Nastavi višino iframe-a
 
     Stranka->>WP: Klikne gumb za dizajner
-    JS->>DesignerIframe: Odpre modalni dialog
+    CfgJS->>DesignerIframe: Naloži iframe src (lazy load)
     DesignerIframe->>Backend: GET /api/products/woo/:id/print-areas
-    Backend-->>DesignerIframe: Tiskovna območja
-    Stranka->>DesignerIframe: Ureja dizajn
-    DesignerIframe->>JS: postMessage printforge:designer:change + design JSON
-    JS->>WP: Shrani v skrito polje printforge_designer_configuration
+    Backend-->>DesignerIframe: Tiskovna območja po pogledih
+    Stranka->>DesignerIframe: Ureja dizajn (besedilo, grafike)
+    DesignerIframe->>OptJS: postMessage printforge:designer:change
+    OptJS->>WP: Shrani v skrito polje printforge_designer_configuration
 
     Stranka->>WP: Klikne Dodaj v košarico
-    WP->>Backend: GET /api/products/woo/:id/config (validacija)
-    WP->>Backend: POST /api/pricing/calculate (strežniška verifikacija cene)
-    Backend-->>WP: Verificirana konfiguracija + cena
-    WP->>WP: Shrani v košarico z metapodatki
-    WP-->>Stranka: Artikel v košarici s konfiguracijo in ceno
+    CfgJS->>CfgJS: Intercept form.cart submit
+    CfgJS->>DesignerIframe: Zahteva PNG preview vseh pogledov
+    DesignerIframe->>DesignerIframe: canvas.toDataURL za vsak pogled
+    DesignerIframe-->>CfgJS: PNG data URL-ji
+    CfgJS->>Backend: POST /api/storage/temp/{sessionId} (PNG, multipart)
+    Backend->>S3: PutObjectCommand → temp/{sessionId}/*.png
+    CfgJS->>WP: Nastavi skrito polje printforge_session_id
+    CfgJS->>WP: Odda obrazec
 
-    Stranka->>WP: Zaključi naročilo
+    WP->>Backend: POST /api/pricing/calculate (strežniška verifikacija cene)
+    Backend-->>WP: Verificirana cena
+    WP->>WP: Shrani v košarico z metapodatki
+
+    Stranka->>WP: Zaključi naročilo (checkout)
+    WP->>Backend: POST /api/storage/orders/{orderId}/assign
+    Backend->>S3: CopyObjectCommand temp/{sessionId}/ → orders/{orderId}/
+    Backend->>S3: DeleteObjectCommand temp/{sessionId}/
     WP->>WP: Shrani _printforge_configuration + _printforge_pricing v naročilo
 ```
 
@@ -1175,7 +1230,7 @@ Ključna varnostna lastnost integracije je, da se **cena vedno verificira strež
 3. Validira dimenzije in količino (pozitivne vrednosti)
 4. Izračuna ceno neodvisno od tega, kar je brskalnik prikazal
 
-To preprečuje manipulacijo cene na strani odjemalca — stranka ne more spremeniti cene z urejanjem JavaScript kode ali omrežnih zahtevkov.
+To preprečuje manipulacijo cene na strani odjemalca - stranka ne more spremeniti cene z urejanjem JavaScript kode ali omrežnih zahtevkov.
 
 ### 9.5 Sinhronizacija količine
 
@@ -1195,51 +1250,110 @@ Ko stranka zaključi nakup, se v vsako vrstico naročila shranijo:
 |---|---|---|
 | `_printforge_configuration` | Zasebno | Polna konfiguracija v JSON (productId, selectedItemIds, context, dimenzije) |
 | `_printforge_pricing` | Zasebno | Polni cenovni razčlenitveni prikaz v JSON |
+| `_printforge_session_id` | Zasebno | UUID seje dizajnerja - ključ za lociranje datotek v S3 (`orders/{orderId}/`) |
 | `Dimensions` | Javno | Človeško berljive dimenzije (npr. "85 × 55 mm, 500 kos") |
 | `[Ime zabojnika]` | Javno | Izbrana opcija za vsak zabojnik (npr. "Vrsta papirja: Premazni 135g") |
 
 ---
 
-## 10. Varnost
+## 10. Dizajni naročil
 
-### 10.1 Avtentikacija in zaščita API-ja
+### 10.1 Življenjski cikel dizajn datoteke
+
+Vsak dizajn stranke gre skozi natančno določen cikel od začasne shrambe do trajne vezave na naročilo:
+
+```mermaid
+flowchart LR
+    A[WordPress generira sessionId] --> B[Stranka dizajnira v iframe-u]
+    B --> C[Klik Dodaj v košarico]
+    C --> D[PNG preview naložen v S3\ntemp/sessionId/*.png]
+    D --> E[Checkout zaključen\norderId znan]
+    E --> F[Assign endpoint\ntemp/sessionId/ → orders/orderId/]
+    F --> G[Dizajn trajno shranjen\npod orders/orderId/]
+```
+
+**1. Začasna shramba (`temp/`):** Ko stranka klikne Dodaj v košarico, `printforge-configurator` JavaScript intercepta oddajo obrazca. Zahteva PNG izvoz od dizajnerskega iframe-a (vsak pogled osobej), prejete PNG data URL-je pretvori v blob in jih naloži prek `POST /api/storage/temp/{sessionId}`. Vsaka datoteka se shrani pod ključ `temp/{sessionId}/{viewName}.png`. Če nalaganje ne uspe, se obrazec vseeno odda (napaka ni kritična za nakup).
+
+**2. Vezava na naročilo:** Ko WooCommerce ustvari naročilo in pridobi `orderId`, vtičnik pokliče `POST /api/storage/orders/{orderId}/assign` s seznamom `sessionIds` iz metapodatkov košarice. Backend:
+- Izpiše vse objekte pod `temp/{sessionId}/` s `ListObjectsV2Command`
+- Kopira vsak objekt v `orders/{orderId}/` s `CopyObjectCommand`
+- Izbriše originale iz `temp/` z `DeleteObjectCommand`
+- Vrne `{ movedCount, keys[] }`
+
+**3. Trajna shramba (`orders/`):** Datoteke so shranjene pod ključem `orders/{orderId}/{viewName}.png` za nedoločen čas. Poleg tega se `sessionId` zapiše v metapodatke naročila (`_printforge_session_id`), kar omogoča naknadno lociranje datotek.
+
+### 10.2 Prenos dizajnov iz Admin SPA
+
+Stran `/orders` v Admin SPA prikazuje vsa WooCommerce naročila, ki vsebujejo PrintForge konfiguracijo. Za vsako naročilo je na voljo gumb **Prenesi dizajne**:
+
+```mermaid
+sequenceDiagram
+    participant Admin
+    participant AdminSPA as Admin SPA /orders
+    participant Backend
+    participant S3
+
+    AdminSPA->>Backend: GET /api/storage/orders/{orderId}/downloads
+    Backend->>S3: ListObjectsV2Command → orders/{orderId}/*
+    S3-->>Backend: Seznam objektov
+    Backend->>S3: GetPresignedUrl za vsak objekt (kratkotrajen)
+    S3-->>Backend: Podpisani URL-ji
+    Backend-->>AdminSPA: [ { key, url }[] ]
+    AdminSPA->>S3: Neposreden prenos vsake datoteke
+    S3-->>Admin: PNG datoteke dizajnov
+```
+
+Backend endpoint `GET /api/storage/orders/:orderId/downloads` vrne seznam objektov z njihovimi presigned URL-ji - brskalnik prenese vsako datoteko neposredno iz S3, backend ne pretaka podatkov.
+
+### 10.3 Prenos dizajnov iz WooCommerce admin
+
+`printforge` vtičnik doda gumb **Prenesi dizajne** neposredno v WooCommerce admin pogled naročila. Ob kliku gumb pošlje zahtevek na PrintForge backend z `orderId`, backend vrne seznam download URL-jev, vtičnik pa za vsako datoteko sproži prenos v brskalniku.
+
+---
+
+## 11. Varnost
+
+### 11.1 Avtentikacija in zaščita API-ja
 
 Vse rute v Admin SPA in na backenddu, ki niso namenjene javnemu dostopu, so zaščitene z JWT access žetonom. Backend uporablja `preHandler: authenticate` middleware, ki:
 - Prebere `Authorization: Bearer <token>` glavo
 - Verificira žeton z `JWT_SECRET`
 - Vrne `401 Unauthorized` če žeton ni prisoten, je neveljaven ali je potekel
 
-Javne rute (brez zaščite) so eksplicitno definirane in namenjene konfiguratorju:
+Javne rute (brez zaščite) so eksplicitno definirane in namenjene konfiguratorju ali prvemu zagonu:
+- `GET /api/auth/firstTime`
 - `GET /api/products/:id/config`
 - `GET /api/products/woo/:wooProductId/config`
 - `GET /api/products/woo/:wooProductId/print-areas`
 - `POST /api/pricing/calculate`
+- `POST /api/pricing/quantity-table`
+- `POST /api/storage/temp/:sessionId`
 
-### 10.2 Validacija vhodnih podatkov
+### 11.2 Validacija vhodnih podatkov
 
-Vsak API endpoint validira vhodne podatke z **Zod** shemami prek `fastify-type-provider-zod`. Zahtevek, ki ne ustreza shemi, je zavrnjen z `400 Bad Request` in človeško berljivim sporočilom napake — brez da bi kdaj dosegel poslovno logiko.
+Vsak API endpoint validira vhodne podatke z **Zod** shemami prek `fastify-type-provider-zod`. Zahtevek, ki ne ustreza shemi, je zavrnjen z `400 Bad Request` in človeško berljivim sporočilom napake - brez da bi kdaj dosegel poslovno logiko.
 
 Enako velja za okoljske spremenljivke: `src/config/env.ts` validira vse spremenljivke ob zagonu z Zodom in takoj zaustavi aplikacijo, če katera manjka ali je napačnega tipa.
 
-### 10.3 Strežniška verifikacija cene
+### 11.3 Strežniška verifikacija cene
 
-Cena se vedno verificira na strežniku ob dodajanju v košarico (podrobno opisano v razdelku 9.4). Vtičnik sanitira vse `itemId`-je z UUID regex validacijo in preveri dimenzije ter količino pred klicem cenilnega stroja. Stranka ne more manipulirati cene prek brskalnika.
+Cena se vedno verificira na strežniku ob dodajanju v košarico (podrobno opisano v razdelku 9.4 in sekvenci 9.3). Vtičnik sanitira vse `itemId`-je z UUID regex validacijo in preveri dimenzije ter količino pred klicem cenilnega stroja. Stranka ne more manipulirati cene prek brskalnika.
 
-### 10.4 Gesla
+### 11.4 Gesla
 
-Gesla so shranjena izključno kot **bcrypt** hash — nikoli v čistem tekstu. Primerjava gesla ob prijavi poteka prek `bcrypt.compare()`, ki je odporna na timing napade.
+Gesla so shranjena izključno kot **bcrypt** hash - nikoli v čistem tekstu. Primerjava gesla ob prijavi poteka prek `bcrypt.compare()`, ki je odporna na timing napade.
 
 ---
 
-## 11. Namestitev in zagon
+## 12. Namestitev in zagon
 
-### 11.1 Predpogoji
+### 12.1 Predpogoji
 
 - **Docker** in **Docker Compose** nameščena na strežniku
 - **Node.js 24+** za lokalni razvoj (opcijsko, Docker ga nadomesti)
 - Git za kloniranje repozitorija
 
-### 11.2 Lokalni razvoj
+### 12.2 Lokalni razvoj
 
 ```bash
 # 1. Kloniraj repozitorij
@@ -1262,7 +1376,7 @@ Dostopne točke po zagonu:
 | `http://localhost:5174/api/` | Fastify backend |
 | `http://localhost:8080/` | WordPress / WooCommerce |
 
-### 11.3 Produkcijska namestitev
+### 12.3 Produkcijska namestitev
 
 ```bash
 # 1. Ustvari produkcijske okoljske datoteke
@@ -1275,7 +1389,7 @@ npm run deploy:server
 
 V produkciji se frontend aplikaciji zgradita v statične datoteke (`apps/admin/dist`, `apps/configurator/dist`) in se strežeta prek Caddy-ja.
 
-### 11.4 Okoljske spremenljivke
+### 12.4 Okoljske spremenljivke
 
 **Backend** (`backend/.env`):
 
@@ -1286,6 +1400,12 @@ V produkciji se frontend aplikaciji zgradita v statične datoteke (`apps/admin/d
 | `JWT_REFRESH_SECRET` | Skrivnost za refresh žetone | dolg naključen niz |
 | `PORT` | Port backenda | `3000` |
 | `NODE_ENV` | Okolje | `development` / `production` |
+| `WOOCOMMERCE_INTERNAL_URL` | Interni URL WordPress kontejnerja (za sync) | `http://wordpress` |
+| `S3_ENDPOINT` | URL S3-kompatibilne storitve | `https://s3.example.com` |
+| `S3_BUCKET` | Ime S3 bucketa | `printforge` |
+| `S3_ACCESS_KEY_ID` | S3 dostopni ključ | niz |
+| `S3_SECRET_ACCESS_KEY` | S3 tajni ključ | niz |
+| `S3_REGION` | S3 regija | `auto` (privzeto) |
 
 **WordPress vtičnika** (okoljske spremenljivke Docker kontejnerja):
 
@@ -1295,7 +1415,7 @@ V produkciji se frontend aplikaciji zgradita v statične datoteke (`apps/admin/d
 | `PRINTFORGE_API_BASE_URL` | URL PrintForge API-ja | `http://fastify:3000/api` |
 | `PRINTFORGE_CONFIGURATOR_BASE_URL` | URL dizajnerskega iframe-a | `/pf/configurator` |
 
-### 11.5 Prva vzpostavitev
+### 12.5 Prva vzpostavitev
 
 Po prvem zagonu:
 1. Odpri Admin SPA na `/pf-admin/`
