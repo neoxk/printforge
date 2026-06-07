@@ -17,3 +17,30 @@ export async function assignToOrderHandler(req: FastifyRequest, reply: FastifyRe
   const result = await storageService.assignToOrder(sessionIds, orderId)
   return reply.send(result)
 }
+
+export async function listOrderDesignsHandler(req: FastifyRequest, reply: FastifyReply) {
+  const { orderId, sessionId } = req.params as { orderId: string; sessionId: string }
+  const result = await storageService.listOrderDesigns(orderId, sessionId)
+  return reply.send(result)
+}
+
+export async function downloadOrderDesignHandler(req: FastifyRequest, reply: FastifyReply) {
+  const { orderId, sessionId, filename } = req.params as {
+    orderId: string
+    sessionId: string
+    filename: string
+  }
+
+  const { body, contentType, contentLength } = await storageService.getOrderDesign(
+    orderId,
+    sessionId,
+    filename,
+  )
+
+  reply.header('Content-Type', contentType ?? 'application/octet-stream')
+  reply.header('Content-Disposition', `attachment; filename="${filename}"`)
+  if (contentLength !== undefined) {
+    reply.header('Content-Length', contentLength)
+  }
+  return reply.send(body)
+}

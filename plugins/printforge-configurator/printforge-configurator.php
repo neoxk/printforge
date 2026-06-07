@@ -54,5 +54,8 @@ add_action('woocommerce_checkout_create_order_line_item', 'printforge_configurat
 // passes the order id; the Store API (block checkout) passes the order object.
 add_action('woocommerce_checkout_order_processed', 'printforge_configurator_assign_designs_on_checkout', 20, 1);
 add_action('woocommerce_store_api_checkout_order_processed', 'printforge_configurator_assign_designs_on_store_api_checkout', 20, 1);
+// Order admin: render per-line-item design downloads and serve the proxied file.
+add_action('woocommerce_after_order_itemmeta', 'printforge_configurator_render_item_designs', 10, 2);
+add_action('admin_post_printforge_download_design', 'printforge_configurator_handle_design_download');
 add_action('admin_menu', 'printforge_configurator_admin_menu');
 add_action('admin_init', 'printforge_configurator_admin_init');

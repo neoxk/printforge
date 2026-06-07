@@ -1,3 +1,4 @@
+import { Readable } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { prisma } from '../../src/lib/prisma.js'
 import { s3 } from '../../src/lib/s3.js'
@@ -133,5 +134,114 @@ describe('storage assign route (webhook auth)', () => {
       'orders/4321/session-a/view-front.png',
       'orders/4321/session-b/view-front.png',
     ])
+  })
+})
+
+describe('storage order design download routes (webhook auth)', () => {
+  let app: Awaited<ReturnType<typeof buildApp>>
+
+  beforeEach(async () => {
+    vi.clearAllMocks()
+
+    const connectionRecord = {
+      id: connectionId,
+      connectionName: 'Primary Store',
+      webhookSecret: WEBHOOK_SECRET,
+      createdAt: new Date('2026-01-01T10:00:00.000Z'),
+    }
+    integrationConnection.findFirst.mockResolvedValue(connectionRecord)
+    integrationConnection.findMany.mockResolvedValue([connectionRecord])
+
+    app = await buildApp()
+  })
+
+  afterEach(async () => {
+    await app.close()
+  })
+
+  describe('list', () => {
+    const list = (headers: Record<string, string>) =>
+      app.inject({
+        method: 'GET',
+        url: '/api/storage/orders/4321/session-a',
+        headers,
+      })
+
+    it('rejects requests with no secret header', async () => {
+      const response = await list({})
+      expect(response.statusCode).toBe(401)
+      expect(s3Mock.send).not.toHaveBeenCalled()
+    })
+
+    it('returns the design filenames under the order/session folder', async () => {
+      s3Mock.send.mockResolvedValue({
+        Contents: [
+          { Key: 'orders/4321/session-a/view-front.png', Size: 11 },
+          { Key: 'orders/4321/session-a/view-back.png', Size: 22 },
+          // The folder marker itself (key === prefix) is filtered out.
+          { Key: 'orders/4321/session-a/', Size: 0 },
+        ],
+      })
+
+      const response = await list({ 'x-printforge-secret': WEBHOOK_SECRET })
+      expect(response.statusCode).toBe(200)
+      expect(response.json()).toEqual({
+        files: [
+          { filename: 'view-front.png', size: 11 },
+          { filename: 'view-back.png', size: 22 },
+        ],
+      })
+    })
+  })
+
+  describe('download', () => {
+    const download = (filename: string, headers: Record<string, string>) =>
+      app.inject({
+        method: 'GET',
+        url: `/api/storage/orders/4321/session-a/${filename}`,
+        headers,
+      })
+
+    it('rejects requests with no secret header', async () => {
+      const response = await download('view-front.png', {})
+      expect(response.statusCode).toBe(401)
+      expect(s3Mock.send).not.toHaveBeenCalled()
+    })
+
+    it('rejects a traversal filename via the param schema', async () => {
+      const response = await download('..%2F..%2Fsecret.png', {
+        'x-printforge-secret': WEBHOOK_SECRET,
+      })
+      expect(response.statusCode).toBe(400)
+      expect(s3Mock.send).not.toHaveBeenCalled()
+    })
+
+    it('streams the file with an attachment disposition', async () => {
+      s3Mock.send.mockResolvedValue({
+        Body: Readable.from(Buffer.from('PNGDATA')),
+        ContentType: 'image/png',
+        ContentLength: 7,
+      })
+
+      const response = await download('view-front.png', {
+        'x-printforge-secret': WEBHOOK_SECRET,
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(response.headers['content-type']).toBe('image/png')
+      expect(response.headers['content-disposition']).toBe(
+        'attachment; filename="view-front.png"',
+      )
+      expect(response.rawPayload.toString()).toBe('PNGDATA')
+    })
+
+    it('returns 404 when the file does not exist', async () => {
+      s3Mock.send.mockRejectedValue(Object.assign(new Error('missing'), { name: 'NoSuchKey' }))
+
+      const response = await download('view-front.png', {
+        'x-printforge-secret': WEBHOOK_SECRET,
+      })
+      expect(response.statusCode).toBe(404)
+    })
   })
 })
