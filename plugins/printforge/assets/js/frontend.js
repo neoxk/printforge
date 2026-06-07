@@ -135,8 +135,6 @@
         }
 
         field.value = JSON.stringify(payload);
-        // [PF-DEBUG] Confirms the hidden field WooCommerce validates was written.
-        console.log('[PF-DEBUG] options wrote field "' + fieldName + '" len=' + field.value.length + ' onto form.cart');
 
         if (iframe) {
             syncQuantityToIframe(iframe);
@@ -167,14 +165,7 @@
             return;
         }
 
-        // [PF-DEBUG] Trace every inbound message and whether it passed the
-        // source-identity guard. Remove when the add-to-cart issue is resolved.
-        var known = isPrintforgeIframeSource(event.source);
-        console.log('[PF-DEBUG] options msg received type=' + (event.data && event.data.type) +
-            ' origin=' + event.origin + ' knownSource=' + known);
-
-        if (!known) {
-            console.warn('[PF-DEBUG] options msg DROPPED — source is not a known printforge iframe');
+        if (!isPrintforgeIframeSource(event.source)) {
             return;
         }
 
@@ -197,26 +188,6 @@
             setDesignerConfigurationField(event.source, event.data);
         }
     });
-
-    // [PF-DEBUG] Snapshot the cart form's fields at submit time so we can see
-    // exactly what WooCommerce will POST (does printforge_configuration exist,
-    // does the add-to-cart button value survive?). Capture phase so it runs even
-    // if another handler stops propagation. Remove when the issue is resolved.
-    document.addEventListener('submit', function (event) {
-        let form = event.target;
-        if (!form || typeof form.matches !== 'function' || !form.matches('form.cart')) {
-            return;
-        }
-        let fields = {};
-        form.querySelectorAll('input, select, textarea, button').forEach(function (el) {
-            if (!el.name) return;
-            let v = el.value == null ? '' : String(el.value);
-            fields[el.name] = v.length > 60 ? v.slice(0, 60) + '…(' + v.length + ')' : v;
-        });
-        console.log('[PF-DEBUG] form.cart SUBMIT — submitter=' +
-            (event.submitter ? (event.submitter.name + '=' + event.submitter.value) : 'none') +
-            ' fields=', fields);
-    }, true);
 
     document.addEventListener('change', function (event) {
         if (!event.target?.matches('input.qty[name="quantity"], input[name="quantity"]')) {

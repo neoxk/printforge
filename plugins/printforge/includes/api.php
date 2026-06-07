@@ -15,17 +15,11 @@ function printforge_verify_configuration(int $woo_product_id, string $raw_config
     $configuration = json_decode($raw_configuration, true);
 
     if (!is_array($configuration)) {
-        printforge_debug_log('verify: json_decode did NOT produce an array; raw=' . substr($raw_configuration, 0, 200));
         return new WP_Error('printforge_invalid_configuration', __('Invalid PrintForge configuration.', 'printforge'));
     }
 
-    printforge_debug_log('verify: decoded config keys=[' . implode(',', array_keys($configuration)) .
-        '] selectedItemIds=' . wp_json_encode($configuration['selectedItemIds'] ?? null) .
-        ' context=' . wp_json_encode($configuration['context'] ?? null));
-
     $config = printforge_fetch_product_config($woo_product_id);
     if (is_wp_error($config)) {
-        printforge_debug_log('verify: fetch_product_config FAILED: ' . $config->get_error_message());
         return $config;
     }
 
@@ -33,18 +27,15 @@ function printforge_verify_configuration(int $woo_product_id, string $raw_config
     $context = printforge_sanitize_pricing_context($configuration['context'] ?? null);
 
     if (is_wp_error($selected_item_ids)) {
-        printforge_debug_log('verify: sanitize_selected_item_ids FAILED: ' . $selected_item_ids->get_error_message());
         return $selected_item_ids;
     }
 
     if (is_wp_error($context)) {
-        printforge_debug_log('verify: sanitize_pricing_context FAILED: ' . $context->get_error_message());
         return $context;
     }
 
     $context = printforge_apply_config_dimensions($context, $config);
     if (is_wp_error($context)) {
-        printforge_debug_log('verify: apply_config_dimensions FAILED: ' . $context->get_error_message());
         return $context;
     }
 
@@ -52,7 +43,6 @@ function printforge_verify_configuration(int $woo_product_id, string $raw_config
 
     $pricing = printforge_calculate_price($config['productId'], $selected_item_ids, $context);
     if (is_wp_error($pricing)) {
-        printforge_debug_log('verify: calculate_price FAILED: ' . $pricing->get_error_message());
         return $pricing;
     }
 
@@ -159,14 +149,11 @@ function printforge_calculate_price(string $product_id, array $selected_item_ids
 function printforge_parse_api_response($response, string $fallback_message)
 {
     if (is_wp_error($response)) {
-        printforge_debug_log('api response is WP_Error (transport): ' . $response->get_error_message());
         return new WP_Error('printforge_api_error', $fallback_message);
     }
 
     $status = (int) wp_remote_retrieve_response_code($response);
-    $raw_body = (string) wp_remote_retrieve_body($response);
-    $body = json_decode($raw_body, true);
-    printforge_debug_log('api response status=' . $status . ' body=' . substr($raw_body, 0, 300));
+    $body = json_decode((string) wp_remote_retrieve_body($response), true);
 
     if ($status < 200 || $status >= 300 || !is_array($body)) {
         $message = is_array($body) && !empty($body['message']) && is_string($body['message'])

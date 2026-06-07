@@ -4,14 +4,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// [PF-DEBUG] Writes to a fixed file inside the container (/tmp/pf-debug.log)
-// so the output is readable via `docker exec`, independent of where PHP's
-// error_log directive points. Remove this and all callers when fixed.
-function printforge_debug_log(string $message): void
-{
-    error_log('[PF-DEBUG] ' . $message . "\n", 3, '/tmp/pf-debug.log');
-}
-
 function printforge_validate_add_to_cart(
     bool $passed,
     int $product_id,
@@ -19,22 +11,7 @@ function printforge_validate_add_to_cart(
     int $variation_id = 0,
     array $variations = []
 ): bool {
-    // [PF-DEBUG] Validation hook fired — proves the add-to-cart POST reached
-    // WooCommerce. Logs which printforge_* fields arrived so we can tell a
-    // missing-field problem from a server-validation problem. Remove when fixed.
-    printforge_debug_log(sprintf(
-        'validate_add_to_cart: product=%d qty=%d passed=%s post_keys=[%s] has_config_field=%s has_designer_field=%s config_len=%d',
-        $product_id,
-        $quantity,
-        $passed ? 'true' : 'false',
-        implode(',', array_keys($_POST)),
-        isset($_POST['printforge_configuration']) ? 'yes' : 'no',
-        isset($_POST['printforge_designer_configuration']) ? 'yes' : 'no',
-        isset($_POST['printforge_configuration']) ? strlen((string) $_POST['printforge_configuration']) : 0
-    ));
-
     if (!$passed) {
-        printforge_debug_log('validate_add_to_cart: returning false — an earlier validation filter already failed ($passed=false)');
         return false;
     }
 
@@ -43,33 +20,21 @@ function printforge_validate_add_to_cart(
         : '';
 
     if (!is_string($raw_configuration) || trim($raw_configuration) === '') {
-        $has_config = printforge_product_has_config($product_id);
-        printforge_debug_log(sprintf(
-            'validate_add_to_cart: printforge_configuration is EMPTY; product_has_config=%s',
-            $has_config ? 'true' : 'false'
-        ));
-        if ($has_config) {
-            printforge_debug_log('validate_add_to_cart: BLOCKING add — required configuration field is empty');
+        if (printforge_product_has_config($product_id)) {
             wc_add_notice(__('Please choose the PrintForge options before adding this product to the cart.', 'printforge'), 'error');
             return false;
         }
 
-        printforge_debug_log('validate_add_to_cart: allowing add — product has no config so empty configuration is OK');
         return true;
     }
 
     $verified = printforge_verify_configuration($product_id, $raw_configuration, $quantity);
 
     if (is_wp_error($verified)) {
-        printforge_debug_log(sprintf(
-            'validate_add_to_cart: BLOCKING add — verify_configuration returned WP_Error: %s',
-            $verified->get_error_message()
-        ));
         wc_add_notice($verified->get_error_message(), 'error');
         return false;
     }
 
-    printforge_debug_log('validate_add_to_cart: PASSED — item allowed into cart');
     $GLOBALS['printforge_verified_cart_item'][$product_id] = $verified;
 
     return true;
