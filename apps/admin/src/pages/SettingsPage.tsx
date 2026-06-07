@@ -1,4 +1,4 @@
-import { Globe, RefreshCw, ShieldCheck } from 'lucide-react'
+import { Copy, Globe, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { FieldGroup, PageHeader, PageStack, SectionCard, SectionStack, useAppAlerts } from '@printforge/ui'
 import type { IntegrationStatus } from '@printforge/ui'
@@ -22,6 +22,7 @@ const emptyIntegration: IntegrationStatus = {
   authMethod: 'public_store_api',
   consumerKey: '',
   consumerSecret: '',
+  webhookSecret: '',
   apiStatus: 'Not tested',
   lastSync: 'Not synced yet',
   mode: 'Manual sync with audit trail',
@@ -79,6 +80,16 @@ export function SettingsPage() {
       )
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function copyWebhookSecret() {
+    if (!settings.webhookSecret) return
+    try {
+      await navigator.clipboard.writeText(settings.webhookSecret)
+      showInfo('Plugin secret copied to clipboard.', 'Copied')
+    } catch {
+      showError('Could not copy the secret. Copy it manually.', 'Copy failed')
     }
   }
 
@@ -204,6 +215,35 @@ export function SettingsPage() {
           </div>
         </SectionCard>
       </section>
+
+      <SectionCard
+        title="Plugin secret"
+        description="Paste this secret into the PrintForge WooCommerce plugin settings so it can attach uploaded designs to placed orders. Treat it like a password."
+        actions={<KeyRound className="size-4 text-primary" aria-hidden="true" />}
+      >
+        <FieldGroup label={<Label htmlFor="webhook-secret">Secret</Label>}>
+          <div className="flex gap-2">
+            <Input
+              id="webhook-secret"
+              type="text"
+              readOnly
+              value={settings.webhookSecret}
+              placeholder={isLoading ? 'Loading…' : 'Not generated yet'}
+              className="font-mono"
+              onFocus={(e) => e.currentTarget.select()}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={copyWebhookSecret}
+              disabled={isLoading || !settings.webhookSecret}
+            >
+              <Copy />
+              Copy
+            </Button>
+          </div>
+        </FieldGroup>
+      </SectionCard>
 
       <SectionCard
         title="Import scope"

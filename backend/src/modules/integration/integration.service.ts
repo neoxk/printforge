@@ -1,6 +1,8 @@
 import { prisma } from '../../lib/prisma.js'
 import { AppError } from '../../lib/errors.js'
 import { env } from '../../config/env.js'
+import type { IntegrationConnection as IntegrationConnectionRecord } from '@prisma/client'
+import { generateConnectionSecret, secretsMatch } from '../../lib/crypto.js'
 
 type IntegrationPayload = {
   connectionName: string
@@ -30,6 +32,7 @@ type IntegrationConnection = {
   authMethod: 'public_store_api' | 'consumer_keys'
   consumerKey: string | null
   consumerSecret: string | null
+  webhookSecret: string | null
   apiStatus: string
   lastSync: Date | null
   mode: string
@@ -117,6 +120,7 @@ function getDefaultConnection() {
     authMethod: WOO_AUTH_METHOD.public_store_api,
     consumerKey: '',
     consumerSecret: '',
+    webhookSecret: generateConnectionSecret(),
     apiStatus: 'Not tested',
     lastSync: null,
     mode: 'Manual sync with audit trail',
@@ -134,6 +138,7 @@ function serializeIntegration(connection: IntegrationConnection) {
     authMethod: connection.authMethod,
     consumerKey: connection.consumerKey ?? '',
     consumerSecret: connection.consumerSecret ?? '',
+    webhookSecret: connection.webhookSecret ?? '',
     apiStatus: connection.apiStatus,
     lastSync: formatSyncLabel(connection.lastSync),
     mode: connection.mode,
@@ -195,6 +200,24 @@ function buildProductsRequestUrl(connection: IntegrationConnection) {
   return url.toString()
 }
 
+/**
+ * Backfills a webhook secret for connections created before the column existed.
+ * Generated once and never rotated here, so the value the store owner copied
+ * into the plugin stays valid.
+ */
+async function ensureWebhookSecret(
+  connection: IntegrationConnectionRecord,
+): Promise<IntegrationConnectionRecord> {
+  if (connection.webhookSecret) {
+    return connection
+  }
+
+  return prisma.integrationConnection.update({
+    where: { id: connection.id },
+    data: { webhookSecret: generateConnectionSecret() },
+  })
+}
+
 export async function getCurrentIntegration() {
   let connection = await prisma.integrationConnection.findFirst({
     orderBy: { createdAt: 'asc' },
@@ -204,7 +227,27 @@ export async function getCurrentIntegration() {
       data: getDefaultConnection(),
     });
 
+  connection = await ensureWebhookSecret(connection)
+
   return serializeIntegration(connection)
+}
+
+export async function verifyWebhookSecret(secret: string) {
+  if (!secret) return null
+
+  // Authenticate against ANY connection that holds this secret rather than a
+  // single "current" record. Picking one record (e.g. findFirst by createdAt)
+  // is ambiguous when multiple connections exist — especially with identical
+  // timestamps and no tiebreaker — and can reject a valid secret that belongs
+  // to a different row than the one selected. Comparison stays constant-time.
+  const connections = await prisma.integrationConnection.findMany()
+
+  return (
+    connections.find(
+      (connection) =>
+        connection.webhookSecret && secretsMatch(secret, connection.webhookSecret),
+    ) ?? null
+  )
 }
 
 export async function saveIntegration(payload: IntegrationPayload) {

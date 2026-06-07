@@ -139,6 +139,30 @@
         input.value = sessionId;
     }
 
+    // WooCommerce's "Add to cart" button submits as name="add-to-cart"
+    // value="<product_id>". That name/value pair is only included in the POST
+    // when the button itself activates the submit — a programmatic form.submit()
+    // (which we call after uploading the artwork) drops it, so the POST arrives
+    // without add-to-cart and WooCommerce never adds the item. Mirror the
+    // submitter into a hidden input so the value survives the re-submit.
+    function preserveSubmitter(form, submitter) {
+        var button = submitter && submitter.name
+            ? submitter
+            : form.querySelector('button[name="add-to-cart"], button[type="submit"], input[type="submit"], [name="add-to-cart"]');
+        if (!button || !button.name) {
+            return;
+        }
+        var input = form.querySelector('input[type="hidden"][data-printforge-submitter="1"]');
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'hidden';
+            input.setAttribute('data-printforge-submitter', '1');
+            form.appendChild(input);
+        }
+        input.name = button.name;
+        input.value = button.value;
+    }
+
     function uploadPreview(apiUrl, sessionId, preview) {
         if (!preview.dataUrl) return Promise.resolve();
         var blob = dataUrlToBlob(preview.dataUrl);
@@ -205,6 +229,10 @@
         // Reference the design session on the cart item, even if the preview
         // upload below fails or times out.
         setSessionInput(form, sessionId);
+
+        // Preserve add-to-cart=<product_id> before we cancel the native submit;
+        // the later form.submit() would otherwise drop the button's value.
+        preserveSubmitter(form, event.submitter);
 
         event.preventDefault();
 

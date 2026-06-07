@@ -88,6 +88,7 @@ model IntegrationConnection {
   authMethod              WooAuthMethod @map("auth_method")
   consumerKey             String?       @map("consumer_key") @db.VarChar(255)
   consumerSecret          String?       @map("consumer_secret") @db.VarChar(255)
+  webhookSecret           String?       @map("webhook_secret") @db.VarChar(80)
   apiStatus               String        @default("Not tested") @map("api_status") @db.VarChar(80)
   lastSync                DateTime?     @map("last_sync")
   mode                    String        @default("Manual sync with audit trail") @db.VarChar(120)

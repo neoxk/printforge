@@ -42,6 +42,27 @@
         }
     }
 
+    // Is the message coming from one of our own embedded iframes (the options
+    // app or the configurator/designer overlay)? Verifying the source window
+    // identity is both sufficient and more robust than string-matching
+    // event.origin against the iframe's src: the two legitimately differ in
+    // local dev (localhost vs 127.0.0.1, differing ports, reverse proxies),
+    // which would otherwise silently drop the configuration message and leave
+    // the required printforge_configuration field empty — blocking add-to-cart.
+    function isPrintforgeIframeSource(sourceWindow) {
+        let isSource = false;
+
+        document
+            .querySelectorAll('.printforge-options__iframe, .printforge-configurator__iframe')
+            .forEach(function (iframe) {
+                if (iframe.contentWindow === sourceWindow) {
+                    isSource = true;
+                }
+            });
+
+        return isSource;
+    }
+
     function findCartForm(iframe) {
         let product = iframe.closest('.product');
         let form = product ? product.querySelector('form.cart') : null;
@@ -114,6 +135,8 @@
         }
 
         field.value = JSON.stringify(payload);
+        // [PF-DEBUG] Confirms the hidden field WooCommerce validates was written.
+        console.log('[PF-DEBUG] options wrote field "' + fieldName + '" len=' + field.value.length + ' onto form.cart');
 
         if (iframe) {
             syncQuantityToIframe(iframe);
@@ -144,10 +167,14 @@
             return;
         }
 
-        let sourceIframe = findIframe(event.source);
-        let sourceOrigin = getIframeOrigin(sourceIframe);
+        // [PF-DEBUG] Trace every inbound message and whether it passed the
+        // source-identity guard. Remove when the add-to-cart issue is resolved.
+        var known = isPrintforgeIframeSource(event.source);
+        console.log('[PF-DEBUG] options msg received type=' + (event.data && event.data.type) +
+            ' origin=' + event.origin + ' knownSource=' + known);
 
-        if (!sourceIframe || !sourceOrigin || event.origin !== sourceOrigin) {
+        if (!known) {
+            console.warn('[PF-DEBUG] options msg DROPPED — source is not a known printforge iframe');
             return;
         }
 
@@ -170,6 +197,26 @@
             setDesignerConfigurationField(event.source, event.data);
         }
     });
+
+    // [PF-DEBUG] Snapshot the cart form's fields at submit time so we can see
+    // exactly what WooCommerce will POST (does printforge_configuration exist,
+    // does the add-to-cart button value survive?). Capture phase so it runs even
+    // if another handler stops propagation. Remove when the issue is resolved.
+    document.addEventListener('submit', function (event) {
+        let form = event.target;
+        if (!form || typeof form.matches !== 'function' || !form.matches('form.cart')) {
+            return;
+        }
+        let fields = {};
+        form.querySelectorAll('input, select, textarea, button').forEach(function (el) {
+            if (!el.name) return;
+            let v = el.value == null ? '' : String(el.value);
+            fields[el.name] = v.length > 60 ? v.slice(0, 60) + '…(' + v.length + ')' : v;
+        });
+        console.log('[PF-DEBUG] form.cart SUBMIT — submitter=' +
+            (event.submitter ? (event.submitter.name + '=' + event.submitter.value) : 'none') +
+            ' fields=', fields);
+    }, true);
 
     document.addEventListener('change', function (event) {
         if (!event.target?.matches('input.qty[name="quantity"], input[name="quantity"]')) {

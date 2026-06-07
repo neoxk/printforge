@@ -5,6 +5,7 @@ export type IntegrationStatus = {
   authMethod: 'public_store_api' | 'consumer_keys'
   consumerKey: string
   consumerSecret: string
+  webhookSecret: string
   apiStatus: string
   lastSync: string
   mode: string

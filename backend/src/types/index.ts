@@ -1,5 +1,6 @@
 declare module 'fastify' {
   interface FastifyRequest {
+    integrationConnection?: import('@prisma/client').IntegrationConnection
     accessVerify<Decoded extends import('@fastify/jwt').FastifyJWT['payload']>(): Promise<Decoded>
     refreshVerify<Decoded extends import('@fastify/jwt').FastifyJWT['payload']>(
       options?: { verify?: { extractToken?: (request: FastifyRequest) => string | void } },
