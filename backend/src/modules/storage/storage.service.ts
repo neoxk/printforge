@@ -36,7 +36,12 @@ export async function assignToOrder(sessionIds: string[], orderId: string) {
     for (const obj of list.Contents ?? []) {
       if (!obj.Key) continue
       const filename = obj.Key.slice(prefix.length)
-      const destKey = `orders/${orderId}/${filename}`
+      // Keep each design under its own session folder. The per-view filename
+      // (view-<viewId>.png) is stable across designs of the same product, so a
+      // flat orders/<orderId>/<filename> layout would make multiple cart items
+      // collide and overwrite one another. Each order line item stores its
+      // session id, so this folder is directly retrievable per line item.
+      const destKey = `orders/${orderId}/${sessionId}/${filename}`
 
       await s3.send(
         new CopyObjectCommand({
