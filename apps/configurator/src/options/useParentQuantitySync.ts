@@ -12,7 +12,7 @@ export function useParentQuantitySync(setDimensions: Dispatch<SetStateAction<Dim
 
     function handleMessage(event: MessageEvent) {
       if (event.origin !== parentOrigin) return
-      if (!event.data || event.data.type !== QUANTITY_MESSAGE_TYPE) return
+      if (event.data?.type !== QUANTITY_MESSAGE_TYPE) return
 
       const quantity = Number(event.data.quantity)
       if (!Number.isInteger(quantity) || quantity <= 0) return

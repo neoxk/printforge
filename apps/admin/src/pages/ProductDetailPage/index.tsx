@@ -4,8 +4,10 @@ import { PageHeader, PageStack, useAppAlerts } from '@printforge/ui'
 import type { ProductRecord } from '@printforge/ui'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@printforge/ui/components/ui/tabs'
 import type { CreateViewDraft, DesignerTool, DesignerView, ZoneKey } from '@printforge/ui/designer'
-import { createEmptyDraft } from '@printforge/ui/designer'
+import { createEmptyDraft, createViewFromDraft } from '@printforge/ui/designer'
 import { getProductPrintAreasRequest, getProductsRequest, saveProductPrintAreasRequest } from '../../lib/Api'
+import { Containers } from '../../lib/services/containers'
+import type { TriggerOption } from './PrintAreasDesigner'
 import { GeneralInfoTab } from './GeneralInfoTab'
 import { PrintAreasPreviewModal } from './PrintAreasPreviewModal'
 import { PricingAndOptionsTab } from './PricingAndOptionsTab/index'
@@ -28,6 +30,7 @@ export function ProductDetailPage() {
   const [printAreaStatusMessage, setPrintAreaStatusMessage] = useState(
     'Create a view to start defining print zones.',
   )
+  const [triggerOptions, setTriggerOptions] = useState<TriggerOption[]>([])
 
   useEffect(() => {
     if (!productId) return
@@ -62,6 +65,25 @@ export function ProductDetailPage() {
             'Print areas load failed',
           )
         }
+
+        // Load option items for the view-trigger dropdown — non-fatal if absent
+        try {
+          const containers = await Containers.list(nextProduct.id)
+          const slotLists = await Promise.all(
+            containers.map((c) => Containers.listItems(nextProduct.id, c.id)),
+          )
+          setTriggerOptions(
+            containers.flatMap((container, i) =>
+              slotLists[i].map((slot) => ({
+                itemId: slot.itemId,
+                label: `${container.name}: ${slot.name ?? slot.item.name}`,
+              })),
+            ),
+          )
+        } catch {
+          // No trigger options available — the designer still works, views just won't
+          // have the trigger dropdown
+        }
       } catch {
         setProduct(null)
       } finally {
@@ -70,6 +92,43 @@ export function ProductDetailPage() {
     }
     void loadProductEditor()
   }, [productId, showError])
+
+  function handleBlankViewRequested(widthMm: number, heightMm: number) {
+    const nextView = createViewFromDraft({
+      name: `${widthMm} × ${heightMm} mm`,
+      sourceMode: 'blank',
+      templateId: '',
+      mockupName: null,
+      mockupSrc: null,
+    })
+    nextView.fields.physicalSize = {
+      ...nextView.fields.physicalSize,
+      rect: { x: 0, y: 0, width: widthMm, height: heightMm, rotation: 0 },
+    }
+    nextView.mockupRect = { x: 0, y: 0, width: widthMm, height: heightMm, rotation: 0 }
+    setPrintAreaViews((v) => [...v, nextView])
+    setSelectedPrintAreaViewId(nextView.id)
+    showInfo(
+      `A ${widthMm} × ${heightMm} mm blank canvas view has been added to the Print Areas designer.`,
+      'View added',
+    )
+  }
+
+  function handlePresetApplied(templateId: string, presetLabel: string) {
+    const nextView = createViewFromDraft({
+      name: presetLabel,
+      sourceMode: 'template',
+      templateId,
+      mockupName: null,
+      mockupSrc: null,
+    })
+    setPrintAreaViews((v) => [...v, nextView])
+    setSelectedPrintAreaViewId(nextView.id)
+    showInfo(
+      `A "${presetLabel}" view has been added to the Print Areas designer.`,
+      'View added',
+    )
+  }
 
   async function handleSavePrintAreas() {
     if (!product) {
@@ -162,7 +221,7 @@ export function ProductDetailPage() {
         </TabsContent>
 
         <TabsContent value="pricing-options">
-          <PricingAndOptionsTab product={product} />
+          <PricingAndOptionsTab product={product} onPresetApplied={handlePresetApplied} onBlankViewRequested={handleBlankViewRequested} />
         </TabsContent>
 
         <TabsContent value="print-areas">
@@ -187,6 +246,7 @@ export function ProductDetailPage() {
               setPan: setPrintAreaPan,
               setStatusMessage: setPrintAreaStatusMessage,
             }}
+            triggerOptions={triggerOptions}
             isSaving={isPrintAreasSaving}
             onSave={handleSavePrintAreas}
             onPreview={handlePreviewPrintAreas}

@@ -9,7 +9,11 @@ import { showError, showInfo } from '@/lib/toast'
 import { Products } from '../../../lib/services'
 import type { ProductDimensions } from '../../../lib/services'
 
-type Props = { productId: string }
+type Props = {
+  productId: string
+  onPresetApplied?: (templateId: string, presetLabel: string) => void
+  onBlankViewRequested?: (widthMm: number, heightMm: number) => void
+}
 
 type State = {
   dimensionType: 'fixed' | 'custom'
@@ -20,23 +24,23 @@ type State = {
 const EMPTY: State = { dimensionType: 'custom', widthMm: '', heightMm: '' }
 
 const SIZE_PRESETS = [
-  { label: 'Business card (85 × 55 mm)',    width: 85,  height: 55   },
-  { label: 'A6 (105 × 148 mm)',             width: 105, height: 148  },
-  { label: 'DL / Flyer (99 × 210 mm)',      width: 99,  height: 210  },
-  { label: 'A5 (148 × 210 mm)',             width: 148, height: 210  },
-  { label: 'A4 (210 × 297 mm)',             width: 210, height: 297  },
-  { label: 'A3 (297 × 420 mm)',             width: 297, height: 420  },
-  { label: 'A2 (420 × 594 mm)',             width: 420, height: 594  },
-  { label: 'A1 (594 × 841 mm)',             width: 594, height: 841  },
-  { label: 'Square 100 × 100 mm',           width: 100, height: 100  },
-  { label: 'Square 150 × 150 mm',           width: 150, height: 150  },
-  { label: 'Square 200 × 200 mm',           width: 200, height: 200  },
-  { label: 'Sticker 50 × 50 mm',            width: 50,  height: 50   },
-  { label: 'Sticker 100 × 100 mm',          width: 100, height: 100  },
-  { label: 'Poster 500 × 700 mm',           width: 500, height: 700  },
-  { label: 'Poster 700 × 1000 mm',          width: 700, height: 1000 },
-  { label: 'Banner 600 × 1600 mm',          width: 600, height: 1600 },
-  { label: 'Roll label 100 × 150 mm',       width: 100, height: 150  },
+  { label: 'Business card (85 × 55 mm)',  width: 85,  height: 55,   templateId: 'business-card'   },
+  { label: 'A6 (105 × 148 mm)',           width: 105, height: 148,  templateId: 'a6'               },
+  { label: 'DL / Flyer (99 × 210 mm)',    width: 99,  height: 210,  templateId: 'dl'               },
+  { label: 'A5 (148 × 210 mm)',           width: 148, height: 210,  templateId: 'a5'               },
+  { label: 'A4 (210 × 297 mm)',           width: 210, height: 297,  templateId: 'a4'               },
+  { label: 'A3 (297 × 420 mm)',           width: 297, height: 420,  templateId: 'a3'               },
+  { label: 'A2 (420 × 594 mm)',           width: 420, height: 594,  templateId: 'a2'               },
+  { label: 'A1 (594 × 841 mm)',           width: 594, height: 841,  templateId: 'a1'               },
+  { label: 'Square 100 × 100 mm',         width: 100, height: 100,  templateId: 'square-100'       },
+  { label: 'Square 150 × 150 mm',         width: 150, height: 150,  templateId: 'square-150'       },
+  { label: 'Square 200 × 200 mm',         width: 200, height: 200,  templateId: 'square-200'       },
+  { label: 'Sticker 50 × 50 mm',          width: 50,  height: 50,   templateId: 'sticker-50'       },
+  { label: 'Sticker 100 × 100 mm',        width: 100, height: 100,  templateId: 'sticker-100'      },
+  { label: 'Poster 500 × 700 mm',         width: 500, height: 700,  templateId: 'poster-500x700'   },
+  { label: 'Poster 700 × 1000 mm',        width: 700, height: 1000, templateId: 'poster-700x1000'  },
+  { label: 'Banner 600 × 1600 mm',        width: 600, height: 1600, templateId: 'banner-600x1600'  },
+  { label: 'Roll label 100 × 150 mm',     width: 100, height: 150,  templateId: 'roll-label'       },
 ]
 
 function fromDimensions(d: ProductDimensions): State {
@@ -46,10 +50,12 @@ function fromDimensions(d: ProductDimensions): State {
   return EMPTY
 }
 
-export function ProductSettingsCard({ productId }: Readonly<Props>) {
+export function ProductSettingsCard({ productId, onPresetApplied, onBlankViewRequested }: Readonly<Props>) {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [state, setState] = useState<State>(EMPTY)
+  const [pendingPreset, setPendingPreset] = useState<{ templateId: string; label: string } | null>(null)
+  const [pendingManual, setPendingManual] = useState(false)
 
   useEffect(() => {
     Products.getConfig(productId)
@@ -61,11 +67,15 @@ export function ProductSettingsCard({ productId }: Readonly<Props>) {
   function applyPreset(label: string) {
     const preset = SIZE_PRESETS.find((p) => p.label === label)
     if (!preset) return
-    setState((s) => ({
-      ...s,
-      widthMm: String(preset.width),
-      heightMm: String(preset.height),
-    }))
+    setState((s) => ({ ...s, widthMm: String(preset.width), heightMm: String(preset.height) }))
+    setPendingPreset({ templateId: preset.templateId, label: preset.label })
+    setPendingManual(false)
+  }
+
+  function handleDimensionChange(field: 'widthMm' | 'heightMm', value: string) {
+    setState((s) => ({ ...s, [field]: value }))
+    setPendingPreset(null)
+    setPendingManual(true)
   }
 
   async function handleSave() {
@@ -89,6 +99,13 @@ export function ProductSettingsCard({ productId }: Readonly<Props>) {
         heightMm: heightMm ? String(heightMm) : '',
       }))
       showInfo('Product dimensions saved.', 'Saved')
+      if (pendingPreset) {
+        onPresetApplied?.(pendingPreset.templateId, pendingPreset.label)
+        setPendingPreset(null)
+      } else if (pendingManual && widthMm && heightMm) {
+        onBlankViewRequested?.(widthMm, heightMm)
+        setPendingManual(false)
+      }
     } catch (err) {
       showError(err instanceof Error ? err.message : 'Failed to save settings.', 'Save failed')
     } finally {
@@ -153,7 +170,7 @@ export function ProductSettingsCard({ productId }: Readonly<Props>) {
                     min={1}
                     placeholder="e.g. 210"
                     value={state.widthMm}
-                    onChange={(e) => setState((s) => ({ ...s, widthMm: e.target.value }))}
+                    onChange={(e) => handleDimensionChange('widthMm', e.target.value)}
                   />
                 </div>
                 <div className="grid gap-1.5">
@@ -164,7 +181,7 @@ export function ProductSettingsCard({ productId }: Readonly<Props>) {
                     min={1}
                     placeholder="e.g. 297"
                     value={state.heightMm}
-                    onChange={(e) => setState((s) => ({ ...s, heightMm: e.target.value }))}
+                    onChange={(e) => handleDimensionChange('heightMm', e.target.value)}
                   />
                 </div>
               </div>

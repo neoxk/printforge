@@ -7,3 +7,7 @@ export function showError(message: string, title = 'Error') {
 export function showInfo(message: string, title = 'Info') {
   toast.info(title, { description: message })
 }
+
+export function showWarning(message: string, title = 'Warning') {
+  toast.warning(title, { description: message })
+}

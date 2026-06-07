@@ -165,20 +165,25 @@ export function ProductsPage() {
     syncLabel = `Last synced ${integration.lastSync}`
   }
 
-  const tableContent = isLoading ? (
-    <TableRow>
-      <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-        Loading products…
-      </TableCell>
-    </TableRow>
-  ) : paginatedProducts.length === 0 ? (
-    <TableRow>
-      <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-        {emptyStateMessage}
-      </TableCell>
-    </TableRow>
-  ) : (
-    paginatedProducts.map((product) => (
+  let renderedTableRows: React.ReactNode
+  if (isLoading) {
+    renderedTableRows = (
+      <TableRow>
+        <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+          Loading products…
+        </TableCell>
+      </TableRow>
+    )
+  } else if (paginatedProducts.length === 0) {
+    renderedTableRows = (
+      <TableRow>
+        <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+          {emptyStateMessage}
+        </TableCell>
+      </TableRow>
+    )
+  } else {
+    renderedTableRows = paginatedProducts.map((product) => (
       <TableRow key={product.id}>
         <TableCell className="font-medium">{product.name}</TableCell>
         <TableCell className="tabular-nums text-muted-foreground">{product.sku}</TableCell>
@@ -197,7 +202,7 @@ export function ProductsPage() {
         </TableCell>
       </TableRow>
     ))
-  )
+  }
 
   return (
     <PageStack>
@@ -286,41 +291,7 @@ export function ProductsPage() {
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                  Loading products…
-                </TableCell>
-              </TableRow>
-            ) : paginatedProducts.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                  {emptyStateMessage}
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">{product.sku}</TableCell>
-                  <TableCell>{product.category ?? '—'}</TableCell>
-                  <TableCell className="tabular-nums">{product.basePrice}</TableCell>
-                  <TableCell>
-                    <StatusPill
-                      label={getProductStatusLabel(product)}
-                      tone={getProductStatusTone(product)}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button asChild variant="outline" size="sm">
-                      <Link to={`/products/${product.id}`}>Configure</Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
+          <TableBody>{renderedTableRows}</TableBody>
         </Table>
 
         <div className="mt-3 flex items-center justify-between gap-4 border-t border-border/60 pt-3">

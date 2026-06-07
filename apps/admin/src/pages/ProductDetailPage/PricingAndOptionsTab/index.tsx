@@ -41,9 +41,13 @@ function SortableContainerCard({ index, ...props }: SortableContainerCardProps) 
   return <ContainerCard ref={ref} handleRef={handleRef} {...props} />
 }
 
-type Props = { product: ProductRecord }
+type Props = {
+  product: ProductRecord
+  onPresetApplied?: (templateId: string, presetLabel: string) => void
+  onBlankViewRequested?: (widthMm: number, heightMm: number) => void
+}
 
-export function PricingAndOptionsTab({ product }: Readonly<Props>) {
+export function PricingAndOptionsTab({ product, onPresetApplied, onBlankViewRequested }: Readonly<Props>) {
   const [containersState, containersDispatch] = useReducer(containersReducer, initialContainersState)
   const [pricingState, pricingDispatch] = useReducer(pricingReducer, initialPricingState)
   const [isAddingContainer, setIsAddingContainer] = useState(false)
@@ -223,7 +227,7 @@ export function PricingAndOptionsTab({ product }: Readonly<Props>) {
 
   return (
     <div className="flex flex-col gap-5">
-      <ProductSettingsCard productId={product.id} />
+      <ProductSettingsCard productId={product.id} onPresetApplied={onPresetApplied} onBlankViewRequested={onBlankViewRequested} />
 
       <SectionCard
         title="Options & Pricing"
