@@ -66,7 +66,7 @@ export function UserDesignerPage() {
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  // Stable refs for event handler closures — updated each render
+  // Stable refs for event handler closures: updated each render
   const liveActiveToolRef = useRef<UserDesignerTool>('select')
   const liveProductIdRef = useRef<string | null>(null)
   const zoomRef = useRef(1)
@@ -119,7 +119,7 @@ export function UserDesignerPage() {
     [selectedDesign, selectedView],
   )
 
-  // ── Hooks ─────────────────────────────────────────────────────────────────
+  // Hooks
 
   const onSelectionChange = useCallback((obj: FabricObjectWithMeta | null) => {
     setSelectedElementId(obj?.__elementId ?? null)
@@ -181,7 +181,7 @@ export function UserDesignerPage() {
     }
   }, [selectedView])
 
-  // ── Data loading ──────────────────────────────────────────────────────────
+  // Data loading
 
   useEffect(() => {
     if (!routeProductId) { setIsLoading(false); setError('Missing product id.'); return }
@@ -225,7 +225,7 @@ export function UserDesignerPage() {
     setStatusMessage('Loaded a saved design draft from this device.')
   }, [sessionId, views.length])
 
-  // ── Cross-iframe dimension sync (BroadcastChannel) ────────────────────────
+  // Cross-iframe dimension sync (BroadcastChannel)
 
   // Listen for real-time dimension updates from the options iframe
   useEffect(() => {
@@ -252,7 +252,7 @@ export function UserDesignerPage() {
     } catch { /* BroadcastChannel not supported */ }
   }, [hasViews])
 
-  // ── Preview export ────────────────────────────────────────────────────────
+  // Preview export
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -280,7 +280,7 @@ export function UserDesignerPage() {
     return () => window.removeEventListener('message', handleMessage)
   }, [views, fabricCanvasMapRef])
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // Actions
 
   async function handleAddText() {
     if (!selectedView) return
@@ -453,7 +453,7 @@ export function UserDesignerPage() {
     setPreviewOpen(true)
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // Render
 
   if (isLoading) return <main className="cf-loading">Loading user designer...</main>
   if (error) return <main className="cf-error">{error}</main>

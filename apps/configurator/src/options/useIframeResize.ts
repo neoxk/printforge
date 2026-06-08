@@ -5,15 +5,15 @@ const RESIZE_MESSAGE_TYPE = 'printforge:options:resize'
 
 export function useIframeResize(pageRef: RefObject<HTMLElement | null>) {
   useEffect(() => {
-    if (window.parent === window) return
+    if (globalThis.parent === globalThis.window) return
 
     const targetOrigin = getParentTargetOrigin()
     if (!targetOrigin) return
 
     let animationFrame = 0
     const sendHeight = () => {
-      window.cancelAnimationFrame(animationFrame)
-      animationFrame = window.requestAnimationFrame(() => {
+      globalThis.cancelAnimationFrame(animationFrame)
+      animationFrame = globalThis.requestAnimationFrame(() => {
         const height = Math.ceil(
           Math.max(
             pageRef.current?.scrollHeight ?? 0,
@@ -22,7 +22,7 @@ export function useIframeResize(pageRef: RefObject<HTMLElement | null>) {
           ),
         )
 
-        window.parent.postMessage({ type: RESIZE_MESSAGE_TYPE, height }, targetOrigin)
+        globalThis.parent.postMessage({ type: RESIZE_MESSAGE_TYPE, height }, targetOrigin)
       })
     }
 
@@ -31,11 +31,11 @@ export function useIframeResize(pageRef: RefObject<HTMLElement | null>) {
     if (pageRef.current) observer.observe(pageRef.current)
 
     sendHeight()
-    window.addEventListener('load', sendHeight)
+    globalThis.addEventListener('load', sendHeight)
 
     return () => {
-      window.cancelAnimationFrame(animationFrame)
-      window.removeEventListener('load', sendHeight)
+      globalThis.cancelAnimationFrame(animationFrame)
+      globalThis.removeEventListener('load', sendHeight)
       observer.disconnect()
     }
   }, [pageRef])

@@ -13,6 +13,18 @@ import { PrintAreasPreviewModal } from './PrintAreasPreviewModal'
 import { PricingAndOptionsTab } from './PricingAndOptionsTab/index'
 import { PrintAreasTab } from './PrintAreasTab'
 
+function buildTriggerOptions(
+  containers: Awaited<ReturnType<typeof Containers.list>>,
+  slotLists: Awaited<ReturnType<typeof Containers.listItems>>[],
+): TriggerOption[] {
+  return containers.flatMap((container, index) =>
+    slotLists[index].map((slot) => ({
+      itemId: slot.itemId,
+      label: `${container.name}: ${slot.name ?? slot.item.name}`,
+    })),
+  )
+}
+
 export function ProductDetailPage() {
   const { productId } = useParams()
   const { showError, showInfo } = useAppAlerts()
@@ -66,23 +78,15 @@ export function ProductDetailPage() {
           )
         }
 
-        // Load option items for the view-trigger dropdown — non-fatal if absent
+        // Load option items for the view-trigger dropdown (non-fatal if absent)
         try {
           const containers = await Containers.list(nextProduct.id)
           const slotLists = await Promise.all(
             containers.map((c) => Containers.listItems(nextProduct.id, c.id)),
           )
-          setTriggerOptions(
-            containers.flatMap((container, i) =>
-              slotLists[i].map((slot) => ({
-                itemId: slot.itemId,
-                label: `${container.name}: ${slot.name ?? slot.item.name}`,
-              })),
-            ),
-          )
+          setTriggerOptions(buildTriggerOptions(containers, slotLists))
         } catch {
-          // No trigger options available — the designer still works, views just won't
-          // have the trigger dropdown
+          // No trigger options available (the designer still works, views just won't have the trigger dropdown)
         }
       } catch {
         setProduct(null)

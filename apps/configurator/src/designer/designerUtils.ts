@@ -7,25 +7,25 @@ import type {
   UserDesignViewState,
 } from './types.js'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// Types
 
 export type FabricObjectWithMeta = (IText | FabricImage) & {
   __kind?: 'user-text' | 'user-image'
   __elementId?: string
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// Constants
 
 export const VIEWPORT_PADDING = 40
 export const DESIGNER_SESSION_STORAGE_PREFIX = 'printforge:designer:session:'
 
-// ─── Element ID ───────────────────────────────────────────────────────────────
+// Element ID
 
 export function createElementId() {
   return `element-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-// ─── File reading ─────────────────────────────────────────────────────────────
+// File reading
 
 export function readImageFile(file: File) {
   return new Promise<{ src: string; width: number; height: number }>((resolve, reject) => {
@@ -46,7 +46,7 @@ export function readImageFile(file: File) {
   })
 }
 
-// ─── Zone helpers ─────────────────────────────────────────────────────────────
+// Zone helpers
 
 export function resolveConstraintRect(view: DesignerView) {
   if (view.fields.allowedPrintArea.enabled) return view.fields.allowedPrintArea.rect
@@ -67,7 +67,7 @@ export function containsRect(
   )
 }
 
-// ─── Design state helpers ─────────────────────────────────────────────────────
+// Design state helpers
 
 export function getViewDesign(design: UserDesignState, viewId: string): UserDesignViewState {
   return design.views.find((v) => v.viewId === viewId) ?? { viewId, elements: [] }
@@ -119,7 +119,7 @@ export function removeElementFromDesign(
   }))
 }
 
-// ─── Fabric ↔ design element conversion ──────────────────────────────────────
+// Fabric to design element conversion
 
 function colorToString(fill: any): string {
   if (fill == null) return '#0f172a'
@@ -182,7 +182,7 @@ export function elementFromObject(object: FabricObjectWithMeta): UserDesignEleme
   return null
 }
 
-// ─── Session persistence ──────────────────────────────────────────────────────
+// Session persistence
 
 function isUserDesignState(v: unknown): v is UserDesignState {
   return (
@@ -213,7 +213,7 @@ export function saveSession(sessionId: string, design: UserDesignState) {
   )
 }
 
-// ─── Validation ───────────────────────────────────────────────────────────────
+// Validation
 
 function getPrimaryZone(view: DesignerView) {
   if (view.fields.allowedPrintArea.enabled) return view.fields.allowedPrintArea
@@ -271,7 +271,7 @@ export function validateFromCanvas(canvas: Canvas, view: DesignerView) {
   return { isValid: violations.length === 0, violations }
 }
 
-// ─── Gesture helpers ──────────────────────────────────────────────────────────
+// Gesture helpers
 
 export function computePinchStart(
   pointers: Map<number, { x: number; y: number }>,

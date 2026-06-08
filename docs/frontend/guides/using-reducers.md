@@ -100,5 +100,5 @@ const ungrouped  = state.items.filter(i => i.groupId === null)
 ## Notes
 
 - `GROUP_DELETED` automatically nulls out `groupId` on any items that belonged to the deleted group, mirroring what the backend does.
-- `error` is never automatically cleared — reset it explicitly if you display and dismiss error UI.
-- The reducer is a pure function with no side effects — it can be unit tested without React or the API.
+- `error` is never automatically cleared - reset it explicitly if you display and dismiss error UI.
+- The reducer is a pure function with no side effects - it can be unit tested without React or the API.

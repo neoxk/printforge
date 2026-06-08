@@ -1,4 +1,4 @@
-# State Management — Reducers and Action Creators
+# State Management - Reducers and Action Creators
 
 ## The Problem
 
@@ -16,7 +16,7 @@ As the number of operations grows, these state update expressions scatter across
 
 ## The Pattern
 
-State transitions live in a **reducer** — a pure function that maps `(currentState, action) → nextState`. Event handlers become minimal: one API call, one dispatch.
+State transitions live in a **reducer** - a pure function that maps `(currentState, action) → nextState`. Event handlers become minimal: one API call, one dispatch.
 
 ```ts
 // event handler
@@ -48,7 +48,7 @@ dispatch(PricingActions.ITEM_DELETED(id))
 dispatch(PricingActions.ITEM_MOVED(itemId, toGroupId))
 ```
 
-TypeScript enforces the argument shape at the call site — if `GROUP_CREATED` expects an `OptionsGroup`, passing anything else is a compile error.
+TypeScript enforces the argument shape at the call site - if `GROUP_CREATED` expects an `OptionsGroup`, passing anything else is a compile error.
 
 ---
 
@@ -81,4 +81,4 @@ The reducer pattern works well for self-contained pages with clear load/mutate f
 - You need background refetching or cache invalidation across pages
 - Loading and error states are getting complex to coordinate manually
 
-The namespace services (`Groups`, `Items`, `Pricing`) are compatible with TanStack Query — they slot directly into `queryFn` and `mutationFn` with no changes.
+The namespace services (`Groups`, `Items`, `Pricing`) are compatible with TanStack Query - they slot directly into `queryFn` and `mutationFn` with no changes.

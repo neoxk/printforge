@@ -25,7 +25,7 @@ const newGroup = await Groups.create('Papers')
 // Rename
 const updated = await Groups.rename(id, 'Coated Papers')
 
-// Delete (does not delete the items inside — they become ungrouped)
+// Delete (does not delete the items inside - they become ungrouped)
 await Groups.delete(id)
 
 // Add / remove an item from a group
@@ -81,11 +81,11 @@ const context: PriceContext = {
 
 const result = await Pricing.calculate(productId, selectedItemIds, context)
 
-result.total      // number — total cost
-result.breakdown  // PriceLineItem[] — cost per item
+result.total      // number - total cost
+result.breakdown  // PriceLineItem[] - cost per item
 ```
 
-The calculate endpoint is public — no auth token required. It is safe to call from the Configurator iframe.
+The calculate endpoint is public - no auth token required. It is safe to call from the Configurator iframe.
 
 ---
 

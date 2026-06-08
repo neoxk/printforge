@@ -79,7 +79,7 @@ export async function ensureFontReady(
   italic: boolean = false,
 ): Promise<void> {
   const option = FONT_OPTIONS.find((f) => f.name === fontName)
-  if (!option?.googleFamily) return  // system font — always available
+  if (!option?.googleFamily) return  // system font is always available
 
   injectGoogleFont(option)
 
@@ -87,7 +87,7 @@ export async function ensureFontReady(
     const style = italic ? 'italic' : 'normal'
     await document.fonts.load(`${style} ${weight} 32px "${fontName}"`)
   } catch {
-    // Ignore — Fabric will fall back to a system font
+    // Ignore: Fabric will fall back to a system font
   }
 }
 

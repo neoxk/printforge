@@ -33,7 +33,7 @@ export function useFabricCanvas(
   const onSelectionChangeRef = useRef<OnSelectionChange>(onSelectionChange)
   useEffect(() => { onSelectionChangeRef.current = onSelectionChange })
 
-  // ── Canvas init (once per selected view) ──────────────────────────────────
+  // Canvas init (once per selected view)
 
   useEffect(() => {
     if (!selectedView) return
@@ -84,7 +84,7 @@ export function useFabricCanvas(
     liveViewRef.current = selectedView
   }, [selectedView, setDesign])
 
-  // ── Dispose on unmount ────────────────────────────────────────────────────
+  // Dispose on unmount
 
   useEffect(() => {
     return () => {
@@ -93,7 +93,7 @@ export function useFabricCanvas(
     }
   }, [])
 
-  // ── Canvas render (design / view changes only — NOT zoom/pan) ────────────
+  // Canvas render (design / view changes only - NOT zoom/pan)
 
   useEffect(() => {
     const canvas = fabricCanvasRef.current
@@ -126,7 +126,7 @@ export function useFabricCanvas(
       const w = Math.max(1, mmToStage(physical.width))
       const h = Math.max(1, mmToStage(physical.height))
 
-      // Render at device-pixel-ratio scale for sharp output at every zoom level.
+      // Render at device-pixel-ratio scale for sharp output at every zoom level
       const rawDpr = typeof globalThis === 'undefined' ? 1 : (globalThis.devicePixelRatio || 1)
       const dpr = Math.min(rawDpr, Math.max(1, Math.floor(4096 / Math.max(w, h))))
       canvas.clear()
@@ -200,7 +200,7 @@ export function useFabricCanvas(
     return () => { disposed = true }
   }, [design, selectedView])
 
-  // ── Tool cursor / selectability ───────────────────────────────────────────
+  // Tool cursor / selectability
 
   useEffect(() => {
     const canvas = fabricCanvasRef.current

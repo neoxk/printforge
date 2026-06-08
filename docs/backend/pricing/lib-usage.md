@@ -1,4 +1,4 @@
-# Pricing Lib — API Reference
+# Pricing Lib - API Reference
 
 Located at `backend/src/lib/pricing/`. Import everything from the index:
 
@@ -7,7 +7,7 @@ import { calculate, buildOrderContext } from '../lib/pricing/index.js'
 import type { OptionItemShape, OrderContext, PricingResult } from '../lib/pricing/index.js'
 ```
 
-The lib is **pure computation** — no database, no async. Fetching the items from the DB is the caller's responsibility (see `pricing.service.ts`).
+The lib is **pure computation** - no database, no async. Fetching the items from the DB is the caller's responsibility (see `pricing.service.ts`).
 
 ---
 
@@ -88,11 +88,11 @@ type DisplayMode      = 'SELECTABLE' | 'HIDDEN' | 'REQUIRED'
 
 ## Adding a New Processor
 
-1. Create `backend/src/lib/pricing/processors/your-basis.ts` — export a function matching `Processor`:
+1. Create `backend/src/lib/pricing/processors/your-basis.ts` - export a function matching `Processor`:
    ```ts
    export const yourBasis: Processor = (item, ctx) => { ... }
    ```
 2. Add it to the registry in `processors/index.ts` under its `CalculationBasis` key.
 3. Add the new value to the `CalculationBasis` union in `types.ts`.
 
-TypeScript will error at the registry if the key is missing — the `Record<CalculationBasis, Processor>` type enforces exhaustiveness.
+TypeScript will error at the registry if the key is missing - the `Record<CalculationBasis, Processor>` type enforces exhaustiveness.

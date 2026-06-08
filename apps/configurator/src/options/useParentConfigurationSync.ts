@@ -33,14 +33,14 @@ export function useParentConfigurationSync({
 
     channel.onmessage = (event: MessageEvent) => {
       if (event.data?.type !== 'printforge:dims:request') return
-      channel!.postMessage({
+      channel.postMessage({
         type: 'printforge:dims:update',
         widthMm: Number(dimensionsRef.current.widthMm),
         heightMm: Number(dimensionsRef.current.heightMm),
       })
     }
 
-    return () => { channel!.close() }
+    return () => { channel.close() }
   }, [])
 
   // Broadcast whenever dimensions change so the designer updates in real time
@@ -57,7 +57,7 @@ export function useParentConfigurationSync({
   }, [dimensions.widthMm, dimensions.heightMm])
 
   useEffect(() => {
-    if (!config || window.parent === window) return
+    if (!config || globalThis.parent === globalThis.window) return
 
     const targetOrigin = getParentTargetOrigin()
     if (!targetOrigin) return

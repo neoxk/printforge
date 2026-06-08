@@ -7,13 +7,6 @@ import { computePinchStart } from './designerUtils.js'
 type SetZoom = (updater: (z: number) => number) => void
 type SetPan = (p: { x: number; y: number }) => void
 
-/**
- * Registers wheel-zoom, mouse-pan, and pinch-to-zoom event listeners on the
- * viewport element. Also tracks viewport size for base-scale calculations.
- *
- * `selectedView` is included in effect deps so listeners re-attach after the
- * loading screen unmounts and the viewport div enters the DOM.
- */
 export function useViewportInteraction(
   viewportRef: RefObject<HTMLDivElement | null>,
   selectedView: DesignerView | null,
@@ -25,12 +18,12 @@ export function useViewportInteraction(
 ) {
   const [viewportSize, setViewportSize] = useState({ width: 320, height: 360 })
 
-  // Internal gesture tracking refs — never need to trigger re-renders
+  // Internal gesture tracking refs: never need to trigger re-renders
   const panDragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map())
   const pinchStartRef = useRef<{ dist: number; zoom: number } | null>(null)
 
-  // ── Viewport size ────────────────────────────────────────────────────────────
+  // Viewport size tracking: we need this to properly set the SVG viewport and to compute mouse positions relative to it
 
   useEffect(() => {
     const viewport = viewportRef.current
@@ -46,7 +39,7 @@ export function useViewportInteraction(
     return () => observer.disconnect()
   }, [viewportRef])
 
-  // ── Wheel zoom ───────────────────────────────────────────────────────────────
+  // Wheel zoom: Ctrl/Cmd + wheel to zoom in/out, with limits and fixed steps
 
   useEffect(() => {
     const viewport = viewportRef.current
@@ -62,7 +55,7 @@ export function useViewportInteraction(
     return () => viewport.removeEventListener('wheel', handleWheel, { capture: true })
   }, [selectedView, viewportRef, setZoom])
 
-  // ── Mouse pan ────────────────────────────────────────────────────────────────
+  // Mouse pan: click and drag to pan the view, only when the 'pan' tool is active
 
   useEffect(() => {
     const viewport = viewportRef.current
@@ -102,7 +95,7 @@ export function useViewportInteraction(
     }
   }, [selectedView, viewportRef, liveActiveToolRef, panRef, setPan])
 
-  // ── Pinch-to-zoom ────────────────────────────────────────────────────────────
+  // Pinch-to-zoom: touch with two fingers to zoom in/out, with limits and fixed steps
 
   useEffect(() => {
     const viewport = viewportRef.current

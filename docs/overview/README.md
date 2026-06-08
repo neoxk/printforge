@@ -67,4 +67,4 @@ The edge proxy. Routes incoming traffic to the correct service based on path:
 
 ## Architecture Diagram
 
-See [`../Server/structure.png`](../Server/structure.png) for the full infrastructure diagram.
+See [`server-structure.png`](server-structure.png) for the full infrastructure diagram.
