@@ -3,11 +3,14 @@ name: CI
 on:
   push:
     branches: [main]
+    tags:
+      - "v*.*.*"
   pull_request:
 
 permissions:
   contents: read
   pull-requests: read
+  packages: write
 
 jobs:
   test-build-sonar:
@@ -58,3 +61,65 @@ jobs:
             -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,**/*.test.js,**/*.spec.js
             -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info
             -Dsonar.exclusions=**/node_modules/**,**/vendor/**,**/dist/**,**/build/**,**/public/build/**,**/storage/**,**/.next/**,**/coverage/**,**/*.json,**/*.svg,**/*.md,**/*.txt,**/*.csv,**/*.min.js,**/*.min.css
+
+  docker:
+    name: Build Docker images
+    needs: test-build-sonar
+    runs-on: ubuntu-24.04
+
+    if: ${{ github.event_name != 'pull_request' }}
+
+    strategy:
+      matrix:
+        include:
+          - name: backend
+            dockerfile: backend/Dockerfile
+            image: printforge-backend
+          - name: admin
+            dockerfile: apps/admin/Dockerfile
+            image: printforge-admin
+          - name: configurator
+            dockerfile: apps/configurator/Dockerfile
+            image: printforge-configurator
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Prepare image owner
+        id: image-owner
+        run: echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ steps.image-owner.outputs.owner }}/${{ matrix.image }}
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
