@@ -22,6 +22,8 @@ const navigation = [
   { to: '/settings', label: 'Integration', icon: Settings },
 ]
 
+const brandLogoSrc = `${import.meta.env.BASE_URL}favicon.png`
+
 export function AppShell() {
   const { logout, user } = useAuth()
   const topbarDate = useMemo(
@@ -41,7 +43,7 @@ export function AppShell() {
         <SidebarHeader className="px-5 pt-7 pb-6">
           <div className="flex items-center gap-3">
             <img
-              src="/favicon.png"
+              src={brandLogoSrc}
               alt="PF"
               className="size-9 shrink-0 rounded-lg object-contain"
             />

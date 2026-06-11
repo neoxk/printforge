@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   test-build-sonar:
-    name: Test, Build, SonarCloud
+    name: Test, Build, SonarCloud, Docker
     runs-on: ubuntu-24.04
 
     env:
@@ -106,7 +106,6 @@ jobs:
         with:
           images: ghcr.io/${{ steps.image-owner.outputs.owner }}/${{ matrix.image }}
           tags: |
-            type=sha,prefix=
             type=ref,event=branch
             type=ref,event=tag
             type=semver,pattern={{version}}
