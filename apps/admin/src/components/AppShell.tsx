@@ -40,9 +40,11 @@ export function AppShell() {
         {/* Brand */}
         <SidebarHeader className="px-5 pt-7 pb-6">
           <div className="flex items-center gap-3">
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-[11px] font-bold tracking-widest text-sidebar-primary-foreground">
-              PF
-            </span>
+            <img
+              src="/favicon.png"
+              alt="PF"
+              className="size-9 shrink-0 rounded-lg object-contain"
+            />
             <div>
               <p className="text-[15px] font-bold leading-tight tracking-tight text-sidebar-foreground">
                 PrintForge
